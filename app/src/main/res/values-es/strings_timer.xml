@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lbl_timer">Temporizador</string>
+    <string name="lbl_timer_mode">Contar por</string>
+    <string name="lbl_timer_by_time">Tiempo</string>
+    <string name="lbl_timer_by_songs">Canciones</string>
+    <string name="lbl_timer_amount">Cantidad</string>
+    <string name="lbl_timer_minutes">%d min</string>
+    <string name="lbl_timer_songs">%d canciones</string>
+    <string name="lbl_timer_custom">Personalizado</string>
+    <string name="lbl_timer_custom_minutes">Minutos</string>
+    <string name="lbl_timer_custom_songs">Número de canciones</string>
+    <string name="lbl_timer_end_title">Al terminar el tiempo</string>
+    <string name="lbl_timer_end_cut">Cortar al instante</string>
+    <string name="lbl_timer_end_finish">Dejar terminar la canción</string>
+    <string name="lbl_timer_songs_hint">La reproducción se pausa cuando termina la última canción. La que está sonando cuenta como la primera.</string>
+    <string name="lbl_timer_start">Iniciar</string>
+    <string name="lbl_timer_cancel">Cancelar temporizador</string>
+    <string name="lbl_timer_close">Cerrar</string>
+    <string name="lbl_timer_invalid">Escribe un número del 1 al %d</string>
+    <string name="lbl_timer_started">Temporizador activado: %s</string>
+    <string name="lbl_timer_status_time">Tiempo restante: %s</string>
+    <string name="lbl_timer_status_time_finish">Tiempo restante: %s, luego termina la canción actual</string>
+    <string name="lbl_timer_status_songs">Quedan %d canciones, contando la actual</string>
+    <string name="lbl_timer_status_finishing">Se detendrá cuando termine la canción actual</string>
+</resources>

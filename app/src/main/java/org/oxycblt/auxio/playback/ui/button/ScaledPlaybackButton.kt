@@ -78,6 +78,13 @@ constructor(
     val baseHeight: Int
         get() = baseMetrics.height
 
+    /** Replaces the corner shape the scaling starts from (used to force a round button). */
+    fun setBaseShape(shape: ShapeAppearance) {
+        baseMetrics = baseMetrics.copy(shapeAppearance = shape)
+        lastScale = null
+        shapeAppearance = shape
+    }
+
     fun applyPlaybackScale(scale: Float) {
         val scaledWidth = baseMetrics.width.scale(scale)
         val scaledHeight = baseMetrics.height.scale(scale)

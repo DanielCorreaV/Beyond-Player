@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Soft violet/pink glows of the Neon style. Drawn over the UI at low opacity. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:left="-90dp"
+        android:top="-110dp"
+        android:width="360dp"
+        android:height="360dp"
+        android:gravity="top|start">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="180dp"
+                android:startColor="@color/neon_glow_violet"
+                android:endColor="@color/neon_glow_violet_clear" />
+        </shape>
+    </item>
+    <item
+        android:right="-120dp"
+        android:top="260dp"
+        android:width="340dp"
+        android:height="340dp"
+        android:gravity="top|end">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="170dp"
+                android:startColor="@color/neon_glow_pink"
+                android:endColor="@color/neon_glow_pink_clear" />
+        </shape>
+    </item>
+</layer-list>

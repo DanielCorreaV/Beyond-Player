@@ -19,6 +19,13 @@
 package org.oxycblt.auxio.playback
 
 import android.os.Bundle
+import org.oxycblt.auxio.ui.UISettings
+import org.oxycblt.auxio.ui.AppStyle
+import javax.inject.Inject
+import com.google.android.material.color.MaterialColors
+import com.google.android.material.R as MR
+import android.graphics.drawable.InsetDrawable
+import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
@@ -42,6 +49,29 @@ import timber.log.Timber as L
 class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
     private val playbackModel: PlaybackViewModel by activityViewModels()
     private val detailModel: DetailViewModel by activityViewModels()
+    @Inject lateinit var uiSettings: UISettings
+
+    private fun setupNeonBar(binding: FragmentPlaybackBarBinding) {
+        if (uiSettings.style == AppStyle.CLASSIC) return
+        val d = resources.displayMetrics.density
+        val card =
+            GradientDrawable().apply {
+                cornerRadius = 22 * d
+                setColor(MaterialColors.getColor(binding.root, MR.attr.colorSurfaceContainerHigh))
+                setStroke(
+                    ((if (uiSettings.style == AppStyle.POP) 2 else 1) * d).toInt(),
+                    MaterialColors.getColor(
+                        binding.root,
+                        if (uiSettings.style == AppStyle.POP) MR.attr.colorOnSurface
+                        else MR.attr.colorOutlineVariant,
+                    ),
+                )
+            }
+        // A card inset from the edges: drawn as an inset background, content padded to match.
+        binding.root.background =
+            InsetDrawable(card, (10 * d).toInt(), (6 * d).toInt(), (10 * d).toInt(), (2 * d).toInt())
+        binding.root.setPadding((14 * d).toInt(), 0, (14 * d).toInt(), 0)
+    }
 
     override fun onCreateBinding(inflater: LayoutInflater) =
         FragmentPlaybackBarBinding.inflate(inflater)
@@ -51,6 +81,7 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
         savedInstanceState: Bundle?,
     ) {
         super.onBindingCreated(binding, savedInstanceState)
+        setupNeonBar(binding)
 
         // --- UI SETUP ---
         binding.root.apply {

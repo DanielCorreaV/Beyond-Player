@@ -46,6 +46,11 @@ class PlaybackBottomSheetBehavior<V : View>(context: Context, attributeSet: Attr
     lateinit var sheetBackgroundDrawable: MaterialShapeDrawable
 
     fun makeBackgroundDrawable(context: Context) {
+        // The corner size of the sheet depends on the selected style.
+        val shapeAttrs = context.obtainStyledAttributes(intArrayOf(R.attr.auxioShapeSheet))
+        val sheetShape =
+            shapeAttrs.getResourceId(0, R.style.ShapeAppearance_Auxio_BottomSheet)
+        shapeAttrs.recycle()
         sheetBackgroundDrawable =
             MaterialShapeDrawable.createWithElevationOverlay(context).apply {
                 fillColor = context.getAttrColorCompat(MR.attr.colorSurfaceContainerLow)
@@ -53,7 +58,7 @@ class PlaybackBottomSheetBehavior<V : View>(context: Context, attributeSet: Attr
                     if (uiSettings.roundMode) {
                         ShapeAppearanceModel.builder(
                                 context,
-                                R.style.ShapeAppearance_Auxio_BottomSheet,
+                                sheetShape,
                                 MR.style.ShapeAppearanceOverlay_Material3_Corner_Top,
                             )
                             .build()

@@ -85,6 +85,8 @@ private constructor(
                 BuildConfig.APPLICATION_ID + ":IndexingComponent",
             )
     private var trackingJob: Job? = null
+    // Set when a library change was reported while a scan was already running.
+    @Volatile private var changedDuringIndex = false
 
     fun attach() {
         musicSettings.registerListener(this)
@@ -103,7 +105,10 @@ private constructor(
     }
 
     fun start() {
-        if (musicRepository.indexingState == null) {
+        // onStartCommand and onBind both call this on launch. The indexing state only changes
+        // once the first progress report arrives, so also check for a running job, otherwise the
+        // first scan is cancelled and the whole library is scanned twice.
+        if (musicRepository.indexingState == null && currentIndexJob?.isActive != true) {
             requestIndex(true)
         }
     }
@@ -132,11 +137,24 @@ private constructor(
 
     override fun requestIndex(withCache: Boolean) {
         L.d("Starting new indexing job (previous=${currentIndexJob?.hashCode()})")
+        android.util.Log.i(
+            "AuxioPerf",
+            "requestIndex(cache=$withCache) previousActive=${currentIndexJob?.isActive} caller=" +
+                Throwable().stackTrace.drop(1).take(6).joinToString(" <- ") {
+                    "${it.className.substringAfterLast('.')}.${it.methodName}:${it.lineNumber}"
+                },
+        )
         // Cancel the previous music loading job.
         currentIndexJob?.cancel()
         // Start a new music loading job on a co-routine.
-        currentIndexJob = indexScope.launch {
-            musicRepository.index(this@IndexingHolder, withCache)
+        changedDuringIndex = false
+        val job = indexScope.launch { musicRepository.index(this@IndexingHolder, withCache) }
+        currentIndexJob = job
+        job.invokeOnCompletion { error ->
+            if (error == null && changedDuringIndex && currentIndexJob === job) {
+                L.d("Library changed during scan, rescanning")
+                requestIndex(true)
+            }
         }
     }
 
@@ -151,6 +169,9 @@ private constructor(
     }
 
     override fun onMusicChanges(changes: MusicRepository.Changes) {
+        // A partial library is missing songs, using it to clean the saved playback state would
+        // throw away the queue. Wait for the complete one.
+        if (changes.partial) return
         val library = musicRepository.library ?: return
         L.d("Music changed, updating shared objects")
         // Wipe possibly-invalidated outdated covers
@@ -178,7 +199,18 @@ private constructor(
                     MediaStore.from(workerContext, musicSettings.mediaStoreQuery)
                 LocationMode.SAF -> SAF.from(workerContext, musicSettings.safQuery)
             }
-        trackingJob = indexScope.launch { fs.track().collect { requestIndex(true) } }
+        trackingJob =
+            indexScope.launch {
+                fs.track().collect {
+                    if (currentIndexJob?.isActive == true) {
+                        // Restarting a running scan throws away all its work and doubles the
+                        // startup time. Remember the change and rescan once this one finishes.
+                        changedDuringIndex = true
+                    } else {
+                        requestIndex(true)
+                    }
+                }
+            }
     }
 
     private fun stopTracking() {

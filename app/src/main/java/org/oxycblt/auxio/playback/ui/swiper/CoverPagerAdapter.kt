@@ -18,6 +18,7 @@
  
 package org.oxycblt.auxio.playback.ui.swiper
 
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import org.oxycblt.auxio.databinding.ItemCoverBinding
@@ -36,11 +37,13 @@ import org.oxycblt.musikr.Song
  */
 class CoverPagerAdapter(private val listener: StepperOverlay.Listener) :
     FlexibleListAdapter<Song, CoverViewHolder>(CoverViewHolder.DIFF_CALLBACK) {
+    /** Whether the cover carries the step gestures (off in the Walkman, the cassette has them). */
+    var stepperEnabled = true
 
     override fun onCreateViewHolder(parent: ViewGroup, pos: Int) = CoverViewHolder.from(parent)
 
     override fun onBindViewHolder(viewHolder: CoverViewHolder, pos: Int) {
-        viewHolder.bind(currentList[pos], listener)
+        viewHolder.bind(currentList[pos], listener, stepperEnabled)
     }
 }
 
@@ -57,9 +60,10 @@ class CoverViewHolder private constructor(private val binding: ItemCoverBinding)
      * @param song The new [Song] to bind.
      * @param listener An [StepperOverlay.Listener] to bind fast seek interactions to.
      */
-    fun bind(song: Song, listener: StepperOverlay.Listener) {
+    fun bind(song: Song, listener: StepperOverlay.Listener, stepperEnabled: Boolean = true) {
         binding.cover.bind(song)
-        binding.coverFastSeekOverlay.listener = listener
+        binding.coverFastSeekOverlay.listener = if (stepperEnabled) listener else null
+        binding.coverFastSeekOverlay.visibility = if (stepperEnabled) View.VISIBLE else View.GONE
     }
 
     companion object {

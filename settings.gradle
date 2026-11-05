@@ -16,6 +16,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // NewPipeExtractor (reads YouTube Music playlists). Restricted to its own group.
+        maven {
+            url 'https://jitpack.io'
+            content { includeGroupByRegex 'com\\.github\\.TeamNewPipe.*' }
+        }
     }
 }
 

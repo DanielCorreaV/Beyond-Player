@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="set_bg_image">Background image</string>
+    <string name="set_bg_image_desc">Pick a photo that fades in softly behind the app</string>
+    <string name="set_bg_image_clear">Remove background image</string>
+    <string name="set_bg_image_none">No image selected</string>
+    <string name="set_bg_image_set">Image selected</string>
+    <string name="set_bg_fade">Background image intensity</string>
+    <string name="set_bg_fade_soft">Soft</string>
+    <string name="set_bg_fade_medium">Medium</string>
+    <string name="set_bg_fade_strong">Strong</string>
+    <string name="err_bg_image">Could not use that image</string>
+    <string name="lbl_now_playing_card">Now playing</string>
+    <string name="lbl_hero_continue">Continue</string>
+    <string name="lbl_hero_pause">Pause</string>
+    <string name="lbl_favorites_playlist">Liked songs</string>
+    <string name="msg_favorite_added">Added to Liked songs</string>
+    <string name="msg_favorite_removed">Removed from Liked songs</string>
+    <string name="desc_favorite">Like</string>
+    <string name="lbl_neon_title">Your music</string>
+    <string name="lbl_greet_morning">Good morning</string>
+    <string name="lbl_greet_afternoon">Good afternoon</string>
+    <string name="lbl_greet_night">Good evening</string>
+    <string name="lbl_tile_sound">Sound</string>
+    <string name="lbl_tile_timer">Timer</string>
+    <string name="lbl_neon_playing_from">PLAYING FROM</string>
+    <string name="lbl_neon_search">Search songs, artists…</string>
+    <string name="lbl_neon_recents">Keep listening</string>
+    <string name="lbl_neon_lists">Your playlists</string>
+    <string name="lbl_pop_title">What\'s playing today?</string>
+    <string name="lbl_pop_hero_label">SHUFFLE</string>
+    <string name="lbl_pop_hero_title">Your whole library</string>
+    <string name="lbl_pop_hero_play">Play</string>
+    <string name="lbl_walkman_name">BEYOND PLAYER</string>
+    <string name="lbl_walkman_model">CASSETTE PLAYER · BP-2011</string>
+    <string name="lbl_walkman_playing">PLAYING</string>
+    <string name="lbl_walkman_paused">PAUSED</string>
+    <string name="lbl_pop_resume_label">PICK UP WHERE YOU LEFT OFF</string>
+    <string name="lbl_pop_resume_play">Continue</string>
+    <string name="lbl_pop_discover_label">DISCOVER</string>
+    <string name="lbl_pop_discover_play">Listen</string>
+</resources>

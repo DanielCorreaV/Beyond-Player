@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Extra shapes -->
+    <style name="ShapeAppearance.Style.R28" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
+    <!-- Tabs as pills (Neon, Pop) -->
+    <style name="Widget.Auxio.TabLayout.Pill" parent="Widget.Auxio.TabLayout">
+        <item name="tabIndicator">@drawable/tab_indicator_pill</item>
+        <item name="tabIndicatorGravity">stretch</item>
+        <item name="tabIndicatorFullWidth">true</item>
+        <item name="tabIndicatorColor">?attr/colorPrimary</item>
+        <item name="tabIndicatorAnimationMode">elastic</item>
+        <item name="tabSelectedTextColor">?attr/colorOnPrimary</item>
+        <item name="tabTextColor">?attr/colorOnSurfaceVariant</item>
+        <item name="tabRippleColor">@android:color/transparent</item>
+        <item name="tabPaddingStart">16dp</item>
+        <item name="tabPaddingEnd">16dp</item>
+    </style>
+
+    <style name="Widget.Auxio.TabLayout.Pill.Dark" parent="Widget.Auxio.TabLayout.Pill">
+        <item name="tabIndicatorColor">?attr/colorOnSurface</item>
+        <item name="tabSelectedTextColor">?attr/colorSurface</item>
+    </style>
+
+    <style name="Widget.Auxio.TabLayout.Thick" parent="Widget.Auxio.TabLayout">
+        <item name="tabIndicatorHeight">3dp</item>
+        <item name="tabIndicatorColor">?attr/colorPrimary</item>
+        <item name="tabSelectedTextColor">?attr/colorOnSurface</item>
+        <item name="tabTextColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <!-- Playback buttons: flat icons (Neon, Vinyl) -->
+    <style name="Widget.Auxio.Button.Playback.Toggle.Flat" parent="Widget.Auxio.Button.Playback.Toggle">
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <style name="Widget.Auxio.Button.Playback.Skip.Flat" parent="Widget.Auxio.Button.Playback.Skip">
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="iconTint">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="Widget.Auxio.Button.Playback.PlayPause.Round" parent="Widget.Auxio.Button.Playback.PlayPause">
+        <item name="shapeAppearance">@style/ShapeAppearance.Style.Circle</item>
+    </style>
+
+    <!-- Playback buttons: thick outline, chunky look (Pop) -->
+    <style name="Widget.Auxio.Button.Playback.Toggle.Pop" parent="Widget.Auxio.Button.Playback.Toggle">
+        <item name="backgroundTint">?attr/colorSurfaceContainerLowest</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="strokeColor">?attr/colorOnSurface</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Style.R16</item>
+    </style>
+
+    <style name="Widget.Auxio.Button.Playback.Skip.Pop" parent="Widget.Auxio.Button.Playback.Skip">
+        <item name="backgroundTint">?attr/colorSurfaceContainerLowest</item>
+        <item name="iconTint">?attr/colorOnSurface</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="strokeColor">?attr/colorOnSurface</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Style.R16</item>
+    </style>
+
+    <style name="Widget.Auxio.Button.Playback.PlayPause.Pop" parent="Widget.Auxio.Button.Playback.PlayPause">
+        <item name="strokeWidth">2dp</item>
+        <item name="strokeColor">?attr/colorOnSurface</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Style.R28</item>
+    </style>
+
+    <!-- "Now playing" card on the home screen (only shown by the Neon, Vinyl and Pop styles) -->
+    <style name="Widget.Auxio.HomeCard" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">?attr/colorSurfaceContainer</item>
+        <item name="cardCornerRadius">28dp</item>
+        <item name="cardElevation">0dp</item>
+    </style>
+
+    <style name="Widget.Auxio.HomeCard.Neon">
+        <item name="strokeWidth">2dp</item>
+        <item name="strokeColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="Widget.Auxio.HomeCard.Vinyl">
+        <item name="cardCornerRadius">32dp</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="strokeColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="Widget.Auxio.HomeCard.Pop">
+        <item name="cardBackgroundColor">?attr/colorPrimary</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="strokeColor">?attr/colorOnSurface</item>
+    </style>
+
+    <!-- Applied when a custom background image is set: screens become transparent so the image
+    (drawn as the window background) shows through. -->
+    <style name="ThemeOverlay.Auxio.CustomBackground" parent="">
+        <item name="auxioBackground">@android:color/transparent</item>
+    </style>
+
+    <!-- Dark palette inside the Walkman body (Pop player), whatever the day/night setting is. -->
+    <style name="ThemeOverlay.Auxio.Walkman" parent="">
+        <item name="colorSurface">#0E1726</item>
+        <item name="colorOnSurface">#F4F1FF</item>
+        <item name="colorOnSurfaceVariant">#C9C4DA</item>
+        <item name="colorSurfaceContainerLow">#101A2B</item>
+        <item name="colorSurfaceContainer">#141F33</item>
+        <item name="colorSurfaceContainerHigh">#1B2840</item>
+        <item name="colorPrimary">#FF5FA2</item>
+        <item name="colorOnPrimary">#17142B</item>
+        <item name="colorPrimaryContainer">#5A4A00</item>
+        <item name="colorOnPrimaryContainer">#FFE9A3</item>
+        <item name="colorSecondary">#FF8FB8</item>
+        <item name="colorOnSecondary">#17142B</item>
+        <item name="colorSecondaryContainer">#4A2A3A</item>
+        <item name="colorOnSecondaryContainer">#FFD3E8</item>
+        <item name="colorTertiary">#8FB0FF</item>
+        <item name="colorOutline">#8E8AA3</item>
+        <item name="colorOutlineVariant">#2B3B57</item>
+        <item name="colorControlNormal">#F4F1FF</item>
+        <item name="colorControlActivated">#FFD84D</item>
+        <item name="android:textColorPrimary">#F4F1FF</item>
+        <item name="android:textColorSecondary">#C9C4DA</item>
+        <item name="auxioPlaybackToggleStyle">@style/Widget.Auxio.Button.Playback.Toggle.Walkman</item>
+        <item name="auxioShapeCover">@style/ShapeAppearance.Style.R8</item>
+        <item name="auxioCoverDecor">@android:color/transparent</item>
+        <item name="auxioControlsBackground">@drawable/bg_walkman_keys</item>
+        <item name="auxioControlsPadding">8dp</item>
+        <item name="auxioPlaybackSkipStyle">@style/Widget.Auxio.Button.Playback.Skip.Walkman</item>
+        <item name="auxioPlaybackPlayPauseStyle">@style/Widget.Auxio.Button.Playback.PlayPause.Walkman</item>
+    </style>
+
+    <!-- Walkman keys (Pop player): gray rubber keys, orange PLAY key. -->
+    <style name="ShapeAppearance.Style.R8" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8dp</item>
+    </style>
+
+    <style name="Widget.Auxio.Button.Playback.Toggle.Walkman" parent="Widget.Auxio.Button.Playback.Toggle">
+        <item name="backgroundTint">#22314D</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Style.R8</item>
+    </style>
+
+    <style name="Widget.Auxio.Button.Playback.Skip.Walkman" parent="Widget.Auxio.Button.Playback.Skip">
+        <item name="backgroundTint">#1F3A5C</item>
+        <item name="iconTint">#3DD5F3</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Style.R8</item>
+    </style>
+
+    <style name="Widget.Auxio.Button.Playback.PlayPause.Walkman" parent="Widget.Auxio.Button.Playback.PlayPause">
+        <item name="materialThemeOverlay">@style/ThemeOverlay.Auxio.Button.Walkman</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Style.R8</item>
+    </style>
+
+    <style name="ThemeOverlay.Auxio.Button.Walkman" parent="">
+        <item name="colorContainer">#FF6A2B</item>
+        <item name="colorContainerChecked">#FF6A2B</item>
+        <item name="colorContainerUnchecked">#FF6A2B</item>
+        <item name="colorOnContainer">#17142B</item>
+        <item name="colorOnContainerChecked">#17142B</item>
+        <item name="colorOnContainerUnchecked">#17142B</item>
+    </style>
+</resources>

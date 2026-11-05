@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Halo behind the cover in the Neon player. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="64dp" />
+    <gradient
+        android:type="radial"
+        android:gradientRadius="55%p"
+        android:startColor="#80B05CFF"
+        android:centerColor="#40FF4FA3"
+        android:endColor="#00FF4FA3" />
+</shape>

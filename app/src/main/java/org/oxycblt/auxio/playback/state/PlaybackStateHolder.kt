@@ -69,6 +69,11 @@ interface PlaybackStateHolder {
     fun seekTo(positionMs: Long)
 
     /**
+     * Play at double speed (with the pitch unchanged) while [on] is true, normal speed otherwise.
+     */
+    fun boost(on: Boolean)
+
+    /**
      * Update the repeat mode of the audio player.
      *
      * @param repeatMode The new repeat mode.

@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Per-style typefaces. Each style re-skins the Auxio text appearances with its own font. -->
+    <style name="TextAppearance.Neon.DisplayLarge" parent="TextAppearance.Auxio.DisplayLarge">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.DisplayLarge.Emphasized" parent="TextAppearance.Auxio.DisplayLarge.Emphasized">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.DisplayMedium" parent="TextAppearance.Auxio.DisplayMedium">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.DisplayMedium.Emphasized" parent="TextAppearance.Auxio.DisplayMedium.Emphasized">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.DisplaySmall" parent="TextAppearance.Auxio.DisplaySmall">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.DisplaySmall.Emphasized" parent="TextAppearance.Auxio.DisplaySmall.Emphasized">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.HeadlineLarge" parent="TextAppearance.Auxio.HeadlineLarge">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.HeadlineLarge.Emphasized" parent="TextAppearance.Auxio.HeadlineLarge.Emphasized">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.HeadlineMedium" parent="TextAppearance.Auxio.HeadlineMedium">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.HeadlineMedium.Emphasized" parent="TextAppearance.Auxio.HeadlineMedium.Emphasized">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.HeadlineSmall" parent="TextAppearance.Auxio.HeadlineSmall">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.HeadlineSmall.Emphasized" parent="TextAppearance.Auxio.HeadlineSmall.Emphasized">
+        <item name="fontFamily">@font/sora_bold</item>
+        <item name="android:fontFamily">@font/sora_bold</item>
+    </style>
+    <style name="TextAppearance.Neon.TitleLarge" parent="TextAppearance.Auxio.TitleLarge">
+        <item name="fontFamily">@font/sora_regular</item>
+        <item name="android:fontFamily">@font/sora_regular</item>
+    </style>
+    <style name="TextAppearance.Neon.TitleLarge.Emphasized" parent="TextAppearance.Auxio.TitleLarge.Emphasized">
+        <item name="fontFamily">@font/sora_semibold</item>
+        <item name="android:fontFamily">@font/sora_semibold</item>
+    </style>
+    <style name="TextAppearance.Neon.TitleMedium" parent="TextAppearance.Auxio.TitleMedium">
+        <item name="fontFamily">@font/sora_regular</item>
+        <item name="android:fontFamily">@font/sora_regular</item>
+    </style>
+    <style name="TextAppearance.Neon.TitleMedium.Emphasized" parent="TextAppearance.Auxio.TitleMedium.Emphasized">
+        <item name="fontFamily">@font/sora_semibold</item>
+        <item name="android:fontFamily">@font/sora_semibold</item>
+    </style>
+    <style name="TextAppearance.Neon.TitleSmall" parent="TextAppearance.Auxio.TitleSmall">
+        <item name="fontFamily">@font/sora_regular</item>
+        <item name="android:fontFamily">@font/sora_regular</item>
+    </style>
+    <style name="TextAppearance.Neon.TitleSmall.Emphasized" parent="TextAppearance.Auxio.TitleSmall.Emphasized">
+        <item name="fontFamily">@font/sora_semibold</item>
+        <item name="android:fontFamily">@font/sora_semibold</item>
+    </style>
+    <style name="TextAppearance.Neon.LabelLarge" parent="TextAppearance.Auxio.LabelLarge">
+        <item name="fontFamily">@font/sora_regular</item>
+        <item name="android:fontFamily">@font/sora_regular</item>
+    </style>
+    <style name="TextAppearance.Neon.LabelLarge.Emphasized" parent="TextAppearance.Auxio.LabelLarge.Emphasized">
+        <item name="fontFamily">@font/sora_semibold</item>
+        <item name="android:fontFamily">@font/sora_semibold</item>
+    </style>
+    <style name="TextAppearance.Neon.LabelMedium" parent="TextAppearance.Auxio.LabelMedium">
+        <item name="fontFamily">@font/sora_regular</item>
+        <item name="android:fontFamily">@font/sora_regular</item>
+    </style>
+    <style name="TextAppearance.Neon.LabelMedium.Emphasized" parent="TextAppearance.Auxio.LabelMedium.Emphasized">
+        <item name="fontFamily">@font/sora_semibold</item>
+        <item name="android:fontFamily">@font/sora_semibold</item>
+    </style>
+    <style name="TextAppearance.Neon.LabelSmall" parent="TextAppearance.Auxio.LabelSmall">
+        <item name="fontFamily">@font/sora_regular</item>
+        <item name="android:fontFamily">@font/sora_regular</item>
+    </style>
+    <style name="TextAppearance.Neon.LabelSmall.Emphasized" parent="TextAppearance.Auxio.LabelSmall.Emphasized">
+        <item name="fontFamily">@font/sora_semibold</item>
+        <item name="android:fontFamily">@font/sora_semibold</item>
+    </style>
+    <style name="TextAppearance.Neon.BodyLarge" parent="TextAppearance.Auxio.BodyLarge">
+        <item name="fontFamily">@font/sora_regular</item>
+        <item name="android:fontFamily">@font/sora_regular</item>
+    </style>
+    <style name="TextAppearance.Neon.BodyLarge.Emphasized" parent="TextAppearance.Auxio.BodyLarge.Emphasized">
+        <item name="fontFamily">@font/sora_semibold</item>
+        <item name="android:fontFamily">@font/sora_semibold</item>
+    </style>
+    <style name="TextAppearance.Neon.BodyMedium" parent="TextAppearance.Auxio.BodyMedium">
+        <item name="fontFamily">@font/sora_regular</item>
+        <item name="android:fontFamily">@font/sora_regular</item>
+    </style>
+    <style name="TextAppearance.Neon.BodyMedium.Emphasized" parent="TextAppearance.Auxio.BodyMedium.Emphasized">
+        <item name="fontFamily">@font/sora_semibold</item>
+        <item name="android:fontFamily">@font/sora_semibold</item>
+    </style>
+    <style name="TextAppearance.Neon.BodySmall" parent="TextAppearance.Auxio.BodySmall">
+        <item name="fontFamily">@font/sora_regular</item>
+        <item name="android:fontFamily">@font/sora_regular</item>
+    </style>
+    <style name="TextAppearance.Neon.BodySmall.Emphasized" parent="TextAppearance.Auxio.BodySmall.Emphasized">
+        <item name="fontFamily">@font/sora_semibold</item>
+        <item name="android:fontFamily">@font/sora_semibold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.DisplayLarge" parent="TextAppearance.Auxio.DisplayLarge">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.DisplayLarge.Emphasized" parent="TextAppearance.Auxio.DisplayLarge.Emphasized">
+        <item name="fontFamily">@font/unbounded_bold</item>
+        <item name="android:fontFamily">@font/unbounded_bold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.DisplayMedium" parent="TextAppearance.Auxio.DisplayMedium">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.DisplayMedium.Emphasized" parent="TextAppearance.Auxio.DisplayMedium.Emphasized">
+        <item name="fontFamily">@font/unbounded_bold</item>
+        <item name="android:fontFamily">@font/unbounded_bold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.DisplaySmall" parent="TextAppearance.Auxio.DisplaySmall">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.DisplaySmall.Emphasized" parent="TextAppearance.Auxio.DisplaySmall.Emphasized">
+        <item name="fontFamily">@font/unbounded_bold</item>
+        <item name="android:fontFamily">@font/unbounded_bold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.HeadlineLarge" parent="TextAppearance.Auxio.HeadlineLarge">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.HeadlineLarge.Emphasized" parent="TextAppearance.Auxio.HeadlineLarge.Emphasized">
+        <item name="fontFamily">@font/unbounded_bold</item>
+        <item name="android:fontFamily">@font/unbounded_bold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.HeadlineMedium" parent="TextAppearance.Auxio.HeadlineMedium">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.HeadlineMedium.Emphasized" parent="TextAppearance.Auxio.HeadlineMedium.Emphasized">
+        <item name="fontFamily">@font/unbounded_bold</item>
+        <item name="android:fontFamily">@font/unbounded_bold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.HeadlineSmall" parent="TextAppearance.Auxio.HeadlineSmall">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.HeadlineSmall.Emphasized" parent="TextAppearance.Auxio.HeadlineSmall.Emphasized">
+        <item name="fontFamily">@font/unbounded_bold</item>
+        <item name="android:fontFamily">@font/unbounded_bold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.TitleLarge" parent="TextAppearance.Auxio.TitleLarge">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.TitleLarge.Emphasized" parent="TextAppearance.Auxio.TitleLarge.Emphasized">
+        <item name="fontFamily">@font/unbounded_bold</item>
+        <item name="android:fontFamily">@font/unbounded_bold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.TitleMedium" parent="TextAppearance.Auxio.TitleMedium">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.TitleMedium.Emphasized" parent="TextAppearance.Auxio.TitleMedium.Emphasized">
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.TitleSmall" parent="TextAppearance.Auxio.TitleSmall">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.TitleSmall.Emphasized" parent="TextAppearance.Auxio.TitleSmall.Emphasized">
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.LabelLarge" parent="TextAppearance.Auxio.LabelLarge">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.LabelLarge.Emphasized" parent="TextAppearance.Auxio.LabelLarge.Emphasized">
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.LabelMedium" parent="TextAppearance.Auxio.LabelMedium">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.LabelMedium.Emphasized" parent="TextAppearance.Auxio.LabelMedium.Emphasized">
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.LabelSmall" parent="TextAppearance.Auxio.LabelSmall">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.LabelSmall.Emphasized" parent="TextAppearance.Auxio.LabelSmall.Emphasized">
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.BodyLarge" parent="TextAppearance.Auxio.BodyLarge">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.BodyLarge.Emphasized" parent="TextAppearance.Auxio.BodyLarge.Emphasized">
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.BodyMedium" parent="TextAppearance.Auxio.BodyMedium">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.BodyMedium.Emphasized" parent="TextAppearance.Auxio.BodyMedium.Emphasized">
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+    </style>
+    <style name="TextAppearance.Vinyl.BodySmall" parent="TextAppearance.Auxio.BodySmall">
+        <item name="fontFamily">@font/manrope_regular</item>
+        <item name="android:fontFamily">@font/manrope_regular</item>
+    </style>
+    <style name="TextAppearance.Vinyl.BodySmall.Emphasized" parent="TextAppearance.Auxio.BodySmall.Emphasized">
+        <item name="fontFamily">@font/manrope_semibold</item>
+        <item name="android:fontFamily">@font/manrope_semibold</item>
+    </style>
+    <style name="TextAppearance.Pop.DisplayLarge" parent="TextAppearance.Auxio.DisplayLarge">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.DisplayLarge.Emphasized" parent="TextAppearance.Auxio.DisplayLarge.Emphasized">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.DisplayMedium" parent="TextAppearance.Auxio.DisplayMedium">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.DisplayMedium.Emphasized" parent="TextAppearance.Auxio.DisplayMedium.Emphasized">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.DisplaySmall" parent="TextAppearance.Auxio.DisplaySmall">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.DisplaySmall.Emphasized" parent="TextAppearance.Auxio.DisplaySmall.Emphasized">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.HeadlineLarge" parent="TextAppearance.Auxio.HeadlineLarge">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.HeadlineLarge.Emphasized" parent="TextAppearance.Auxio.HeadlineLarge.Emphasized">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.HeadlineMedium" parent="TextAppearance.Auxio.HeadlineMedium">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.HeadlineMedium.Emphasized" parent="TextAppearance.Auxio.HeadlineMedium.Emphasized">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.HeadlineSmall" parent="TextAppearance.Auxio.HeadlineSmall">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.HeadlineSmall.Emphasized" parent="TextAppearance.Auxio.HeadlineSmall.Emphasized">
+        <item name="fontFamily">@font/bricolage_extrabold</item>
+        <item name="android:fontFamily">@font/bricolage_extrabold</item>
+    </style>
+    <style name="TextAppearance.Pop.TitleLarge" parent="TextAppearance.Auxio.TitleLarge">
+        <item name="fontFamily">@font/bricolage_regular</item>
+        <item name="android:fontFamily">@font/bricolage_regular</item>
+    </style>
+    <style name="TextAppearance.Pop.TitleLarge.Emphasized" parent="TextAppearance.Auxio.TitleLarge.Emphasized">
+        <item name="fontFamily">@font/bricolage_bold</item>
+        <item name="android:fontFamily">@font/bricolage_bold</item>
+    </style>
+    <style name="TextAppearance.Pop.TitleMedium" parent="TextAppearance.Auxio.TitleMedium">
+        <item name="fontFamily">@font/bricolage_regular</item>
+        <item name="android:fontFamily">@font/bricolage_regular</item>
+    </style>
+    <style name="TextAppearance.Pop.TitleMedium.Emphasized" parent="TextAppearance.Auxio.TitleMedium.Emphasized">
+        <item name="fontFamily">@font/bricolage_bold</item>
+        <item name="android:fontFamily">@font/bricolage_bold</item>
+    </style>
+    <style name="TextAppearance.Pop.TitleSmall" parent="TextAppearance.Auxio.TitleSmall">
+        <item name="fontFamily">@font/bricolage_regular</item>
+        <item name="android:fontFamily">@font/bricolage_regular</item>
+    </style>
+    <style name="TextAppearance.Pop.TitleSmall.Emphasized" parent="TextAppearance.Auxio.TitleSmall.Emphasized">
+        <item name="fontFamily">@font/bricolage_bold</item>
+        <item name="android:fontFamily">@font/bricolage_bold</item>
+    </style>
+    <style name="TextAppearance.Pop.LabelLarge" parent="TextAppearance.Auxio.LabelLarge">
+        <item name="fontFamily">@font/bricolage_regular</item>
+        <item name="android:fontFamily">@font/bricolage_regular</item>
+    </style>
+    <style name="TextAppearance.Pop.LabelLarge.Emphasized" parent="TextAppearance.Auxio.LabelLarge.Emphasized">
+        <item name="fontFamily">@font/bricolage_bold</item>
+        <item name="android:fontFamily">@font/bricolage_bold</item>
+    </style>
+    <style name="TextAppearance.Pop.LabelMedium" parent="TextAppearance.Auxio.LabelMedium">
+        <item name="fontFamily">@font/bricolage_regular</item>
+        <item name="android:fontFamily">@font/bricolage_regular</item>
+    </style>
+    <style name="TextAppearance.Pop.LabelMedium.Emphasized" parent="TextAppearance.Auxio.LabelMedium.Emphasized">
+        <item name="fontFamily">@font/bricolage_bold</item>
+        <item name="android:fontFamily">@font/bricolage_bold</item>
+    </style>
+    <style name="TextAppearance.Pop.LabelSmall" parent="TextAppearance.Auxio.LabelSmall">
+        <item name="fontFamily">@font/bricolage_regular</item>
+        <item name="android:fontFamily">@font/bricolage_regular</item>
+    </style>
+    <style name="TextAppearance.Pop.LabelSmall.Emphasized" parent="TextAppearance.Auxio.LabelSmall.Emphasized">
+        <item name="fontFamily">@font/bricolage_bold</item>
+        <item name="android:fontFamily">@font/bricolage_bold</item>
+    </style>
+    <style name="TextAppearance.Pop.BodyLarge" parent="TextAppearance.Auxio.BodyLarge">
+        <item name="fontFamily">@font/bricolage_regular</item>
+        <item name="android:fontFamily">@font/bricolage_regular</item>
+    </style>
+    <style name="TextAppearance.Pop.BodyLarge.Emphasized" parent="TextAppearance.Auxio.BodyLarge.Emphasized">
+        <item name="fontFamily">@font/bricolage_bold</item>
+        <item name="android:fontFamily">@font/bricolage_bold</item>
+    </style>
+    <style name="TextAppearance.Pop.BodyMedium" parent="TextAppearance.Auxio.BodyMedium">
+        <item name="fontFamily">@font/bricolage_regular</item>
+        <item name="android:fontFamily">@font/bricolage_regular</item>
+    </style>
+    <style name="TextAppearance.Pop.BodyMedium.Emphasized" parent="TextAppearance.Auxio.BodyMedium.Emphasized">
+        <item name="fontFamily">@font/bricolage_bold</item>
+        <item name="android:fontFamily">@font/bricolage_bold</item>
+    </style>
+    <style name="TextAppearance.Pop.BodySmall" parent="TextAppearance.Auxio.BodySmall">
+        <item name="fontFamily">@font/bricolage_regular</item>
+        <item name="android:fontFamily">@font/bricolage_regular</item>
+    </style>
+    <style name="TextAppearance.Pop.BodySmall.Emphasized" parent="TextAppearance.Auxio.BodySmall.Emphasized">
+        <item name="fontFamily">@font/bricolage_bold</item>
+        <item name="android:fontFamily">@font/bricolage_bold</item>
+    </style>
+</resources>

@@ -7,6 +7,22 @@
     <item name="home_genre_recycler" type="id" />
     <item name="home_playlist_recycler" type="id" />
 
+    <!-- Style-dependent shapes and decoration (see AppStyle). Classic values live in Theme.Auxio.Base. -->
+    <attr name="auxioShapeSmall" format="reference" />
+    <attr name="auxioShapeLarge" format="reference" />
+    <attr name="auxioShapeCover" format="reference" />
+    <attr name="auxioOverlay" format="reference" />
+    <attr name="auxioCoverDecor" format="reference" />
+    <attr name="auxioCoverGlow" format="reference" />
+    <attr name="auxioShapeSheet" format="reference" />
+    <attr name="auxioBackground" format="reference|color" />
+    <attr name="auxioControlsBackground" format="reference" />
+    <attr name="auxioControlsPadding" format="dimension" />
+    <attr name="auxioHomeCardStyle" format="reference" />
+    <attr name="auxioPlaybackToggleStyle" format="reference" />
+    <attr name="auxioPlaybackSkipStyle" format="reference" />
+    <attr name="auxioPlaybackPlayPauseStyle" format="reference" />
+
     <integer name="anim_fade_enter_duration">200</integer>
     <integer name="anim_fade_exit_duration">100</integer>
 

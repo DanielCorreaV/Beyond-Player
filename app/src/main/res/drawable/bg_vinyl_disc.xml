@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval"><solid android:color="#0B0908" /></shape>
+    </item>
+    <item>
+        <inset android:insetLeft="4%" android:insetTop="4%" android:insetRight="4%" android:insetBottom="4%">
+            <shape android:shape="oval"><stroke android:width="1dp" android:color="#1C1713" /></shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="8%" android:insetTop="8%" android:insetRight="8%" android:insetBottom="8%">
+            <shape android:shape="oval"><stroke android:width="1dp" android:color="#1C1713" /></shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="12%" android:insetTop="12%" android:insetRight="12%" android:insetBottom="12%">
+            <shape android:shape="oval"><stroke android:width="1dp" android:color="#1C1713" /></shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="16%" android:insetTop="16%" android:insetRight="16%" android:insetBottom="16%">
+            <shape android:shape="oval"><stroke android:width="1dp" android:color="#1C1713" /></shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="20%" android:insetTop="20%" android:insetRight="20%" android:insetBottom="20%">
+            <shape android:shape="oval"><stroke android:width="1dp" android:color="#1C1713" /></shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="24%" android:insetTop="24%" android:insetRight="24%" android:insetBottom="24%">
+            <shape android:shape="oval"><stroke android:width="1dp" android:color="#1C1713" /></shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="28%" android:insetTop="28%" android:insetRight="28%" android:insetBottom="28%">
+            <shape android:shape="oval"><stroke android:width="1dp" android:color="#1C1713" /></shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="32%" android:insetTop="32%" android:insetRight="32%" android:insetBottom="32%">
+            <shape android:shape="oval"><stroke android:width="1dp" android:color="#1C1713" /></shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="36%" android:insetTop="36%" android:insetRight="36%" android:insetBottom="36%">
+            <shape android:shape="oval"><solid android:color="?attr/colorPrimary" /></shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="47%" android:insetTop="47%" android:insetRight="47%" android:insetBottom="47%">
+            <shape android:shape="oval"><solid android:color="#14110F" /></shape>
+        </inset>
+    </item>
+</layer-list>

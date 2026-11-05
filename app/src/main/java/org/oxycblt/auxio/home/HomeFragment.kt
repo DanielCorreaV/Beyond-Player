@@ -19,6 +19,13 @@
 package org.oxycblt.auxio.home
 
 import android.annotation.SuppressLint
+import androidx.recyclerview.widget.GridLayoutManager
+import android.graphics.drawable.ColorDrawable
+import org.oxycblt.auxio.playback.ui.DiscSpinner
+import com.google.android.material.color.MaterialColors
+import com.google.android.material.R as MR
+import androidx.core.view.updatePadding
+import androidx.core.graphics.ColorUtils
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -38,6 +45,7 @@ import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import com.google.android.material.transition.MaterialSharedAxis
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import org.oxycblt.auxio.R
 import org.oxycblt.auxio.databinding.FragmentHomeBinding
 import org.oxycblt.auxio.detail.DetailViewModel
@@ -57,9 +65,13 @@ import org.oxycblt.auxio.music.MusicType
 import org.oxycblt.auxio.music.MusicViewModel
 import org.oxycblt.auxio.music.PlaylistDecision
 import org.oxycblt.auxio.music.PlaylistMessage
+import org.oxycblt.auxio.music.resolve
+import org.oxycblt.auxio.music.resolveNames
 import org.oxycblt.auxio.playback.PlaybackDecision
 import org.oxycblt.auxio.playback.PlaybackViewModel
+import org.oxycblt.auxio.ui.AppStyle
 import org.oxycblt.auxio.ui.FadingToolbarOffsetListener
+import org.oxycblt.auxio.ui.UISettings
 import org.oxycblt.auxio.util.collect
 import org.oxycblt.auxio.util.collectImmediately
 import org.oxycblt.auxio.util.dampen
@@ -67,6 +79,7 @@ import org.oxycblt.auxio.util.navigateSafe
 import org.oxycblt.auxio.util.showToast
 import org.oxycblt.musikr.IndexingProgress
 import org.oxycblt.musikr.Music
+import org.oxycblt.musikr.Song
 import org.oxycblt.musikr.Playlist
 import org.oxycblt.musikr.playlist.m3u.M3U
 import timber.log.Timber as L
@@ -84,6 +97,9 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
     override val playbackModel: PlaybackViewModel by activityViewModels()
     private val homeModel: HomeViewModel by activityViewModels()
     private val detailModel: DetailViewModel by activityViewModels()
+    @Inject lateinit var uiSettings: UISettings
+    @Inject lateinit var recentSongs: RecentSongs
+    private var discSpinner: DiscSpinner? = null
     private var storagePermissionLauncher: ActivityResultLauncher<String>? = null
     private var getContentLauncher: ActivityResultLauncher<String>? = null
     private var pendingImportTarget: Playlist? = null
@@ -124,9 +140,14 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
 
         // --- UI SETUP ---
 
-        binding.homeAppbar.addOnOffsetChangedListener(
-            FadingToolbarOffsetListener(binding.homeToolbar, binding.homeContent)
-        )
+        if (uiSettings.style == AppStyle.CLASSIC) {
+            binding.homeAppbar.addOnOffsetChangedListener(
+                FadingToolbarOffsetListener(binding.homeToolbar, binding.homeContent)
+            )
+        } else {
+            setupStickyHeader(binding)
+            if (uiSettings.style == AppStyle.NEON || uiSettings.style == AppStyle.POP) setupNeonTitle(binding)
+        }
         binding.homeNormalToolbar.apply {
             setOnMenuItemClickListener(this@HomeFragment)
             MenuCompat.setGroupDividerEnabled(menu, true)
@@ -158,6 +179,9 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             dampen()
         }
 
+        binding.homeNowPlay.setOnClickListener { playbackModel.togglePlaying() }
+        binding.homeNowContinue.setOnClickListener { playbackModel.togglePlaying() }
+
         // Further initialization must be done in the function that also handles
         // re-creating the ViewPager.
         setupPager(binding)
@@ -173,9 +197,235 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         collect(musicModel.playlistDecision.flow, ::handlePlaylistDecision)
         collectImmediately(musicModel.playlistMessage.flow, ::handlePlaylistMessage)
         collect(playbackModel.playbackDecision.flow, ::handlePlaybackDecision)
+        collectImmediately(playbackModel.song, ::updateNowCard)
+        collectImmediately(playbackModel.isPlaying, ::updateNowCardPlaying)
+        setupNeonDashboard(binding)
+    }
+
+    private fun setupNeonTitle(binding: FragmentHomeBinding) {
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        binding.homeNormalToolbar.title =
+            getString(if (uiSettings.style == AppStyle.POP) R.string.lbl_pop_title else R.string.lbl_neon_title)
+        binding.homeNormalToolbar.subtitle =
+            getString(
+                when {
+                    hour < 12 -> R.string.lbl_greet_morning
+                    hour < 19 -> R.string.lbl_greet_afternoon
+                    else -> R.string.lbl_greet_night
+                }
+            )
+    }
+
+    private fun setupStickyHeader(binding: FragmentHomeBinding) {
+        // The now playing card scrolls away; the toolbar (app title) and tabs stay pinned below it,
+        // on a translucent plate so the title stands out over the background image.
+        val surface = MaterialColors.getColor(binding.root, MR.attr.colorSurface)
+        binding.homeToolbar.setBackgroundColor(surface)
+        // Also cover the status bar area, so the card never shows behind it.
+        binding.homeAppbar.statusBarForeground = ColorDrawable(surface)
+        // Cancel the header's scroll for the toolbar so it stays at the top of the screen.
+        binding.homeAppbar.addOnOffsetChangedListener { _, offset ->
+            binding.homeToolbar.translationY = -offset.toFloat()
+        }
+    }
+
+    private fun setupPopHero(binding: FragmentHomeBinding) {
+        binding.homePopHero.isVisible = true
+        val context = requireContext()
+        var mode = 0
+        var discover: Song? = null
+        // Modes: 0 = resume, 1 = discover, 2 = shuffle. Resume/discover are skipped when empty.
+        fun resumeSong(): Song? = musicModel.findSongs(recentSongs.load()).firstOrNull()
+        fun discoverSong(): Song? {
+            if (discover == null) discover = homeModel.songList.value.randomOrNull()
+            return discover
+        }
+        fun available(m: Int) = when (m) {
+            0 -> resumeSong() != null
+            1 -> discoverSong() != null
+            else -> true
+        }
+        lateinit var action: () -> Unit
+        fun render() {
+            if (!available(mode)) mode = 2
+            val card = binding.homePopHeroCard
+            val withCover = mode != 2
+            binding.homePopBlobA.isVisible = !withCover
+            binding.homePopBlobB.isVisible = !withCover
+            binding.homePopHeroCover.isVisible = withCover
+            binding.homePopHeroSub.isVisible = withCover
+            val song =
+                when (mode) {
+                    0 -> resumeSong()
+                    1 -> discoverSong()
+                    else -> null
+                }
+            when (mode) {
+                0 -> {
+                    card.setCardBackgroundColor(0xFF3DD5F3.toInt())
+                    binding.homePopHeroLabel.setText(R.string.lbl_pop_resume_label)
+                    binding.homePopPlay.setText(R.string.lbl_pop_resume_play)
+                }
+                1 -> {
+                    card.setCardBackgroundColor(0xFFFF8FB8.toInt())
+                    binding.homePopHeroLabel.setText(R.string.lbl_pop_discover_label)
+                    binding.homePopPlay.setText(R.string.lbl_pop_discover_play)
+                }
+                else -> {
+                    card.setCardBackgroundColor(0xFFFFD84D.toInt())
+                    binding.homePopHeroLabel.setText(R.string.lbl_pop_hero_label)
+                    binding.homePopHeroTitle.setText(R.string.lbl_pop_hero_title)
+                    binding.homePopPlay.setText(R.string.lbl_pop_hero_play)
+                }
+            }
+            if (song != null) {
+                binding.homePopHeroTitle.text = song.name.resolve(context)
+                binding.homePopHeroSub.text = song.artists.resolveNames(context)
+                binding.homePopHeroCover.bind(song)
+            }
+            binding.homePopHeroDots.text =
+                (0..2).joinToString(" ") { if (it == mode) "\u25CF" else "\u25CB" }
+            action = {
+                when (mode) {
+                    0, 1 -> song?.let { playbackModel.play(it, homeModel.playWith) }
+                    else -> playbackModel.shuffleAll()
+                }
+            }
+        }
+        fun step(delta: Int) {
+            var next = mode
+            repeat(3) {
+                next = (next + delta + 3) % 3
+                if (available(next)) {
+                    mode = next
+                    render()
+                    return
+                }
+            }
+        }
+        val detector =
+            android.view.GestureDetector(
+                context,
+                object : android.view.GestureDetector.SimpleOnGestureListener() {
+                    override fun onDown(e: android.view.MotionEvent) = true
+
+                    override fun onSingleTapUp(e: android.view.MotionEvent): Boolean {
+                        action()
+                        return true
+                    }
+
+                    override fun onFling(
+                        e1: android.view.MotionEvent?,
+                        e2: android.view.MotionEvent,
+                        velocityX: Float,
+                        velocityY: Float,
+                    ): Boolean {
+                        if (kotlin.math.abs(velocityX) < kotlin.math.abs(velocityY)) return false
+                        step(if (velocityX < 0) 1 else -1)
+                        return true
+                    }
+                },
+            )
+        binding.homePopHeroCard.setOnTouchListener { v, ev ->
+            if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                v.parent?.requestDisallowInterceptTouchEvent(true)
+            }
+            detector.onTouchEvent(ev)
+        }
+        binding.homePopPlay.setOnClickListener { action() }
+        // Start on "resume" when there is something to resume, otherwise on the shuffle card.
+        mode = if (resumeSong() != null) 0 else 1
+        render()
+    }
+
+    private fun setupNeonDashboard(binding: FragmentHomeBinding) {
+        if (uiSettings.style == AppStyle.CLASSIC) return
+        binding.homeNeonDash.isVisible = true
+        if (uiSettings.style == AppStyle.POP) {
+            setupPopHero(binding)
+        }
+        binding.homeSearchPill.setOnClickListener {
+            findNavController().navigateSafe(HomeFragmentDirections.search())
+        }
+        binding.homeRecents.adapter =
+            NeonRecentAdapter { song -> playbackModel.play(song, homeModel.playWith) }
+        binding.homeLists.layoutManager =
+            GridLayoutManager(requireContext(), 2, GridLayoutManager.HORIZONTAL, false)
+        binding.homeLists.adapter =
+            NeonPlaylistAdapter(
+                getString(R.string.lbl_favorites_playlist),
+                when (uiSettings.style) {
+                    AppStyle.VINYL -> VINYL_GRADIENTS
+                    AppStyle.POP -> POP_GRADIENTS
+                    else -> NEON_GRADIENTS
+                },
+            ) { playlist ->
+                detailModel.showPlaylist(playlist)
+            }
+        collectImmediately(homeModel.playlistList, ::updateNeonLists)
+        collectImmediately(playbackModel.song, ::updateNeonRecents)
+    }
+
+    private fun updateNeonLists(playlists: List<Playlist>) {
+        val binding = requireBinding()
+        (binding.homeLists.layoutManager as? GridLayoutManager)?.spanCount =
+            playlists.size.coerceIn(1, 2)
+        (binding.homeLists.adapter as? NeonPlaylistAdapter)?.submit(playlists)
+        binding.homeListsSection.isVisible = playlists.isNotEmpty()
+        refreshNeonRecents()
+    }
+
+    private fun updateNeonRecents(song: Song?) {
+        if (song != null) recentSongs.add(song.uid)
+        refreshNeonRecents()
+    }
+
+    private fun refreshNeonRecents() {
+        val binding = requireBinding()
+        val songs = musicModel.findSongs(recentSongs.load())
+        (binding.homeRecents.adapter as? NeonRecentAdapter)?.submit(songs)
+        binding.homeRecentsSection.isVisible = songs.isNotEmpty()
+    }
+
+    private fun updateNowCard(song: Song?) {
+        val binding = requireBinding()
+        if (song == null || uiSettings.style == AppStyle.CLASSIC ||
+            uiSettings.style == AppStyle.NEON || uiSettings.style == AppStyle.POP) {
+            binding.homeNowCard.isVisible = false
+            return
+        }
+        val context = requireContext()
+        val hero = uiSettings.style == AppStyle.VINYL
+        binding.homeNowCard.isVisible = true
+        binding.homeNowHero.isVisible = hero
+        binding.homeNowCompact.isVisible = !hero
+        binding.homeNowHeroSong.text = song.name.resolve(context)
+        binding.homeNowHeroArtist.text = song.artists.resolveNames(context)
+        binding.homeNowCover.bind(song)
+        binding.homeNowDisc.bind(song)
+        if (hero && discSpinner == null) {
+            discSpinner =
+                DiscSpinner().also {
+                    it.attach(binding.homeNowDisc)
+                    it.attach(binding.homeNowDiscDecor)
+                }
+        }
+        binding.homeNowSong.text = song.name.resolve(context)
+        binding.homeNowArtist.text = song.artists.resolveNames(context)
+    }
+
+    private fun updateNowCardPlaying(isPlaying: Boolean) {
+        val binding = requireBinding()
+        binding.homeNowPlay.isChecked = isPlaying
+        discSpinner?.setPlaying(isPlaying)
+        binding.homeNowContinue.setText(
+            if (isPlaying) R.string.lbl_hero_pause else R.string.lbl_hero_continue
+        )
     }
 
     override fun onDestroyBinding(binding: FragmentHomeBinding) {
+        discSpinner?.release()
+        discSpinner = null
         super.onDestroyBinding(binding)
         storagePermissionLauncher = null
         binding.homeNormalToolbar.setOnMenuItemClickListener(null)
@@ -229,7 +479,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         binding.homePager.adapter =
             HomePagerAdapter(homeModel.currentTabTypes, childFragmentManager, viewLifecycleOwner)
 
-        val toolbarParams = binding.homeToolbar.layoutParams as AppBarLayout.LayoutParams
+        val toolbarParams = binding.homeHeader.layoutParams as AppBarLayout.LayoutParams
         if (homeModel.currentTabTypes.size == 1) {
             // A single tab makes the tab layout redundant, hide it and disable the collapsing
             // behavior.
@@ -240,8 +490,16 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         } else {
             binding.homeTabs.isVisible = true
             toolbarParams.scrollFlags =
-                AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
-                    AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS
+                if (uiSettings.style == AppStyle.CLASSIC) {
+                    AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                        AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS
+                } else {
+                    // Sticky toolbar: only the now playing card scrolls away.
+                    AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
+                        (if (uiSettings.style == AppStyle.NEON || uiSettings.style == AppStyle.VINYL || uiSettings.style == AppStyle.POP) 0
+                        else AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS) or
+                        AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
+                }
         }
 
         // Set up the mapping between the ViewPager and TabLayout.

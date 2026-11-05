@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="set_style">Style</string>
+    <string name="set_style_uses_style_colors">The selected style sets its own colors</string>
+    <string name="style_classic">Classic</string>
+    <string name="style_neon">Neon</string>
+    <string name="style_vinyl">Vinyl</string>
+    <string name="style_pop">Pop</string>
+</resources>

@@ -7,6 +7,7 @@
         <item name="android:layout_height">wrap_content</item>
         <!-- Fix flickering lift animation when scrolling quickly -->
         <item name="android:stateListAnimator">@null</item>
+        <item name="android:background">?attr/auxioBackground</item>
     </style>
 
     <!-- Base toolbar style -->
@@ -122,7 +123,7 @@
     <style name="Widget.Auxio.Image.Small" parent="">
         <item name="android:layout_width">@dimen/size_touchable_small</item>
         <item name="android:layout_height">@dimen/size_touchable_small</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Medium</item>
+        <item name="shapeAppearance">?attr/auxioShapeSmall</item>
         <item name="iconSize">@dimen/size_icon_small</item>
     </style>
 
@@ -136,7 +137,7 @@
     <style name="Widget.Auxio.Image.Medium" parent="">
         <item name="android:layout_width">@dimen/size_touchable_medium</item>
         <item name="android:layout_height">@dimen/size_touchable_medium</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Medium</item>
+        <item name="shapeAppearance">?attr/auxioShapeSmall</item>
         <item name="iconSize">@dimen/size_icon_medium</item>
     </style>
 
@@ -150,39 +151,39 @@
     <style name="Widget.Auxio.Image.MidLarge" parent="">
         <item name="android:layout_width">@dimen/size_touchable_huge</item>
         <item name="android:layout_height">@dimen/size_touchable_huge</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.ExtraLarge</item>
+        <item name="shapeAppearance">?attr/auxioShapeLarge</item>
     </style>
 
     <style name="Widget.Auxio.Image.Large" parent="">
         <item name="android:layout_width">@dimen/size_hero_small</item>
         <item name="android:layout_height">@dimen/size_hero_small</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.ExtraLarge</item>
+        <item name="shapeAppearance">?attr/auxioShapeLarge</item>
     </style>
 
     <style name="Widget.Auxio.Image.MidHuge" parent="">
         <item name="android:layout_width">@dimen/size_hero_medium</item>
         <item name="android:layout_height">@dimen/size_hero_medium</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.ExtraLarge</item>
+        <item name="shapeAppearance">?attr/auxioShapeLarge</item>
     </style>
 
     <style name="Widget.Auxio.Image.Huge" parent="">
         <item name="android:layout_width">@dimen/size_hero_large</item>
         <item name="android:layout_height">@dimen/size_hero_large</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.ExtraLarge</item>
+        <item name="shapeAppearance">?attr/auxioShapeLarge</item>
     </style>
 
     <style name="Widget.Auxio.Image.MidFull" parent="">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">0dp</item>
         <item name="layout_constraintDimensionRatio">1</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Large</item>
+        <item name="shapeAppearance">?attr/auxioShapeCover</item>
     </style>
 
     <style name="Widget.Auxio.Image.Full" parent="">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">0dp</item>
         <item name="layout_constraintDimensionRatio">1</item>
-        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.ExtraLarge</item>
+        <item name="shapeAppearance">?attr/auxioShapeLarge</item>
     </style>
 
     <style name="Widget.Auxio.RecyclerView.Linear" parent="">

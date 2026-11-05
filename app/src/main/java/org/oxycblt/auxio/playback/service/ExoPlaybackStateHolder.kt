@@ -27,6 +27,8 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer
@@ -39,6 +41,7 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.MediaSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import javax.inject.Provider
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
@@ -51,6 +54,9 @@ import kotlinx.coroutines.yield
 import org.oxycblt.auxio.image.ImageSettings
 import org.oxycblt.auxio.music.MusicRepository
 import org.oxycblt.auxio.playback.PlaybackSettings
+import org.oxycblt.auxio.playback.equalizer.DynamicsAudioProcessor
+import org.oxycblt.auxio.playback.equalizer.EqualizerController
+import org.oxycblt.auxio.playback.equalizer.SongFade
 import org.oxycblt.auxio.playback.persist.PersistenceRepository
 import org.oxycblt.auxio.playback.replaygain.ReplayGainAudioProcessor
 import org.oxycblt.auxio.playback.state.DeferredPlayback
@@ -62,32 +68,72 @@ import org.oxycblt.auxio.playback.state.RawQueue
 import org.oxycblt.auxio.playback.state.RepeatMode
 import org.oxycblt.auxio.playback.state.ShuffleMode
 import org.oxycblt.auxio.playback.state.StateAck
+import org.oxycblt.auxio.playback.timer.SleepTimer
 import org.oxycblt.musikr.MusicParent
 import org.oxycblt.musikr.Song
 import timber.log.Timber as L
 
+/** An ExoPlayer together with the audio processor that follows the ReplayGain of its songs. */
+class PlayerBundle(val player: ExoPlayer, val replayGain: ReplayGainAudioProcessor)
+
+private val MUSIC_ATTRIBUTES =
+    AudioAttributes.Builder()
+        .setUsage(C.USAGE_MEDIA)
+        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+        .build()
+
 @OptIn(UnstableApi::class)
 class ExoPlaybackStateHolder(
     private val context: Context,
-    private val player: ExoPlayer,
+    initialBundle: PlayerBundle,
+    private val newBundle: () -> PlayerBundle,
     private val playbackManager: PlaybackStateManager,
     private val persistenceRepository: PersistenceRepository,
     private val playbackSettings: PlaybackSettings,
     private val commandFactory: PlaybackCommand.Factory,
-    private val replayGainProcessor: ReplayGainAudioProcessor,
     private val musicRepository: MusicRepository,
     private val imageSettings: ImageSettings,
+    private val equalizer: EqualizerController,
+    private val sleepTimer: SleepTimer,
+    private val songFade: SongFade,
 ) :
     PlaybackStateHolder,
+    SleepTimer.Host,
     Player.Listener,
     MusicRepository.UpdateListener,
     PlaybackSettings.Listener,
     ImageSettings.Listener {
+    // The main player can change during a crossfade, see CrossfadeEngine.
+    private var bundle = initialBundle
+    private val player: ExoPlayer
+        get() = bundle.player
+
     private val saveJob = Job()
     private val saveScope = CoroutineScope(Dispatchers.IO + saveJob)
     private val restoreScope = CoroutineScope(Dispatchers.IO + saveJob)
     private var currentSaveJob: Job? = null
     private var openAudioEffectSession = false
+    private val timerJob = Job()
+    private val timerScope = CoroutineScope(Dispatchers.Main + timerJob)
+    private var fadeJob: Job? = null
+    // The player volume is the product of the crossfade and the sleep timer fade.
+    private var songFadeFactor = 1f
+    private var timerFadeFactor = 1f
+    private var crossfadeJob: Job? = null
+    private var boosted = false
+    private var boostJob: Job? = null
+    private val crossfade =
+        CrossfadeEngine(
+            main = { player },
+            canCrossfade = { !sleepTimer.pauseAtEndRequested },
+            buildIncoming = { buildIncoming() },
+            signatureOf = { queueSignature(player) },
+            swap = { incoming, outgoing -> swapPlayers(incoming, outgoing) },
+            onMainFactor = {
+                songFadeFactor = it
+                applyVolume()
+            },
+        )
 
     var sessionOngoing = false
         private set
@@ -96,7 +142,10 @@ class ExoPlaybackStateHolder(
         playbackManager.registerStateHolder(this)
         musicRepository.addUpdateListener(this)
         player.addListener(this)
-        replayGainProcessor.attach()
+        bundle.replayGain.attach()
+        equalizer.attach(player.audioSessionId)
+        sleepTimer.attachHost(this)
+        timerScope.launch { songFade.ms.collect { updateCrossfade() } }
         playbackSettings.registerListener(this)
         imageSettings.registerListener(this)
     }
@@ -106,7 +155,12 @@ class ExoPlaybackStateHolder(
         playbackManager.unregisterStateHolder(this)
         musicRepository.removeUpdateListener(this)
         player.removeListener(this)
-        replayGainProcessor.release()
+        bundle.replayGain.release()
+        equalizer.release()
+        sleepTimer.detachHost(this)
+        crossfadeJob?.cancel()
+        crossfade.release()
+        timerJob.cancel()
         imageSettings.unregisterListener(this)
         playbackSettings.unregisterListener(this)
         player.release()
@@ -152,8 +206,8 @@ class ExoPlaybackStateHolder(
 
     override fun handleDeferred(action: DeferredPlayback): Boolean {
         val library =
-            musicRepository.library?.takeIf { !it.empty() }
-                // No library, cannot do anything.
+            musicRepository.library?.takeIf { !it.empty() && !musicRepository.isLibraryPartial }
+                // No (complete) library, cannot do anything.
                 ?: return false
 
         when (action) {
@@ -228,6 +282,30 @@ class ExoPlaybackStateHolder(
         player.playWhenReady = playing
     }
 
+    override fun boost(on: Boolean) {
+        if (boosted == on) return
+        boosted = on
+        applySpeed()
+        boostJob?.cancel()
+        boostJob = null
+        if (on) {
+            // The seek bar moves at normal speed on its own, so remind it where we really are.
+            boostJob =
+                timerScope.launch {
+                    while (true) {
+                        delay(BOOST_SYNC_MS)
+                        playbackManager.ack(this@ExoPlaybackStateHolder, StateAck.ProgressionChanged)
+                    }
+                }
+        } else {
+            playbackManager.ack(this, StateAck.ProgressionChanged)
+        }
+    }
+
+    private fun applySpeed() {
+        player.playbackParameters = PlaybackParameters(if (boosted) 2f else 1f)
+    }
+
     override fun seekTo(positionMs: Long) {
         player.seekTo(positionMs)
         deferSave()
@@ -247,6 +325,7 @@ class ExoPlaybackStateHolder(
     }
 
     override fun newPlayback(command: PlaybackCommand) {
+        crossfade.stop("new playback")
         parent = command.parent
         player.shuffleModeEnabled = command.shuffled
         player.setMediaItems(command.queue.map { it.buildMediaItem() })
@@ -413,6 +492,7 @@ class ExoPlaybackStateHolder(
             sendNewPlaybackEvent = true
         }
         if (rawQueue != resolveQueue()) {
+            crossfade.stop("restored state")
             player.setMediaItems(rawQueue.heap.map { it.buildMediaItem() })
             if (rawQueue.isShuffled) {
                 player.shuffleModeEnabled = true
@@ -458,6 +538,7 @@ class ExoPlaybackStateHolder(
     }
 
     override fun reset(ack: StateAck.NewPlayback) {
+        crossfade.stop("reset")
         player.setMediaItems(listOf())
         playbackManager.ack(this, ack)
         deferSave()
@@ -465,8 +546,18 @@ class ExoPlaybackStateHolder(
 
     // --- PLAYER OVERRIDES ---
 
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        super.onIsPlayingChanged(isPlaying)
+        updateCrossfade()
+    }
+
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
         super.onPlayWhenReadyChanged(playWhenReady, reason)
+        updateCrossfade()
+
+        if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) {
+            sleepTimer.onPausedAtSongEnd()
+        }
 
         if (player.playWhenReady) {
             // Mark that we have started playing so that the notification can now be posted.
@@ -487,17 +578,31 @@ class ExoPlaybackStateHolder(
         }
     }
 
+    override fun onAudioSessionIdChanged(audioSessionId: Int) {
+        super.onAudioSessionIdChanged(audioSessionId)
+        // The equalizer effect lives on one audio session, so follow the player's.
+        equalizer.attach(audioSessionId)
+    }
+
     override fun onPlaybackStateChanged(playbackState: Int) {
         super.onPlaybackStateChanged(playbackState)
 
         if (playbackState == Player.STATE_ENDED && player.repeatMode == Player.REPEAT_MODE_OFF) {
             goto(0)
             player.pause()
+            sleepTimer.onPausedAtSongEnd()
         }
     }
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         super.onMediaItemTransition(mediaItem, reason)
+
+        crossfade.onTransition()
+
+        // A new queue replacing the old one is not "another song" for the sleep timer.
+        if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) {
+            sleepTimer.onSongStarted()
+        }
 
         if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
             playbackManager.ack(this, StateAck.IndexMoved)
@@ -544,6 +649,7 @@ class ExoPlaybackStateHolder(
     // --- MUSICREPOSITORY METHODS ---
 
     override fun onMusicChanges(changes: MusicRepository.Changes) {
+        if (changes.partial) return
         if (changes.deviceLibrary && musicRepository.library?.takeIf { !it.empty() } != null) {
             // We now have a library, see if we have anything we need to do.
             L.d("Library obtained, requesting action")
@@ -560,7 +666,158 @@ class ExoPlaybackStateHolder(
 
     private fun updatePauseOnRepeat() {
         player.pauseAtEndOfMediaItems =
-            player.repeatMode == Player.REPEAT_MODE_ONE && playbackSettings.pauseOnRepeat
+            (player.repeatMode == Player.REPEAT_MODE_ONE && playbackSettings.pauseOnRepeat) ||
+                sleepTimer.pauseAtEndRequested
+    }
+
+    // --- SLEEP TIMER HOST ---
+
+    override val isPlayingNow: Boolean
+        get() = player.isPlaying
+
+    override fun refreshPauseAtEnd() = updatePauseOnRepeat()
+
+    override fun fadeOutAndPause() {
+        fadeJob?.cancel()
+        fadeJob =
+            timerScope.launch {
+                for (step in FADE_STEPS downTo 1) {
+                    timerFadeFactor = step / FADE_STEPS.toFloat()
+                    applyVolume()
+                    delay(FADE_MS / FADE_STEPS)
+                }
+                player.pause()
+                timerFadeFactor = 1f
+                applyVolume()
+            }
+    }
+
+    override fun cancelFade() {
+        fadeJob?.cancel()
+        fadeJob = null
+        timerFadeFactor = 1f
+        applyVolume()
+    }
+
+    private fun applyVolume() {
+        player.volume = songFadeFactor * timerFadeFactor
+    }
+
+    /**
+     * Build the player that will take over for a crossfade: same queue, same order, sitting on the
+     * next song, silent and paused.
+     */
+    private fun buildIncoming(): Incoming? {
+        val old = player
+        val timeline = old.currentTimeline
+        if (timeline.isEmpty) return null
+        val nextIndex =
+            timeline.getNextWindowIndex(
+                old.currentMediaItemIndex,
+                old.repeatMode,
+                old.shuffleModeEnabled,
+            )
+        if (nextIndex == C.INDEX_UNSET) return null
+        val signature = queueSignature(old)
+        val shuffleOrder = if (old.shuffleModeEnabled) old.unscrambleQueueIndices() else null
+
+        val incoming = newBundle()
+        val p = incoming.player
+        try {
+            // Own audio session: sound effects work on everything an audio session plays, so a
+            // shared one would make the two players affect each other during the fade.
+            p.volume = 0f
+            p.setMediaItems((0 until old.mediaItemCount).map { old.getMediaItemAt(it) })
+            if (shuffleOrder != null) {
+                p.shuffleModeEnabled = true
+                p.setShuffleOrder(BetterShuffleOrder(shuffleOrder.toIntArray()))
+            }
+            p.repeatMode = old.repeatMode
+            p.seekTo(nextIndex, 0L)
+            p.playWhenReady = false
+            // The song gain must be right before any audio goes through the processor.
+            incoming.replayGain.applyFor(p.getMediaItemAt(nextIndex).song)
+            p.prepare()
+        } catch (e: Exception) {
+            p.release()
+            throw e
+        }
+        pendingBundle = incoming
+        return Incoming(p, signature)
+    }
+
+    private var pendingBundle: PlayerBundle? = null
+
+    private fun queueSignature(p: ExoPlayer): Any =
+        listOf(
+            (0 until p.mediaItemCount).map { p.getMediaItemAt(it).localConfiguration?.tag },
+            p.unscrambleQueueIndices(),
+            p.shuffleModeEnabled,
+        )
+
+    /** Make [incoming] the main player. [outgoing] keeps playing, but the app lets go of it. */
+    private fun swapPlayers(incoming: Incoming, outgoing: ExoPlayer) {
+        val newBundle = checkNotNull(pendingBundle) { "No prepared player" }
+        pendingBundle = null
+        check(newBundle.player === incoming.player)
+
+        // Let go of the old player without touching its sound.
+        outgoing.removeListener(this)
+        bundle.replayGain.release()
+        // Only one player may hold audio focus, the new one asks for it.
+        outgoing.setAudioAttributes(MUSIC_ATTRIBUTES, false)
+        outgoing.pauseAtEndOfMediaItems = true
+        outgoing.repeatMode = Player.REPEAT_MODE_OFF
+
+        if (openAudioEffectSession) {
+            broadcastAudioEffectAction(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION)
+        }
+        bundle = newBundle
+        val p = newBundle.player
+        // The equalizer follows the main player to its own session.
+        equalizer.attach(p.audioSessionId)
+        if (openAudioEffectSession) {
+            broadcastAudioEffectAction(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION)
+        }
+        p.addListener(this)
+        updatePauseOnRepeat()
+        applySpeed()
+        // Starts silent, the crossfade raises it.
+        songFadeFactor = 0f
+        applyVolume()
+        p.playWhenReady = true
+
+        sleepTimer.onSongStarted()
+        playbackManager.ack(this, StateAck.IndexMoved)
+        // Only now does the gain follow the playback state, which already holds this song.
+        newBundle.replayGain.attach()
+        deferSave()
+    }
+
+    /** Start or stop following the song position so the crossfade can run. */
+    private fun updateCrossfade() {
+        // A running fade finishes by itself.
+        if (crossfade.isFading) return
+        crossfadeJob?.cancel()
+        crossfadeJob = null
+        val fadeMs = songFade.ms.value
+        // The user's intent decides, not isPlaying, which briefly drops while buffering.
+        if (fadeMs <= 0 || !player.playWhenReady) {
+            crossfade.stop()
+            return
+        }
+        crossfadeJob =
+            timerScope.launch {
+                while (true) {
+                    val requested = songFade.ms.value
+                    if (!crossfade.isFading && (requested <= 0 || !player.playWhenReady)) {
+                        crossfade.stop()
+                        break
+                    }
+                    crossfade.tick(requested)
+                    delay(if (crossfade.isFading) CROSSFADE_FADING_TICK_MS else CROSSFADE_TICK_MS)
+                }
+            }
     }
 
     private fun save(cb: () -> Unit) {
@@ -651,23 +908,52 @@ class ExoPlaybackStateHolder(
         private val playbackSettings: PlaybackSettings,
         private val commandFactory: PlaybackCommand.Factory,
         private val mediaSourceFactory: MediaSource.Factory,
-        private val replayGainProcessor: ReplayGainAudioProcessor,
+        private val replayGainProvider: Provider<ReplayGainAudioProcessor>,
         private val musicRepository: MusicRepository,
         private val imageSettings: ImageSettings,
+        private val equalizer: EqualizerController,
+        private val dynamicsProvider: Provider<DynamicsAudioProcessor>,
+        private val sleepTimer: SleepTimer,
+        private val songFade: SongFade,
     ) {
         fun create(): ExoPlaybackStateHolder {
+            return ExoPlaybackStateHolder(
+                context,
+                newBundle(),
+                ::newBundle,
+                playbackManager,
+                persistenceRepository,
+                playbackSettings,
+                commandFactory,
+                musicRepository,
+                imageSettings,
+                equalizer,
+                sleepTimer,
+                songFade,
+            )
+        }
+
+        /**
+         * Build a player with its own audio processors. They keep state about the stream they are
+         * on, so two players playing at once (a crossfade) cannot share them.
+         */
+        private fun newBundle(): PlayerBundle {
+            val replayGainProcessor = replayGainProvider.get()
+            val dynamicsProcessor = dynamicsProvider.get()
             // Since Auxio is a music player, only specify an audio renderer to save
             // battery/apk size/cache size]
             val audioRenderer = RenderersFactory { handler, _, audioListener, _, _ ->
                 arrayOf<BaseRenderer>(
-                    FfmpegAudioRenderer(handler, audioListener, replayGainProcessor),
+                    FfmpegAudioRenderer(handler, audioListener, replayGainProcessor, dynamicsProcessor),
                     MediaCodecAudioRenderer(
                         context,
                         MediaCodecSelector.DEFAULT,
                         handler,
                         audioListener,
                         DefaultAudioSink.Builder(context)
-                            .setAudioProcessors(arrayOf(replayGainProcessor))
+                            .setAudioProcessors(
+                                arrayOf<AudioProcessor>(replayGainProcessor, dynamicsProcessor)
+                            )
                             .build(),
                     ),
                 )
@@ -678,31 +964,20 @@ class ExoPlaybackStateHolder(
                     .setMediaSourceFactory(mediaSourceFactory)
                     // Enable automatic WakeLock support
                     .setWakeMode(C.WAKE_MODE_LOCAL)
-                    .setAudioAttributes(
-                        // Signal that we are a music player.
-                        AudioAttributes.Builder()
-                            .setUsage(C.USAGE_MEDIA)
-                            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                            .build(),
-                        true,
-                    )
+                    // Signal that we are a music player.
+                    .setAudioAttributes(MUSIC_ATTRIBUTES, true)
                     .build()
 
-            return ExoPlaybackStateHolder(
-                context,
-                exoPlayer,
-                playbackManager,
-                persistenceRepository,
-                playbackSettings,
-                commandFactory,
-                replayGainProcessor,
-                musicRepository,
-                imageSettings,
-            )
+            return PlayerBundle(exoPlayer, replayGainProcessor)
         }
     }
 
     private companion object {
         const val SAVE_BUFFER = 5000L
+        const val FADE_MS = 4000L
+        const val FADE_STEPS = 40
+        const val CROSSFADE_TICK_MS = 150L
+        const val BOOST_SYNC_MS = 500L
+        const val CROSSFADE_FADING_TICK_MS = 40L
     }
 }

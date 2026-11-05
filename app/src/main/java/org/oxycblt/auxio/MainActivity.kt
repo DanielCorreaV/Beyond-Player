@@ -19,6 +19,12 @@
 package org.oxycblt.auxio
 
 import android.content.Intent
+import androidx.core.graphics.ColorUtils
+import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
@@ -26,15 +32,24 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.WindowCompat
 import androidx.core.view.updatePadding
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.color.MaterialColors
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.oxycblt.auxio.databinding.ActivityMainBinding
 import org.oxycblt.auxio.playback.PlaybackViewModel
 import org.oxycblt.auxio.playback.state.DeferredPlayback
+import org.oxycblt.auxio.ui.BackgroundImage
+import org.oxycblt.auxio.ui.FadeImageDrawable
 import org.oxycblt.auxio.ui.UISettings
+import org.oxycblt.auxio.ui.AppStyle
 import org.oxycblt.auxio.util.isNight
 import org.oxycblt.auxio.util.systemBarInsetsCompat
 import timber.log.Timber as L
+import com.google.android.material.R as MR
 
 /**
  * Auxio's single [AppCompatActivity].
@@ -62,6 +77,7 @@ class MainActivity : AppCompatActivity() {
         val binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupEdgeToEdge(binding.root)
+        setupBackgroundImage()
         L.d("Activity created")
     }
 
@@ -90,12 +106,51 @@ class MainActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(uiSettings.theme)
         // Apply the color scheme. The black theme requires it's own set of themes since
         // it's not possible to modify the themes at run-time.
-        if (isNight && uiSettings.useBlackTheme) {
+        val style = uiSettings.style
+        if (style != AppStyle.CLASSIC) {
+            // A style brings its own colors, with a light and a dark version.
+            L.d("Applying style $style")
+            setTheme(style.theme)
+        } else if (isNight && uiSettings.useBlackTheme) {
             L.d("Applying black theme [accent ${uiSettings.accent}]")
             setTheme(uiSettings.accent.blackTheme)
         } else {
             L.d("Applying normal theme [accent ${uiSettings.accent}]")
             setTheme(uiSettings.accent.theme)
+        }
+
+        if (BackgroundImage.exists(this)) {
+            // Make the screens transparent so the custom background image shows through.
+            theme.applyStyle(R.style.ThemeOverlay_Auxio_CustomBackground, true)
+        }
+    }
+
+    private fun setupBackgroundImage() {
+        // The optional custom image is drawn as the window background, with the screens made
+        // transparent so it shows through. It is decoded off the main thread so it never slows
+        // down startup.
+        if (!BackgroundImage.exists(this)) return
+        val file = BackgroundImage.file(this)
+        val strength =
+            when (uiSettings.backgroundFade) {
+                0 -> 0.5f
+                2 -> 0.9f
+                else -> 0.7f
+            }
+        val surface = MaterialColors.getColor(this, MR.attr.colorSurface, Color.BLACK)
+        lifecycleScope.launch {
+            val bitmap =
+                withContext(Dispatchers.IO) { BitmapFactory.decodeFile(file.absolutePath) }
+                    ?: return@launch
+            window.setBackgroundDrawable(
+                LayerDrawable(
+                    arrayOf<Drawable>(
+                        ColorDrawable(surface),
+                        FadeImageDrawable(bitmap, strength),
+                        ColorDrawable(ColorUtils.setAlphaComponent(surface, 0x80)),
+                    )
+                )
+            )
         }
     }
 

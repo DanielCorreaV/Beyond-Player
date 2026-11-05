@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="set_bg_image">Imagen de fondo</string>
+    <string name="set_bg_image_desc">Elige una foto que se desvanece suavemente detrás de la app</string>
+    <string name="set_bg_image_clear">Quitar imagen de fondo</string>
+    <string name="set_bg_image_none">Sin imagen</string>
+    <string name="set_bg_image_set">Imagen elegida</string>
+    <string name="set_bg_fade">Intensidad de la imagen</string>
+    <string name="set_bg_fade_soft">Suave</string>
+    <string name="set_bg_fade_medium">Media</string>
+    <string name="set_bg_fade_strong">Fuerte</string>
+    <string name="err_bg_image">No se pudo usar esa imagen</string>
+    <string name="lbl_now_playing_card">Sonando ahora</string>
+    <string name="lbl_hero_continue">Continuar</string>
+    <string name="lbl_hero_pause">Pausar</string>
+    <string name="lbl_favorites_playlist">Canciones que me gustan</string>
+    <string name="msg_favorite_added">Añadida a Canciones que me gustan</string>
+    <string name="msg_favorite_removed">Quitada de Canciones que me gustan</string>
+    <string name="desc_favorite">Me gusta</string>
+    <string name="lbl_neon_title">Tu música</string>
+    <string name="lbl_greet_morning">Buenos días</string>
+    <string name="lbl_greet_afternoon">Buenas tardes</string>
+    <string name="lbl_greet_night">Buenas noches</string>
+    <string name="lbl_tile_sound">Sonido</string>
+    <string name="lbl_tile_timer">Temporizador</string>
+    <string name="lbl_neon_playing_from">REPRODUCIENDO DESDE</string>
+    <string name="lbl_neon_search">Buscar canciones, artistas…</string>
+    <string name="lbl_neon_recents">Seguir escuchando</string>
+    <string name="lbl_neon_lists">Tus listas</string>
+    <string name="lbl_pop_title">¿Qué suena hoy?</string>
+    <string name="lbl_pop_hero_label">MEZCLA ALEATORIA</string>
+    <string name="lbl_pop_hero_title">Toda tu biblioteca</string>
+    <string name="lbl_pop_hero_play">Reproducir</string>
+    <string name="lbl_walkman_name">BEYOND PLAYER</string>
+    <string name="lbl_walkman_model">REPRODUCTOR DE CASETE · BP-2011</string>
+    <string name="lbl_walkman_playing">SONANDO</string>
+    <string name="lbl_walkman_paused">EN PAUSA</string>
+    <string name="lbl_pop_resume_label">RETOMA DONDE QUEDASTE</string>
+    <string name="lbl_pop_resume_play">Continuar</string>
+    <string name="lbl_pop_discover_label">DESCUBRE</string>
+    <string name="lbl_pop_discover_play">Escuchar</string>
+</resources>

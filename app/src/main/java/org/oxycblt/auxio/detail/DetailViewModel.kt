@@ -18,11 +18,13 @@
  
 package org.oxycblt.auxio.detail
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -30,6 +32,8 @@ import org.oxycblt.auxio.R
 import org.oxycblt.auxio.detail.list.DiscDivider
 import org.oxycblt.auxio.detail.list.DiscHeader
 import org.oxycblt.auxio.detail.list.EditHeader
+import org.oxycblt.auxio.detail.list.MissingTrackItem
+import org.oxycblt.auxio.music.youtube.YouTubeLinkStore
 import org.oxycblt.auxio.detail.list.SongProperty
 import org.oxycblt.auxio.detail.list.SortHeader
 import org.oxycblt.auxio.list.BasicHeader
@@ -65,6 +69,7 @@ import timber.log.Timber as L
 class DetailViewModel
 @Inject
 constructor(
+    @ApplicationContext context: Context,
     private val listSettings: ListSettings,
     private val musicRepository: MusicRepository,
     private val playbackSettings: PlaybackSettings,
@@ -183,6 +188,7 @@ constructor(
                 ?: PlaySong.FromPlaylist(unlikelyToBeNull(currentPlaylist.value))
 
     private val detailGenerator = detailGeneratorFactory.create(this)
+    private val youTubeLinks = YouTubeLinkStore.from(context)
 
     init {
         detailGenerator.attach()
@@ -544,6 +550,7 @@ constructor(
         instructions: MutableEvent<UpdateInstructions>,
         replace: Int?,
         songHeader: (Int) -> PlainHeader = { SortHeader(it) },
+        extra: List<Item> = emptyList(),
     ) {
         if (detail == null) {
             parent.value = null
@@ -590,6 +597,7 @@ constructor(
             }
             newList.addAll(items)
         }
+        newList.addAll(extra)
         parent.value = detail.parent
         instructions.put(newInstructions)
         list.value = newList
@@ -609,9 +617,9 @@ constructor(
                 _playlistSongList,
                 playlistSongInstructions,
                 null,
-            ) {
-                EditHeader(it)
-            }
+                { EditHeader(it) },
+                missingTrackItems(uid),
+            )
             return
         }
         val list = mutableListOf<Item>()
@@ -622,6 +630,27 @@ constructor(
         }
         playlistSongInstructions.put(instructions)
         _playlistSongList.value = list
+    }
+
+    /** Songs of the linked YouTube Music playlist that are not on the phone, as list items. */
+    private fun missingTrackItems(uid: Music.UID): List<Item> {
+        val missing = youTubeLinks.getByPlaylist(uid.toString())?.missing.orEmpty()
+        if (missing.isEmpty()) return emptyList()
+        return buildList {
+            add(BasicHeader(R.string.lbl_youtube_missing_section))
+            missing.forEach { add(MissingTrackItem(it)) }
+        }
+    }
+
+    init {
+        // Show the new "missing" section as soon as an import or refresh changes it.
+        viewModelScope.launch {
+            youTubeLinks.version.collect {
+                if (editedPlaylist.value == null) {
+                    currentPlaylist.value?.uid?.let { refreshPlaylist(it) }
+                }
+            }
+        }
     }
 }
 

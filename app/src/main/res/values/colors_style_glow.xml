@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="neon_glow_violet">#247C5CFF</color>
+    <color name="neon_glow_violet_clear">#007C5CFF</color>
+    <color name="neon_glow_pink">#1AFF4FA3</color>
+    <color name="neon_glow_pink_clear">#00FF4FA3</color>
+</resources>

@@ -20,6 +20,112 @@
         app:titleTextAppearance="?attr/textAppearanceLabelLargeEmphasized"
         tools:subtitle="@string/lbl_all_songs" />
 
+    <!-- Glow behind the cover (Neon style only, empty otherwise) -->
+    <View
+        android:id="@+id/playback_cover_glow"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="?attr/auxioCoverGlow"
+        android:importantForAccessibility="no"
+        app:layout_constraintBottom_toBottomOf="@+id/playback_pager"
+        app:layout_constraintEnd_toEndOf="@+id/playback_pager"
+        app:layout_constraintStart_toStartOf="@+id/playback_pager"
+        app:layout_constraintTop_toTopOf="@+id/playback_pager"
+        android:scaleX="1.35"
+        android:scaleY="1.35" />
+
+    <!-- Walkman (Pop style only): face around the cover + cassette compartment below -->
+    <View
+        android:id="@+id/playback_cassette"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:importantForAccessibility="no"
+        android:visibility="gone"
+        android:layout_margin="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:id="@+id/playback_deck"
+        android:layout_width="0dp"
+        android:layout_height="128dp"
+        android:importantForAccessibility="no"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/playback_pager"
+        app:layout_constraintStart_toStartOf="@+id/playback_pager"
+        app:layout_constraintTop_toBottomOf="@+id/playback_pager" />
+
+    <ImageView
+        android:id="@+id/playback_reel_left"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="15dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_walkman_reel"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/playback_deck"
+        app:layout_constraintHorizontal_bias="0.22"
+        app:layout_constraintStart_toStartOf="@+id/playback_deck"
+        app:layout_constraintTop_toTopOf="@+id/playback_deck" />
+
+    <ImageView
+        android:id="@+id/playback_reel_right"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginTop="15dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_walkman_reel"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/playback_deck"
+        app:layout_constraintHorizontal_bias="0.78"
+        app:layout_constraintStart_toStartOf="@+id/playback_deck"
+        app:layout_constraintTop_toTopOf="@+id/playback_deck" />
+
+    <LinearLayout
+        android:id="@+id/playback_deck_label"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="14dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/playback_deck"
+        app:layout_constraintEnd_toEndOf="@+id/playback_deck"
+        app:layout_constraintStart_toStartOf="@+id/playback_deck">
+
+        <TextView
+            android:id="@+id/playback_deck_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="marquee"
+            android:gravity="center"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:singleLine="true"
+            android:textColor="#F4F1FF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/playback_deck_artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:letterSpacing="0.08"
+            android:maxLines="1"
+            android:textColor="#FF5A4D"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/playback_pager"
         android:layout_width="0dp"
@@ -34,6 +140,22 @@
         app:layout_constraintTop_toBottomOf="@+id/playback_toolbar"
         app:layout_constraintVertical_chainStyle="packed" />
 
+    <!-- Tonearm of the Vinyl style: rests off the record while paused. -->
+    <ImageView
+        android:id="@+id/playback_tonearm"
+        android:layout_width="96dp"
+        android:layout_height="136dp"
+        android:layout_marginTop="-4dp"
+        android:layout_marginEnd="@dimen/spacing_medium"
+        android:clickable="false"
+        android:focusable="false"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/ic_tonearm"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/playback_pager" />
+
     <LinearLayout
         android:id="@+id/playback_info_container"
         android:layout_width="0dp"
@@ -42,7 +164,7 @@
         android:layout_marginEnd="@dimen/spacing_medium"
         android:orientation="vertical"
         app:layout_constraintBottom_toTopOf="@+id/playback_seek_bar"
-        app:layout_constraintEnd_toStartOf="@+id/playback_more"
+        app:layout_constraintEnd_toStartOf="@+id/playback_favorite"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/playback_toolbar"
@@ -76,6 +198,21 @@
     </LinearLayout>
 
     <org.oxycblt.auxio.ui.RippleFixMaterialButton
+        android:id="@+id/playback_favorite"
+        style="@style/Widget.Auxio.Button.Playback.More"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checkable="true"
+        android:contentDescription="@string/desc_favorite"
+        app:icon="@drawable/sel_favorite_state_24"
+        app:iconTint="@color/sel_favorite_tint"
+        app:layout_constraintBottom_toBottomOf="@+id/playback_info_container"
+        app:layout_constraintEnd_toStartOf="@+id/playback_more"
+        app:layout_constraintTop_toTopOf="@+id/playback_info_container"
+        app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small"
+        app:toggleCheckedStateOnClick="false" />
+
+    <org.oxycblt.auxio.ui.RippleFixMaterialButton
         android:id="@+id/playback_more"
         style="@style/Widget.Auxio.Button.Playback.More"
         app:materialSizeOverlay="@style/SizeOverlay.Material3Expressive.Button.IconButton.Small"
@@ -99,13 +236,15 @@
 
     <org.oxycblt.auxio.playback.ui.ForcedLTRFrameLayout
         android:id="@+id/playback_controls_container"
+        android:background="?attr/auxioControlsBackground"
+        android:padding="?attr/auxioControlsPadding"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/spacing_medium"
         android:layout_marginEnd="@dimen/spacing_medium"
         android:layout_marginBottom="@dimen/spacing_medium"
         app:layout_constraintTop_toBottomOf="@+id/playback_seek_bar"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/playback_actions"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintWidth_max="400dp">
@@ -117,7 +256,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_repeat"
-                style="@style/Widget.Auxio.Button.Playback.Toggle"
+                style="?attr/auxioPlaybackToggleStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_change_repeat"
@@ -126,7 +265,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_skip_prev"
-                style="@style/Widget.Auxio.Button.Playback.Skip"
+                style="?attr/auxioPlaybackSkipStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_skip_prev"
@@ -135,7 +274,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_play_pause"
-                style="@style/Widget.Auxio.Button.Playback.PlayPause"
+                style="?attr/auxioPlaybackPlayPauseStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_play_pause"
@@ -145,7 +284,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_skip_next"
-                style="@style/Widget.Auxio.Button.Playback.Skip"
+                style="?attr/auxioPlaybackSkipStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_skip_next"
@@ -154,7 +293,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_shuffle"
-                style="@style/Widget.Auxio.Button.Playback.Toggle"
+                style="?attr/auxioPlaybackToggleStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_shuffle"
@@ -164,5 +303,59 @@
 
         </org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButtonGroup>
     </org.oxycblt.auxio.playback.ui.ForcedLTRFrameLayout>
+
+    <!-- Action tiles (Neon style only) -->
+    <LinearLayout
+        android:id="@+id/playback_actions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_medium"
+        android:layout_marginEnd="@dimen/spacing_medium"
+        android:layout_marginBottom="@dimen/spacing_medium"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_max="400dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/playback_tile_sound"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="88dp"
+            android:layout_height="72dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:textSize="11sp"
+            app:backgroundTint="?attr/colorSurfaceContainerHigh"
+            app:cornerRadius="20dp"
+            app:strokeWidth="0dp"
+            android:layout_marginEnd="6dp"
+            android:text="@string/lbl_tile_sound"
+            app:icon="@drawable/ic_config_24"
+            app:iconGravity="top" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/playback_tile_timer"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="88dp"
+            android:layout_height="72dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:textSize="11sp"
+            app:backgroundTint="?attr/colorSurfaceContainerHigh"
+            app:cornerRadius="20dp"
+            app:strokeWidth="0dp"
+            android:layout_marginStart="6dp"
+            android:text="@string/lbl_tile_timer"
+            app:icon="@drawable/ic_time_24"
+            app:iconGravity="top" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

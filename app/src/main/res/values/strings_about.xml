@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Edit these to personalize the About screen. -->
+    <string name="about_fork_name" translatable="false">@string/info_app_name</string>
+    <string name="about_fork_author" translatable="false">Beyond</string>
+    <!-- Where the source code of this version can be downloaded. Required when distributing. -->
+    <string name="about_fork_source_url" translatable="false"></string>
+    <!-- Optional: your website and contact email. Left empty, the Feedback card is hidden. -->
+    <string name="about_fork_site_url" translatable="false"></string>
+    <string name="about_fork_email" translatable="false"></string>
+
+    <string name="about_fork_desc">A music player for your phone, with no ads.</string>
+    <string name="about_fork_site">Website</string>
+    <string name="about_credits">Credits</string>
+    <string name="about_credit_original">Based on Auxio, by Alexander Capehart</string>
+    <string name="about_legal_gpl">GPLv3 text</string>
+    <string name="about_legal_libs">Libraries</string>
+    <string name="about_legal_text">%1$s is based on Auxio, Copyright © Auxio Project and its contributors (https://github.com/OxygenCobalt/Auxio). Modifications by %2$s.\n\nThis program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\n\nThis program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</string>
+</resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The whole Walkman body: black, with a soft bevel. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="28dp" />
+            <solid android:color="#1B1B1D" />
+            <stroke android:width="2dp" android:color="#3A3A3E" />
+        </shape>
+    </item>
+    <!-- Lighter strip on the left, like the bevel of the real one -->
+    <item android:bottom="24dp" android:gravity="start|fill_vertical" android:left="6dp" android:top="24dp" android:width="5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="3dp" />
+            <solid android:color="#2A2A2E" />
+        </shape>
+    </item>
+</layer-list>

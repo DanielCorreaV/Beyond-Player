@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="set_key_bg_image_pick" translatable="false">auxio_bg_image_pick</string>
+    <string name="set_key_bg_image_clear" translatable="false">auxio_bg_image_clear</string>
+    <string name="set_key_bg_fade" translatable="false">auxio_bg_fade</string>
+
+    <string-array name="entries_bg_fade">
+        <item>@string/set_bg_fade_soft</item>
+        <item>@string/set_bg_fade_medium</item>
+        <item>@string/set_bg_fade_strong</item>
+    </string-array>
+
+    <integer-array name="values_bg_fade">
+        <item>@integer/bg_fade_soft_value</item>
+        <item>@integer/bg_fade_medium_value</item>
+        <item>@integer/bg_fade_strong_value</item>
+    </integer-array>
+
+    <integer name="bg_fade_soft_value">0</integer>
+    <integer name="bg_fade_medium_value">1</integer>
+    <integer name="bg_fade_strong_value">2</integer>
+</resources>

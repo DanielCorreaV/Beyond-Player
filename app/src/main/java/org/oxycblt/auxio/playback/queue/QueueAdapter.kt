@@ -26,7 +26,7 @@ import androidx.core.view.isInvisible
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.R as MR
 import com.google.android.material.shape.MaterialShapeDrawable
-import org.oxycblt.auxio.databinding.ItemEditableSongBinding
+import org.oxycblt.auxio.databinding.ItemQueueSongBinding
 import org.oxycblt.auxio.list.EditClickListListener
 import org.oxycblt.auxio.list.adapter.FlexibleListAdapter
 import org.oxycblt.auxio.list.adapter.PlayingIndicatorAdapter
@@ -46,7 +46,10 @@ import timber.log.Timber as L
  * @param listener A [EditClickListListener] to bind interactions to.
  * @author Alexander Capehart (OxygenCobalt)
  */
-class QueueAdapter(private val listener: EditClickListListener<Song>) :
+class QueueAdapter(
+    private val listener: EditClickListListener<Song>,
+    private val onOpenMenu: (Song) -> Unit,
+) :
     FlexibleListAdapter<Song, QueueSongViewHolder>(QueueSongViewHolder.DIFF_CALLBACK) {
     // Since PlayingIndicator adapter relies on an item value, we cannot use it for this
     // adapter, as one item can appear at several points in the UI. Use a similar implementation
@@ -66,7 +69,7 @@ class QueueAdapter(private val listener: EditClickListListener<Song>) :
         payload: List<Any>,
     ) {
         if (payload.isEmpty()) {
-            viewHolder.bind(getItem(position), listener)
+            viewHolder.bind(getItem(position), listener, onOpenMenu)
         }
 
         viewHolder.isFuture = position > currentIndex
@@ -80,7 +83,7 @@ class QueueAdapter(private val listener: EditClickListListener<Song>) :
      * @param index The position of the currently playing item in the queue.
      * @param isPlaying Whether playback is ongoing or paused.
      */
-    fun setPosition(index: Int, isPlaying: Boolean, incremental: Boolean) {
+    fun setPosition(index: Int, isPlaying: Boolean) {
         L.d("Updating index")
         val lastIndex = currentIndex
         currentIndex = index
@@ -91,28 +94,13 @@ class QueueAdapter(private val listener: EditClickListListener<Song>) :
         // TODO: Don't update when the index has not moved.
         if (currentIndex < lastIndex) {
             L.d("Moved backwards, must update items above last index")
-            val since = if (incremental) currentIndex else 0
-            notifyItemRangeChanged(
-                since,
-                lastIndex - since + 1,
-                PAYLOAD_UPDATE_POSITION,
-            )
-        } else if (currentIndex > lastIndex) {
+            notifyItemRangeChanged(0, lastIndex + 1, PAYLOAD_UPDATE_POSITION)
+        } else {
             L.d("Moved forwards, update items after index")
-            val since = if (incremental) lastIndex else 0
-            notifyItemRangeChanged(
-                since,
-                currentIndex - since + 1,
-                PAYLOAD_UPDATE_POSITION,
-            )
+            notifyItemRangeChanged(0, currentIndex + 1, PAYLOAD_UPDATE_POSITION)
         }
 
-        val lastIsPlaying = this.isPlaying
         this.isPlaying = isPlaying
-        if (this.isPlaying != lastIsPlaying) {
-            L.d("Changed play state")
-            notifyItemChanged(currentIndex)
-        }
     }
 
     private companion object {
@@ -126,7 +114,7 @@ class QueueAdapter(private val listener: EditClickListListener<Song>) :
  *
  * @author Alexander Capehart (OxygenCobalt)
  */
-class QueueSongViewHolder private constructor(private val binding: ItemEditableSongBinding) :
+class QueueSongViewHolder private constructor(private val binding: ItemQueueSongBinding) :
     PlayingIndicatorAdapter.ViewHolder(binding.root), MaterialDragCallback.ViewHolder {
     override val enabled = true
     override val root = binding.root
@@ -166,8 +154,10 @@ class QueueSongViewHolder private constructor(private val binding: ItemEditableS
      * @param listener A [EditClickListListener] to bind interactions to.
      */
     @SuppressLint("ClickableViewAccessibility")
-    fun bind(song: Song, listener: EditClickListListener<Song>) {
+    fun bind(song: Song, listener: EditClickListListener<Song>, onOpenMenu: (Song) -> Unit) {
         listener.bind(song, this, body, binding.songDragHandle)
+        // The same options as a song anywhere else in the app.
+        binding.songMenu.setOnClickListener { onOpenMenu(song) }
         binding.songAlbumCover.bind(song)
         binding.songName.text = song.name.resolve(binding.context)
         binding.songInfo.text = song.artists.resolveNames(binding.context)
@@ -190,7 +180,7 @@ class QueueSongViewHolder private constructor(private val binding: ItemEditableS
          */
         fun from(parent: ViewGroup) =
             QueueSongViewHolder(
-                ItemEditableSongBinding.inflate(parent.context.inflater, parent, false)
+                ItemQueueSongBinding.inflate(parent.context.inflater, parent, false)
             )
 
         /** A comparator that can be used with DiffUtil. */

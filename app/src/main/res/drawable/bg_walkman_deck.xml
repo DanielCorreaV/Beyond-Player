@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cassette compartment: window with the reels + label (the label shows the song). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="14dp" />
+            <solid android:color="#2B2B2E" />
+            <stroke android:width="1dp" android:color="#48484D" />
+        </shape>
+    </item>
+    <item android:height="50dp" android:gravity="top|fill_horizontal" android:left="12dp" android:right="12dp" android:top="10dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="10dp" />
+            <solid android:color="#0B0B0C" />
+        </shape>
+    </item>
+    <item android:height="5dp" android:gravity="top|fill_horizontal" android:left="56dp" android:right="56dp" android:top="32dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#6B3F24" />
+        </shape>
+    </item>
+    <item android:bottom="14dp" android:height="48dp" android:gravity="bottom|fill_horizontal" android:left="12dp" android:right="12dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="3dp" />
+            <solid android:color="#4A4A4F" />
+        </shape>
+    </item>
+    <item android:bottom="8dp" android:height="3dp" android:gravity="bottom|fill_horizontal" android:left="12dp" android:right="12dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#FF7A1A" />
+        </shape>
+    </item>
+</layer-list>

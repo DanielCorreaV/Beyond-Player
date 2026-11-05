@@ -53,6 +53,8 @@ import org.oxycblt.auxio.list.ListViewModel
 import org.oxycblt.auxio.music.IndexingState
 import org.oxycblt.auxio.music.MusicType
 import org.oxycblt.auxio.music.MusicViewModel
+import org.oxycblt.auxio.music.youtube.YouTubeImportDialogs
+import org.oxycblt.auxio.music.youtube.YouTubeImportResult
 import org.oxycblt.auxio.playback.OpenPanel
 import org.oxycblt.auxio.playback.PlaybackBottomSheetBehavior
 import org.oxycblt.auxio.playback.PlaybackViewModel
@@ -92,11 +94,11 @@ class MainFragment :
     private var detailBackCallback: DetailBackPressedCallback? = null
     private var selectionBackCallback: SelectionBackPressedCallback? = null
     private var speedDialBackCallback: SpeedDialBackPressedCallback? = null
+    private var youTubeProgressDialog: YouTubeImportDialogs.Progress? = null
     private var navigationListener: DialogAwareNavigationListener? = null
     private var lastInsets: WindowInsets? = null
     private var elevationNormal = 0f
     private var normalCornerSize = 0f
-    private var lastCornerSize = Float.NaN
     private var maxScaleXDistance = 0f
     private var sheetRising: Boolean? = null
     @Inject lateinit var uiSettings: UISettings
@@ -183,8 +185,6 @@ class MainFragment :
         }
 
         normalCornerSize = playbackSheetBehavior.sheetBackgroundDrawable.topLeftCornerResolvedSize
-        // The new drawables must be initialized even if the previous view had the same corners.
-        lastCornerSize = Float.NaN
         maxScaleXDistance =
             context.getDimen(MR.dimen.m3_back_progress_bottom_container_max_scale_x_distance)
 
@@ -219,6 +219,9 @@ class MainFragment :
         collectImmediately(homeModel.currentTabType, ::updateCurrentTab)
         collectImmediately(homeModel.songList, homeModel.isFastScrolling, ::updateFab)
         collectImmediately(musicModel.indexingState, ::updateIndexerState)
+        collectImmediately(musicModel.youTubeImporting, ::updateYouTubeImporting)
+        collectImmediately(musicModel.youTubeProgress, ::updateYouTubeProgress)
+        collect(musicModel.youTubeImportResult.flow, ::handleYouTubeResult)
         collectImmediately(listModel.selected, selectionBackCallback::invalidateEnabled)
         collectImmediately(playbackModel.song, ::updateSong)
         collectImmediately(playbackModel.openPanel.flow, ::handlePanel)
@@ -259,6 +262,8 @@ class MainFragment :
 
     override fun onDestroyBinding(binding: FragmentMainBinding) {
         super.onDestroyBinding(binding)
+        youTubeProgressDialog?.dismiss()
+        youTubeProgressDialog = null
         speedDialBackCallback = null
         sheetBackCallback = null
         detailBackCallback = null
@@ -307,20 +312,9 @@ class MainFragment :
         val playbackLastStretchRatio = min(playbackEdgeRatio * playbackBackRatio, 1f)
         binding.mainSheetScrim.alpha = playbackLastStretchRatio
 
-        val sheetCornerSize = normalCornerSize * (1 - playbackLastStretchRatio)
-        // MaterialShapeDrawable rebuilds its shape and invalidates even for an unchanged size.
-        // Keep reading sheet and back-gesture progress every frame, but only apply new shapes.
-        if (sheetCornerSize != lastCornerSize) {
-            playbackSheetBehavior.sheetBackgroundDrawable.setCornerSize(sheetCornerSize)
-            if (queueSheetBehavior == null) {
-                (binding.queueSheet.background as MaterialShapeDrawable).shapeAppearanceModel =
-                    ShapeAppearanceModel.builder()
-                        .setTopLeftCornerSize(normalCornerSize)
-                        .setTopRightCornerSize(sheetCornerSize)
-                        .build()
-            }
-            lastCornerSize = sheetCornerSize
-        }
+        playbackSheetBehavior.sheetBackgroundDrawable.setCornerSize(
+            normalCornerSize * (1 - playbackLastStretchRatio)
+        )
         binding.exploreNavHost.isInvisible = playbackLastStretchRatio == 1f
         binding.playbackSheet.translationZ = (1 - playbackLastStretchRatio) * elevationNormal
 
@@ -356,6 +350,11 @@ class MainFragment :
             // No queue sheet, fade normally based on the playback sheet
             binding.playbackBarFragment.alpha = playbackOutRatio
             binding.playbackPanelFragment.alpha = playbackInRatio
+            (binding.queueSheet.background as MaterialShapeDrawable).shapeAppearanceModel =
+                ShapeAppearanceModel.builder()
+                    .setTopLeftCornerSize(normalCornerSize)
+                    .setTopRightCornerSize(normalCornerSize * (1 - playbackLastStretchRatio))
+                    .build()
         }
         // Fade out the playback bar as the panel expands.
         binding.playbackBarFragment.apply {
@@ -394,6 +393,29 @@ class MainFragment :
         return true
     }
 
+    private fun updateYouTubeImporting(importing: Boolean) {
+        if (importing) {
+            if (youTubeProgressDialog == null) {
+                youTubeProgressDialog = YouTubeImportDialogs.showProgressDialog(requireContext())
+                val (current, total) = musicModel.youTubeProgress.value
+                youTubeProgressDialog?.update(current, total)
+            }
+        } else {
+            youTubeProgressDialog?.dismiss()
+            youTubeProgressDialog = null
+        }
+    }
+
+    private fun updateYouTubeProgress(progress: Pair<Int, Int>) {
+        youTubeProgressDialog?.update(progress.first, progress.second)
+    }
+
+    private fun handleYouTubeResult(result: YouTubeImportResult?) {
+        if (result == null) return
+        YouTubeImportDialogs.showResultDialog(requireContext(), result)
+        musicModel.youTubeImportResult.consume()
+    }
+
     override fun onActionSelected(actionItem: SpeedDialActionItem): Boolean {
         when (actionItem.id) {
             R.id.action_new_playlist -> {
@@ -403,6 +425,14 @@ class MainFragment :
             R.id.action_import_playlist -> {
                 L.d("Importing playlist")
                 musicModel.importPlaylist()
+            }
+            R.id.action_import_youtube_playlist -> {
+                L.d("Importing YouTube Music playlist")
+                YouTubeImportDialogs.showLinkDialog(requireContext(), musicModel::importFromYouTube)
+            }
+            R.id.action_refresh_youtube_playlists -> {
+                L.d("Refreshing YouTube Music playlists")
+                musicModel.refreshAllYouTubePlaylists()
             }
             else -> {}
         }

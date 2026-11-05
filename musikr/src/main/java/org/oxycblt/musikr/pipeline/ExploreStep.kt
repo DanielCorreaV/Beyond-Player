@@ -50,6 +50,7 @@ private class ExploreStepImpl(private val fs: FS, private val storage: Storage) 
         explored: Channel<Explored>,
     ): Deferred<Result<Unit>> {
         val files = Channel<File>(Channel.UNLIMITED)
+        val cacheNanos = java.util.concurrent.atomic.AtomicLong()
         val filesTask = fs.explore(files)
 
         val classified = Channel<Classified>(Channel.UNLIMITED)
@@ -64,7 +65,10 @@ private class ExploreStepImpl(private val fs: FS, private val storage: Storage) 
                 ) {
                     return@mapParallel Finalized(NotAudio)
                 }
-                when (val cacheResult = storage.cache.read(file)) {
+                val readStart = System.nanoTime()
+                val cacheResult = storage.cache.read(file)
+                cacheNanos.addAndGet(System.nanoTime() - readStart)
+                when (cacheResult) {
                     is CacheResult.Hit -> NeedsHydration(cacheResult.file)
                     is CacheResult.Stale -> Finalized(NewSong(cacheResult.file))
                     is CacheResult.Miss -> Finalized(NewSong(cacheResult.file))
@@ -117,6 +121,10 @@ private class ExploreStepImpl(private val fs: FS, private val storage: Storage) 
                 for (playlist in playlists) {
                     it.send(playlist)
                 }
+                android.util.Log.i(
+                    "AuxioPerf",
+                    "explore: total cache read time ${cacheNanos.get() / 1_000_000}ms (summed over threads)",
+                )
             }
 
         return scope.merge(filesTask, classifiedTask, exploredTask, playlistsTask, mergeTask)

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="set_key_style" translatable="false">auxio_style</string>
+
+    <string-array name="entries_style">
+        <item>@string/style_classic</item>
+        <item>@string/style_neon</item>
+        <item>@string/style_vinyl</item>
+        <item>@string/style_pop</item>
+    </string-array>
+
+    <integer-array name="values_style">
+        <item>@integer/style_classic_value</item>
+        <item>@integer/style_neon_value</item>
+        <item>@integer/style_vinyl_value</item>
+        <item>@integer/style_pop_value</item>
+    </integer-array>
+
+    <integer name="style_classic_value">0</integer>
+    <integer name="style_neon_value">1</integer>
+    <integer name="style_vinyl_value">2</integer>
+    <integer name="style_pop_value">3</integer>
+</resources>

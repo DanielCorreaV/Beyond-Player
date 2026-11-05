@@ -3,6 +3,33 @@
     app:title="@string/set_ui">
 
     <org.oxycblt.auxio.settings.ui.IntListPreference
+        app:defaultValue="@integer/style_classic_value"
+        app:entries="@array/entries_style"
+        app:entryValues="@array/values_style"
+        app:icon="@drawable/ic_accent_dynamic_24"
+        app:key="@string/set_key_style"
+        app:title="@string/set_style"
+        app:useSimpleSummaryProvider="true" />
+
+    <Preference
+        app:icon="@drawable/ic_accent_dynamic_24"
+        app:key="@string/set_key_bg_image_pick"
+        app:summary="@string/set_bg_image_desc"
+        app:title="@string/set_bg_image" />
+
+    <Preference
+        app:key="@string/set_key_bg_image_clear"
+        app:title="@string/set_bg_image_clear" />
+
+    <org.oxycblt.auxio.settings.ui.IntListPreference
+        app:defaultValue="@integer/bg_fade_medium_value"
+        app:entries="@array/entries_bg_fade"
+        app:entryValues="@array/values_bg_fade"
+        app:key="@string/set_key_bg_fade"
+        app:title="@string/set_bg_fade"
+        app:useSimpleSummaryProvider="true" />
+
+    <org.oxycblt.auxio.settings.ui.IntListPreference
         app:defaultValue="@integer/theme_auto"
         app:entries="@array/entries_theme"
         app:entryIcons="@array/icons_theme"

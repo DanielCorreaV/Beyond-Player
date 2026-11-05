@@ -5,6 +5,14 @@
         android:icon="@drawable/ic_import_24"
         android:title="@string/lbl_imported_playlist" />
     <item
+        android:id="@+id/action_import_youtube_playlist"
+        android:icon="@drawable/ic_import_24"
+        android:title="@string/lbl_import_youtube" />
+    <item
+        android:id="@+id/action_refresh_youtube_playlists"
+        android:icon="@drawable/ic_import_24"
+        android:title="@string/lbl_youtube_refresh_all" />
+    <item
         android:id="@+id/action_new_playlist"
         android:icon="@drawable/ic_playlist_24"
         android:title="@string/lbl_empty_playlist" />

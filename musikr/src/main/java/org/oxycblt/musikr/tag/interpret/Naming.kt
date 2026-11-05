@@ -103,13 +103,9 @@ private data class IntelligentKnownName(override val raw: String, override val s
                     }
                 }
 
-        // Transliterate to latin if available
-        if (
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                Transliterator.getAvailableIDs().toList().contains("Any-Latin")
-        ) {
-            stripped = Transliterator.getInstance("Any-Latin;").transliterate(stripped)
-        }
+        // Transliterate to latin if available. Looking up the available IDs and building the
+        // transliterator is very expensive, so it's done once per thread instead of once per name.
+        latinTransliterator.get()?.let { stripped = it.transliterate(stripped) }
 
         // To properly compare numeric components in names, we have to split them up into
         // individual lexicographic and numeric tokens and then individually compare them
@@ -137,5 +133,18 @@ private data class IntelligentKnownName(override val raw: String, override val s
 
     companion object {
         private val TOKEN_REGEX by lazy { Regex("(\\d+)|(\\D+)") }
+
+        // Transliterator instances are not thread-safe, so keep one per thread.
+        private val latinTransliterator =
+            ThreadLocal.withInitial<Transliterator?> {
+                if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                        Transliterator.getAvailableIDs().toList().contains("Any-Latin")
+                ) {
+                    Transliterator.getInstance("Any-Latin;")
+                } else {
+                    null
+                }
+            }
     }
 }

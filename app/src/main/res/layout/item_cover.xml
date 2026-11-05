@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.ExtraLarge">
+    app:shapeAppearance="?attr/auxioShapeLarge">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -22,6 +22,21 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"/>
+
+        <!-- Style decoration on top of the cover (e.g. vinyl grooves). Never takes input. -->
+        <View
+            android:id="@+id/cover_decor"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="?attr/auxioCoverDecor"
+            android:clickable="false"
+            android:focusable="false"
+            android:importantForAccessibility="no"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintDimensionRatio="1"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <org.oxycblt.auxio.playback.ui.stepper.StepperOverlay
             android:id="@+id/cover_fast_seek_overlay"

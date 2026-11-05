@@ -18,10 +18,10 @@ jobs:
     - name: Clone submodules
       run: git submodule update --init --recursive
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: "21"
-        distribution: "jetbrains"
+        distribution: temurin
         cache: gradle
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew

@@ -19,30 +19,51 @@
 package org.oxycblt.auxio.playback
 
 import android.annotation.SuppressLint
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.media.audiofx.AudioEffect
+import com.google.android.material.button.MaterialButton
+import androidx.appcompat.view.ContextThemeWrapper
+import androidx.core.content.ContextCompat
+import com.google.android.material.shape.RelativeCornerSize
+import com.google.android.material.shape.ShapeAppearanceModel
+import android.view.ViewGroup
+import android.content.res.ColorStateList
+import org.oxycblt.musikr.Music
+import org.oxycblt.auxio.ui.UISettings
+import org.oxycblt.auxio.ui.AppStyle
+import org.oxycblt.auxio.playback.ui.DiscSpinner
+import org.oxycblt.auxio.music.MusicViewModel
+import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.isVisible
+import androidx.core.view.doOnLayout
+import androidx.core.view.children
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.updatePadding
 import androidx.dynamicanimation.animation.SpringForce
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlin.math.abs
 import org.oxycblt.auxio.R
 import org.oxycblt.auxio.databinding.FragmentPlaybackPanelBinding
 import org.oxycblt.auxio.detail.DetailViewModel
+import androidx.viewpager2.widget.ViewPager2
 import org.oxycblt.auxio.list.ListViewModel
+import org.oxycblt.auxio.list.adapter.UpdateInstructions
 import org.oxycblt.auxio.music.resolve
 import org.oxycblt.auxio.music.resolveNames
+import org.oxycblt.auxio.playback.equalizer.EqualizerController
+import org.oxycblt.auxio.playback.equalizer.EqualizerDialog
+import org.oxycblt.auxio.playback.equalizer.SongFade
+import org.oxycblt.auxio.playback.equalizer.SoundStabilizer
 import org.oxycblt.auxio.playback.queue.QueueViewModel
+import org.oxycblt.auxio.playback.timer.SleepTimer
+import org.oxycblt.auxio.playback.timer.SleepTimerDialog
+import org.oxycblt.auxio.playback.timer.TimerState
 import org.oxycblt.auxio.playback.state.RepeatMode
 import org.oxycblt.auxio.playback.ui.StyledSeekBar
 import org.oxycblt.auxio.playback.ui.stepper.Direction
@@ -79,25 +100,37 @@ class PlaybackPanelFragment :
     private val playbackModel: PlaybackViewModel by activityViewModels()
     private val detailModel: DetailViewModel by activityViewModels()
     private val listModel: ListViewModel by activityViewModels()
+    private val musicModel: MusicViewModel by activityViewModels()
+    @Inject lateinit var uiSettings: UISettings
+    private var discSpinner: DiscSpinner? = null
+    private var reelSpinner: DiscSpinner? = null
+    private var walkman: WalkmanViews? = null
     private val queueModel: QueueViewModel by viewModels()
-    private var equalizerLauncher: ActivityResultLauncher<Intent>? = null
+    @Inject lateinit var equalizer: EqualizerController
+    @Inject lateinit var stabilizer: SoundStabilizer
+    @Inject lateinit var sleepTimer: SleepTimer
+    @Inject lateinit var songFade: SongFade
     private var userAwarePagerCallback: UserAwarePagerCallback? = null
 
-    override fun onCreateBinding(inflater: LayoutInflater) =
-        FragmentPlaybackPanelBinding.inflate(inflater)
+    override fun onCreateBinding(inflater: LayoutInflater): FragmentPlaybackPanelBinding {
+        // Pop style on tall phones: the Walkman screen, with its own dark palette.
+        if (uiSettings.style != AppStyle.POP || resources.configuration.screenHeightDp < 520) {
+            return FragmentPlaybackPanelBinding.inflate(inflater)
+        }
+        val themed =
+            inflater.cloneInContext(
+                ContextThemeWrapper(inflater.context, R.style.ThemeOverlay_Auxio_Walkman)
+            )
+        return FragmentPlaybackPanelBinding.bind(
+            themed.inflate(R.layout.fragment_playback_walkman, null, false)
+        )
+    }
 
     override fun onBindingCreated(
         binding: FragmentPlaybackPanelBinding,
         savedInstanceState: Bundle?,
     ) {
         super.onBindingCreated(binding, savedInstanceState)
-
-        // AudioEffect expects you to use startActivityForResult with the panel intent. There is no
-        // contract analogue for this intent, so the generic contract is used instead.
-        equalizerLauncher =
-            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-                // Nothing to do
-            }
 
         // --- UI SETUP ---
         binding.root.setOnApplyWindowInsetsListener { view, insets ->
@@ -149,6 +182,11 @@ class PlaybackPanelFragment :
             setOnClickListener { navigateToCurrentAlbum() }
         }
 
+        binding.playbackFavorite?.setOnClickListener { toggleFavorite() }
+        setupVinyl(binding)
+        setupWalkman(binding)
+        setupActionTiles(binding)
+
         binding.playbackSeekBar?.listener = this
 
         // Set up actions
@@ -175,6 +213,9 @@ class PlaybackPanelFragment :
 
         // --- VIEWMODEL SETUP --
         collectImmediately(playbackModel.song, ::updateSong)
+        collectImmediately(playbackModel.isPlaying, ::updateDisc)
+        collectImmediately(playbackModel.song, musicModel.favoriteUids, ::updateFavorite)
+        collectImmediately(sleepTimer.state, ::updateTimerIcon)
         collectImmediately(playbackModel.parent, ::updateParent)
         collectImmediately(playbackModel.positionDs, ::updatePosition)
         collectImmediately(playbackModel.repeatMode, ::updateRepeat)
@@ -219,7 +260,11 @@ class PlaybackPanelFragment :
     //    }
 
     override fun onDestroyBinding(binding: FragmentPlaybackPanelBinding) {
-        equalizerLauncher = null
+        discSpinner?.release()
+        reelSpinner?.release()
+        reelSpinner = null
+        walkman = null
+        discSpinner = null
         binding.playbackRepeat.clearPendingIcon()
         binding.playbackSong.isSelected = false
         binding.playbackArtist.isSelected = false
@@ -229,24 +274,111 @@ class PlaybackPanelFragment :
         binding.playbackPager?.adapter = null
     }
 
+    private fun setupActionTiles(binding: FragmentPlaybackPanelBinding) {
+        if (uiSettings.style != AppStyle.NEON) return
+        // Bigger cover: the side margins shrink.
+        binding.playbackPager?.let { pager ->
+            (pager.layoutParams as? ViewGroup.MarginLayoutParams)?.let {
+                val m = (resources.displayMetrics.density * 6).toInt()
+                it.setMargins(m, it.topMargin, m, it.bottomMargin)
+                pager.layoutParams = it
+            }
+        }
+        // Round play button.
+        binding.playbackPlayPause.setBaseShape(
+            ShapeAppearanceModel.builder().setAllCornerSizes(RelativeCornerSize(0.5f)).build()
+        )
+        binding.playbackToolbar.title = getString(R.string.lbl_neon_playing_from)
+        binding.playbackFavorite?.apply {
+            backgroundTintList = ColorStateList.valueOf(0x33FF4FA3)
+            iconTint = ColorStateList.valueOf(0xFFFF6FB5.toInt())
+        }
+    }
+
+    private fun tintToolbarButtons(view: View, color: Int) {
+        if (view is MaterialButton) view.iconTint = ColorStateList.valueOf(color)
+        if (view is ViewGroup) view.children.forEach { tintToolbarButtons(it, color) }
+    }
+
+    private fun setupWalkman(binding: FragmentPlaybackPanelBinding) {
+        walkman =
+            if (binding.root.findViewById<View>(R.id.playback_walkman_card) != null) {
+                WalkmanViews(binding.root)
+            } else {
+                null
+            }
+        val views = walkman ?: return
+        coverPagerAdapter.stepperEnabled = false
+        binding.root.findViewById<StepperOverlay>(R.id.playback_walkman_seek)?.listener = this
+        binding.playbackToolbar.title = getString(R.string.lbl_walkman_name)
+        tintToolbarButtons(binding.playbackToolbar, 0xFFE8EDF7.toInt())
+        views.labelTitle?.isSelected = true
+        val spinner = DiscSpinner(REEL_REVOLUTION_MS).also { reelSpinner = it }
+        listOf(views.reelLeft, views.reelRight).forEach { reel -> reel?.let(spinner::attach) }
+        spinner.setPlaying(playbackModel.isPlaying.value)
+    }
+
+    private fun setupVinyl(binding: FragmentPlaybackPanelBinding) {
+        if (uiSettings.style != AppStyle.VINYL) return
+        // The Vinyl style spins the cover like a record and swings a tonearm onto it.
+        val spinner = DiscSpinner().also { discSpinner = it }
+        binding.playbackPager?.recycler()?.let { recycler ->
+            recycler.addOnChildAttachStateChangeListener(
+                object : RecyclerView.OnChildAttachStateChangeListener {
+                    override fun onChildViewAttachedToWindow(view: View) = spinner.attachPage(view)
+
+                    override fun onChildViewDetachedFromWindow(view: View) = spinner.detachPage(view)
+                }
+            )
+            recycler.children.forEach(spinner::attachPage)
+        }
+        binding.playbackTonearm?.apply {
+            isVisible = true
+            doOnLayout {
+                pivotX = it.width * TONEARM_PIVOT_X
+                pivotY = it.height * TONEARM_PIVOT_Y
+                rotation = if (playbackModel.isPlaying.value) 0f else TONEARM_REST_ANGLE
+            }
+        }
+    }
+
+    private fun updateDisc(isPlaying: Boolean) {
+        discSpinner?.setPlaying(isPlaying)
+        reelSpinner?.setPlaying(isPlaying)
+        walkman?.state?.setText(
+            if (isPlaying) R.string.lbl_walkman_playing else R.string.lbl_walkman_paused
+        )
+        requireBinding()
+            .playbackTonearm
+            ?.animate()
+            ?.rotation(if (isPlaying) 0f else TONEARM_REST_ANGLE)
+            ?.setDuration(TONEARM_MOVE_MS)
+            ?.start()
+    }
+
+    private fun updateFavorite(song: Song?, favorites: Set<Music.UID>) {
+        requireBinding().playbackFavorite?.isChecked = song != null && song.uid in favorites
+    }
+
+    private fun toggleFavorite() {
+        val song = playbackModel.song.value ?: return
+        val liked = song.uid in musicModel.favoriteUids.value
+        musicModel.toggleFavorite(song)
+        requireContext()
+            .showToast(if (liked) R.string.msg_favorite_removed else R.string.msg_favorite_added)
+    }
+
     override fun onMenuItemClick(item: MenuItem): Boolean {
         if (item.itemId == R.id.action_open_equalizer) {
-            // Launch the system equalizer app, if possible.
-            L.d("Launching equalizer")
-            val equalizerIntent =
-                Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL)
-                    // Provide audio session ID so the equalizer can show options for this app
-                    // in particular.
-                    .putExtra(AudioEffect.EXTRA_AUDIO_SESSION, playbackModel.currentAudioSessionId)
-                    // Signal music type so that the equalizer settings are appropriate for
-                    // music playback.
-                    .putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
-            try {
-                requireNotNull(equalizerLauncher) { "Equalizer panel launcher was not available" }
-                    .launch(equalizerIntent)
-            } catch (e: ActivityNotFoundException) {
-                requireContext().showToast(R.string.err_no_app)
-            }
+            // Auxio has its own equalizer, so no system equalizer app is needed.
+            L.d("Opening equalizer")
+            EqualizerDialog.show(requireContext(), equalizer, stabilizer, songFade)
+            return true
+        }
+
+        if (item.itemId == R.id.action_sleep_timer) {
+            L.d("Opening sleep timer")
+            SleepTimerDialog.show(requireContext(), sleepTimer)
             return true
         }
 
@@ -255,6 +387,14 @@ class PlaybackPanelFragment :
 
     override fun onSeekConfirmed(positionDs: Long) {
         playbackModel.seekTo(positionDs)
+    }
+
+    private fun updateTimerIcon(state: TimerState?) {
+        val item = requireBinding().playbackToolbar.menu.findItem(R.id.action_sleep_timer) ?: return
+        // A dot on the icon shows that a timer is running.
+        item.setIcon(
+            if (state != null) R.drawable.ic_timer_active_24 else R.drawable.ic_timer_24
+        )
     }
 
     private fun updateSong(song: Song?) {
@@ -269,6 +409,14 @@ class PlaybackPanelFragment :
         binding.playbackSong.text = song.name.resolve(context)
         binding.playbackArtist.text = song.artists.resolveNames(context)
         binding.playbackAlbum?.text = song.album.name.resolve(context)
+        walkman?.let {
+            it.labelTitle?.text = song.name.resolve(context)
+            it.labelArtist?.text = song.artists.resolveNames(context)
+            it.footerAlbum?.text = song.album.name.resolve(context)
+            it.footerArtist?.text = song.artists.resolveNames(context)
+        }
+        binding.playbackDeckTitle?.text = song.name.resolve(context)
+        binding.playbackDeckArtist?.text = song.artists.resolveNames(context)
         binding.playbackSeekBar?.durationDs = song.durationMs.msToDs()
     }
 
@@ -281,6 +429,7 @@ class PlaybackPanelFragment :
 
     private fun updatePosition(positionDs: Long) {
         requireBinding().playbackSeekBar?.positionDs = positionDs
+        walkman?.counter?.text = "%03d".format((positionDs / 10).toInt() % 1000)
     }
 
     private fun updateRepeat(repeatMode: RepeatMode) {
@@ -339,21 +488,54 @@ class PlaybackPanelFragment :
         }
     }
 
-    private fun updatePagerImpl(queue: PagerQueue) {
+    private fun updatePagerImpl(captured: PagerQueue) {
         // Android insanity means this may be executed after view destruction
         // but only on some devices.
         val binding = binding ?: return
 
+        // The state can move on between the moment this was scheduled and now, and the command
+        // slot only remembers the last command. Always work from the newest queue.
+        val queue = playbackModel.pagerQueue.value
         val command = playbackModel.pagerCommand.consume()
-        if (command == null) {
-            // This probably shouldn't happen in practice, as QueueViewModel directly
-            // attaches to PlaybackStateManager and will basically always initialize
-            // with a command as a result.
-            //
-            // If it does happen we should just make sure the UI state is aligned. Don't
-            // want broken UI.
-            coverPagerAdapter.update(queue.queue, null)
+        val oldSize = coverPagerAdapter.currentList.size
+
+        // Several queue changes in a row (for example removing a duplicate and then adding a song)
+        // collapse into one update with only the last command, so the incremental instruction no
+        // longer describes the real change. A list updated that way keeps stale covers around, so
+        // when the sizes do not add up, or the list no longer lines up with the current song,
+        // just rebuild it.
+        val update = command?.update
+        val incrementalMismatch =
+            when (update) {
+                is UpdateInstructions.Add -> queue.queue.size != oldSize + update.size
+                is UpdateInstructions.Remove -> queue.queue.size != oldSize - update.size
+                is UpdateInstructions.Move -> queue.queue.size != oldSize
+                else -> false
+            }
+        val misaligned =
+            update == null &&
+                (oldSize != queue.queue.size ||
+                    coverPagerAdapter.currentList.getOrNull(queue.index)?.uid !=
+                        queue.queue.getOrNull(queue.index)?.uid)
+        if (incrementalMismatch || misaligned) {
+            android.util.Log.w(
+                "AuxioPager",
+                "pager out of sync (command=$command old=$oldSize new=${queue.queue.size}), rebuilding",
+            )
+            coverPagerAdapter.update(queue.queue, UpdateInstructions.Replace(0))
             binding.playbackPager.setCurrentItem(queue.index, false)
+            return
+        }
+
+        if (command == null) {
+            // Another update already took care of the command, only make sure the UI state is
+            // aligned. Don't want broken UI.
+            val pager = binding.playbackPager
+            if (
+                pager.scrollState == ViewPager2.SCROLL_STATE_IDLE && pager.currentItem != queue.index
+            ) {
+                pager.setCurrentItem(queue.index, false)
+            }
             return
         }
 
@@ -391,10 +573,25 @@ class PlaybackPanelFragment :
         playbackModel.song.value?.let { detailModel.showAlbum(it.album) }
     }
 
+    override fun hold(active: Boolean) {
+        playbackModel.boost(active)
+    }
+
     override fun seek(direction: Direction) {
         when (direction) {
             Direction.FORWARDS -> playbackModel.stepForward()
             Direction.BACKWARDS -> playbackModel.stepBackwards()
         }
     }
+
+    private companion object {
+        /** Where the tonearm pivots, as a fraction of its size. */
+        const val TONEARM_PIVOT_X = 100f / 120f
+        const val TONEARM_PIVOT_Y = 17f / 170f
+        /** Angle of the tonearm when it rests away from the record. */
+        const val TONEARM_REST_ANGLE = -30f
+        const val TONEARM_MOVE_MS = 600L
+    }
 }
+
+private const val REEL_REVOLUTION_MS = 2600L

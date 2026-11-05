@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="set_app_icon">Ícono personalizado</string>
+    <string name="set_app_icon_desc">Usa tu propia foto como ícono en tu pantalla de inicio</string>
+    <string name="icon_edit_hint">Arrastra y pellizca para encuadrar tu foto</string>
+    <string name="icon_create">Añadir a inicio</string>
+    <string name="icon_updated">Ícono actualizado en tu pantalla de inicio</string>
+    <string name="icon_unsupported">Tu launcher no permite añadir accesos directos</string>
+    <string name="icon_load_failed">No se pudo abrir esa imagen</string>
+    <string name="icon_explain">Android no permite que una app cambie su propio ícono, así que esto crea un acceso directo en tu pantalla de inicio con tu foto. Para no tener dos íconos, puedes ocultar el original del cajón de apps o meterlo tú en una carpeta.\n\nSi ocultas el original y luego quitas el acceso directo, vuelve aquí para mostrarlo otra vez. Si no puedes abrir la app, hazlo desde Ajustes del sistema, Apps, Beyond Player, Abrir.</string>
+    <string name="icon_hide_original">Ocultar el ícono original del cajón de apps</string>
+    <string name="icon_hide_needs_shortcut">Primero añade tu acceso directo, luego podrás ocultar el ícono original.</string>
+    <string name="icon_original_hidden">Ícono original oculto</string>
+    <string name="icon_original_shown">Ícono original visible</string>
+    <string name="icon_pick">Elegir foto</string>
+    <string name="icon_close">Cerrar</string>
+</resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="set_key_app_icon" translatable="false">auxio_app_icon</string>
+    <string name="set_app_icon">Custom icon</string>
+    <string name="set_app_icon_desc">Use your own photo as an icon on your home screen</string>
+    <string name="icon_edit_hint">Drag and pinch to frame your photo</string>
+    <string name="icon_create">Add to home screen</string>
+    <string name="icon_updated">Icon updated on your home screen</string>
+    <string name="icon_unsupported">Your launcher does not allow adding shortcuts</string>
+    <string name="icon_load_failed">Could not open that image</string>
+    <string name="icon_explain">Android does not let an app change its own icon, so this creates a shortcut on your home screen with your photo. To avoid having two icons, you can hide the original one from the app drawer, or put it in a folder yourself.\n\nIf you hide the original and later remove the shortcut, come back here to show it again. If you cannot open the app, use system Settings, Apps, Beyond Player, Open.</string>
+    <string name="icon_hide_original">Hide the original icon from the app drawer</string>
+    <string name="icon_hide_needs_shortcut">Add your shortcut first, then you can hide the original icon.</string>
+    <string name="icon_original_hidden">Original icon hidden</string>
+    <string name="icon_original_shown">Original icon shown</string>
+    <string name="icon_pick">Choose photo</string>
+    <string name="icon_close">Close</string>
+</resources>

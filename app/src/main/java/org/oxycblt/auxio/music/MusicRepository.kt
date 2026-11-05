@@ -68,6 +68,12 @@ interface MusicRepository {
     val indexingState: IndexingState?
 
     /**
+     * Whether [library] is only a partial snapshot published while the first scan is still running.
+     * Anything that persists or validates data against the library must wait until this is false.
+     */
+    val isLibraryPartial: Boolean
+
+    /**
      * Add an [UpdateListener] to receive updates from this instance.
      *
      * @param listener The [UpdateListener] to add.
@@ -129,7 +135,7 @@ interface MusicRepository {
      * @param name The name of the new [Playlist].
      * @param songs The songs to populate the new [Playlist] with.
      */
-    suspend fun createPlaylist(name: String, songs: List<Song>)
+    suspend fun createPlaylist(name: String, songs: List<Song>): Playlist?
 
     /**
      * Rename a [Playlist].
@@ -195,7 +201,11 @@ interface MusicRepository {
      * @param deviceLibrary Whether the current songs/albums/artists/genres has changed.
      * @param userLibrary Whether the current playlists have changed.
      */
-    data class Changes(val deviceLibrary: Boolean, val userLibrary: Boolean)
+    data class Changes(
+        val deviceLibrary: Boolean,
+        val userLibrary: Boolean,
+        val partial: Boolean = false,
+    )
 
     /** A listener for events in the music loading process. */
     interface IndexingListener {
@@ -251,6 +261,7 @@ constructor(
     @Volatile private var indexingWorker: IndexingWorker? = null
 
     @Volatile override var library: MutableLibrary? = null
+    @Volatile override var isLibraryPartial = false
     @Volatile private var previousCompletedState: IndexingState.Completed? = null
     @Volatile private var currentIndexingState: IndexingState? = null
     override val indexingState: IndexingState?
@@ -317,12 +328,14 @@ constructor(
                 ?: findPlaylist(uid)
         })
 
-    override suspend fun createPlaylist(name: String, songs: List<Song>) {
-        val library = synchronized(this) { library ?: return }
+    override suspend fun createPlaylist(name: String, songs: List<Song>): Playlist? {
+        val library = synchronized(this) { library ?: return null }
         L.d("Creating playlist $name with ${songs.size} songs")
         val newLibrary = library.createPlaylist(name, songs)
         synchronized(this) { this.library = newLibrary }
         withContext(Dispatchers.Main) { dispatchLibraryChange(device = false, user = true) }
+        val oldUids = library.playlists.map { it.uid }.toSet()
+        return newLibrary.playlists.firstOrNull { it.uid !in oldUids }
     }
 
     override suspend fun renamePlaylist(playlist: Playlist, name: String) {
@@ -380,6 +393,11 @@ constructor(
     }
 
     private suspend fun indexImpl(withCache: Boolean) {
+        val perfStart = android.os.SystemClock.elapsedRealtime()
+        android.util.Log.i(
+            "AuxioPerf",
+            "index begin: ${perfStart - android.os.Process.getStartElapsedRealtime()}ms after process start, cache=$withCache",
+        )
         L.d("Index requested, initializing")
         // Obtain configuration information
         val separators = Separators.from(musicSettings.separators)
@@ -409,8 +427,16 @@ constructor(
         val config = Config(fs, storage, interpretation)
         L.d("Running index...")
         val start = System.currentTimeMillis()
-        val result = Musikr.new(context, config).run(::emitIndexingProgress)
+        // While there is no complete library yet, let the UI show songs as soon as they are read.
+        val onPartial: (suspend (MutableLibrary) -> Unit)? =
+            if (library == null || isLibraryPartial) {
+                { partial -> emitPartialLibrary(partial) }
+            } else {
+                null
+            }
+        val result = Musikr.new(context, config).run(::emitIndexingProgress, onPartial)
         L.d("Index finished in ${System.currentTimeMillis() - start}ms")
+        android.util.Log.i("AuxioPerf", "index run: ${System.currentTimeMillis() - start}ms")
         // Music loading completed, update the revision right now so we re-use this work
         // later.
         L.d("Revisioning from $currentRevision -> $newRevision")
@@ -419,12 +445,18 @@ constructor(
         // This will more or less block until all required item translation and
         // cleanup finishes.
         L.d("Emitting new library")
+        val emitStart = android.os.SystemClock.elapsedRealtime()
         emitLibrary(result.library)
+        android.util.Log.i(
+            "AuxioPerf",
+            "emit library: ${android.os.SystemClock.elapsedRealtime() - emitStart}ms; LIBRARY READY ${android.os.SystemClock.elapsedRealtime() - android.os.Process.getStartElapsedRealtime()}ms after process start",
+        )
         // Clean up old data that is now impossible for the app to be using.
         L.d("Cleanup")
         result.cleanup()
         // Finish up loading.
         L.d("Indexing complete")
+        android.util.Log.i("AuxioPerf", "index total: ${android.os.SystemClock.elapsedRealtime() - perfStart}ms")
         emitIndexingCompletion(null)
     }
 
@@ -435,6 +467,18 @@ constructor(
             for (listener in indexingListeners) {
                 listener.onIndexingStateChanged()
             }
+        }
+    }
+
+    private suspend fun emitPartialLibrary(partialLibrary: MutableLibrary) {
+        synchronized(this) {
+            // Never replace a complete library with a partial one.
+            if (library != null && !isLibraryPartial) return
+            library = partialLibrary
+            isLibraryPartial = true
+        }
+        withContext(Dispatchers.Main) {
+            dispatchLibraryChange(device = true, user = false, partial = true)
         }
     }
 
@@ -450,18 +494,23 @@ constructor(
             // This is an old compat shim back when device library and user library were different
             // thinks. For the sake of avoiding drastic changes, it sticks around.
             // TODO: Remove this once you start work on kindred.
+            // If the current library is only a partial snapshot, the complete one always counts as
+            // a change so that consumers (like playback restoration) get their update.
+            val wasPartial = isLibraryPartial
             deviceLibraryChanged =
-                this.library?.songs != newLibrary.songs ||
+                wasPartial ||
+                    this.library?.songs != newLibrary.songs ||
                     this.library?.albums != newLibrary.albums ||
                     this.library?.artists != newLibrary.artists ||
                     this.library?.genres != newLibrary.genres
-            userLibraryChanged = this.library?.playlists != newLibrary.playlists
+            userLibraryChanged = wasPartial || this.library?.playlists != newLibrary.playlists
             if (!deviceLibraryChanged && !userLibraryChanged) {
                 L.d("Library has not changed, skipping update")
                 return
             }
 
             this.library = newLibrary
+            this.isLibraryPartial = false
         }
 
         // Consumers expect their updates to be on the main thread (notably PlaybackService),
@@ -484,8 +533,8 @@ constructor(
     }
 
     @Synchronized
-    private fun dispatchLibraryChange(device: Boolean, user: Boolean) {
-        val changes = MusicRepository.Changes(device, user)
+    private fun dispatchLibraryChange(device: Boolean, user: Boolean, partial: Boolean = false) {
+        val changes = MusicRepository.Changes(device, user, partial)
         L.d("Dispatching library change [changes=$changes]")
         for (listener in updateListeners) {
             listener.onMusicChanges(changes)

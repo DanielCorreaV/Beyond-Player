@@ -98,6 +98,8 @@
 
     <org.oxycblt.auxio.playback.ui.ForcedLTRFrameLayout
         android:id="@+id/playback_controls_container"
+        android:background="?attr/auxioControlsBackground"
+        android:padding="?attr/auxioControlsPadding"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/spacing_mid_medium"
@@ -114,7 +116,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_repeat"
-                style="@style/Widget.Auxio.Button.Playback.Toggle"
+                style="?attr/auxioPlaybackToggleStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_change_repeat"
@@ -123,7 +125,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_skip_prev"
-                style="@style/Widget.Auxio.Button.Playback.Skip"
+                style="?attr/auxioPlaybackSkipStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_skip_prev"
@@ -132,7 +134,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_play_pause"
-                style="@style/Widget.Auxio.Button.Playback.PlayPause"
+                style="?attr/auxioPlaybackPlayPauseStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_play_pause"
@@ -142,7 +144,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_skip_next"
-                style="@style/Widget.Auxio.Button.Playback.Skip"
+                style="?attr/auxioPlaybackSkipStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_skip_next"
@@ -151,7 +153,7 @@
 
             <org.oxycblt.auxio.playback.ui.button.ScaledPlaybackButton
                 android:id="@+id/playback_shuffle"
-                style="@style/Widget.Auxio.Button.Playback.Toggle"
+                style="?attr/auxioPlaybackToggleStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/desc_shuffle"

@@ -51,7 +51,10 @@ interface Musikr {
      *   pipeline. Warning: These events will be rapid-fire.
      * @return A handle to the newly created library alongside further cleanup.
      */
-    suspend fun run(onProgress: suspend (IndexingProgress) -> Unit = {}): LibraryResult
+    suspend fun run(
+        onProgress: suspend (IndexingProgress) -> Unit = {},
+        onPartial: (suspend (MutableLibrary) -> Unit)? = null,
+    ): LibraryResult
 
     companion object {
         /**
@@ -106,13 +109,25 @@ sealed interface IndexingProgress {
     data object Indeterminate : IndexingProgress
 }
 
+private const val PROGRESS_STEP = 16
+
 private class MusikrImpl(
     private val config: Config,
     private val exploreStep: ExploreStep,
     private val extractStep: ExtractStep,
     private val evaluateStep: EvaluateStep,
 ) : Musikr {
-    override suspend fun run(onProgress: suspend (IndexingProgress) -> Unit) = coroutineScope {
+    override suspend fun run(
+        onProgress: suspend (IndexingProgress) -> Unit,
+        onPartial: (suspend (MutableLibrary) -> Unit)?,
+    ) = coroutineScope {
+        val t0 = android.os.SystemClock.elapsedRealtime()
+        fun perfMark(what: String) {
+            android.util.Log.i(
+                "AuxioPerf",
+                "musikr +${android.os.SystemClock.elapsedRealtime() - t0}ms: $what",
+            )
+        }
         onProgress(IndexingProgress.Songs(0, 0))
         var explored = 0
         var loaded = 0
@@ -123,7 +138,12 @@ private class MusikrImpl(
             tryAsyncWith(trackedExploredChannel, Dispatchers.Main) {
                 for (item in exploredChannel) {
                     explored++
-                    onProgress(IndexingProgress.Songs(loaded, explored))
+                    if (explored == 1) perfMark("first file explored")
+                    // Reporting every file floods the main thread and the foreground
+                    // notification, so only report in batches.
+                    if (explored % PROGRESS_STEP == 0) {
+                        onProgress(IndexingProgress.Songs(loaded, explored))
+                    }
                     trackedExploredChannel.send(item)
                 }
             }
@@ -134,13 +154,21 @@ private class MusikrImpl(
             tryAsyncWith(trackedExtractedChannel, Dispatchers.Main) {
                 for (item in extractedChannel) {
                     loaded++
-                    onProgress(IndexingProgress.Songs(loaded, explored))
+                    if (loaded % PROGRESS_STEP == 0) {
+                        onProgress(IndexingProgress.Songs(loaded, explored))
+                    }
                     trackedExtractedChannel.send(item)
                 }
+                perfMark("all files extracted ($loaded)")
                 onProgress(IndexingProgress.Indeterminate)
             }
-        val library = evaluateStep.evaluate(trackedExtractedChannel)
+        val library = evaluateStep.evaluate(trackedExtractedChannel, onPartial)
+        val t1 = android.os.SystemClock.elapsedRealtime()
         merge(exploredTask, extractedTask, trackedExploredTask, trackedExtractedTask).await()
+        android.util.Log.i(
+            "AuxioPerf",
+            "musikr: explore+extract+evaluate=${t1 - t0}ms, join=${android.os.SystemClock.elapsedRealtime() - t1}ms, files=$explored, loaded=$loaded",
+        )
         LibraryResultImpl(config, library)
     }
 }

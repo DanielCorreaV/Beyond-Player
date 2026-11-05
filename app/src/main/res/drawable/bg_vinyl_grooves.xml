@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Record grooves, label and spindle hole drawn over a circular cover (Vinyl style). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <inset android:insetLeft="3%" android:insetTop="3%" android:insetRight="3%" android:insetBottom="3%">
+            <shape android:shape="oval">
+                <stroke android:width="1dp" android:color="@color/vinyl_groove" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="9%" android:insetTop="9%" android:insetRight="9%" android:insetBottom="9%">
+            <shape android:shape="oval">
+                <stroke android:width="1dp" android:color="@color/vinyl_groove" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="15%" android:insetTop="15%" android:insetRight="15%" android:insetBottom="15%">
+            <shape android:shape="oval">
+                <stroke android:width="1dp" android:color="@color/vinyl_groove" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="21%" android:insetTop="21%" android:insetRight="21%" android:insetBottom="21%">
+            <shape android:shape="oval">
+                <stroke android:width="1dp" android:color="@color/vinyl_groove" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="27%" android:insetTop="27%" android:insetRight="27%" android:insetBottom="27%">
+            <shape android:shape="oval">
+                <stroke android:width="1dp" android:color="@color/vinyl_groove" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="33%" android:insetTop="33%" android:insetRight="33%" android:insetBottom="33%">
+            <shape android:shape="oval">
+                <stroke android:width="1dp" android:color="@color/vinyl_groove" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="40%" android:insetTop="40%" android:insetRight="40%" android:insetBottom="40%">
+            <shape android:shape="oval">
+                <solid android:color="?attr/colorPrimary" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:insetLeft="48%" android:insetTop="48%" android:insetRight="48%" android:insetBottom="48%">
+            <shape android:shape="oval">
+                <solid android:color="?android:attr/colorBackground" />
+            </shape>
+        </inset>
+    </item>
+</layer-list>

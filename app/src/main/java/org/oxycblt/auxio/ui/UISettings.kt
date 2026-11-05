@@ -39,6 +39,10 @@ interface UISettings : Settings<UISettings.Listener> {
     val theme: Int
     /** Whether to use a black background when a dark theme is currently used. */
     val useBlackTheme: Boolean
+    /** The current [AppStyle]. */
+    val style: AppStyle
+    /** How strong the custom background image is: 0 (soft), 1 (medium) or 2 (strong). */
+    val backgroundFade: Int
     /** The current [Accent] (Color Scheme). */
     var accent: Accent
     /** Whether to round additional UI elements that require album covers to be rounded. */
@@ -58,6 +62,18 @@ class UISettingsImpl @Inject constructor(@ApplicationContext context: Context) :
                 getString(R.string.set_key_theme),
                 AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
             )
+
+    override val style: AppStyle
+        get() =
+            AppStyle.from(
+                sharedPreferences.getInt(
+                    getString(R.string.set_key_style),
+                    AppStyle.CLASSIC.value,
+                )
+            )
+
+    override val backgroundFade: Int
+        get() = sharedPreferences.getInt(getString(R.string.set_key_bg_fade), 1)
 
     override val useBlackTheme: Boolean
         get() = sharedPreferences.getBoolean(getString(R.string.set_key_black_theme), false)

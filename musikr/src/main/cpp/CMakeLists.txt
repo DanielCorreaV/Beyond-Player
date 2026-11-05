@@ -32,6 +32,12 @@ set(taglib_include "${taglib_pkg}/include")
 set(taglib_file_name libtag.a)
 set(taglib_file_path ${taglib_lib}/${taglib_file_name})
 set(taglib_lib_name, "taglib")
+if(NOT EXISTS ${taglib_include})
+    file(MAKE_DIRECTORY ${taglib_include})
+endif()
+if(NOT EXISTS ${taglib_lib})
+    file(MAKE_DIRECTORY ${taglib_lib})
+endif()
 add_library(
         "taglib"
         STATIC

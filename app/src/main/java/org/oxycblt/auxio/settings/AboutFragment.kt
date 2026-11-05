@@ -22,11 +22,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.format.Formatter
+import android.view.View
 import android.view.LayoutInflater
 import androidx.core.net.toUri
 import androidx.core.view.updatePadding
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.transition.MaterialFadeThrough
 import dagger.hilt.android.AndroidEntryPoint
 import org.oxycblt.auxio.BuildConfig
@@ -67,27 +69,27 @@ class AboutFragment : ViewBindingFragment<FragmentAboutBinding>() {
             insets
         }
         binding.aboutVersion.text = BuildConfig.VERSION_NAME
-        binding.aboutCode.setOnClickListener { requireContext().openInBrowser(LINK_SOURCE) }
-        binding.aboutWiki.setOnClickListener { requireContext().openInBrowser(LINK_WIKI) }
-        binding.aboutLicenses.setOnClickListener { requireContext().openInBrowser(LINK_LICENSES) }
-        binding.aboutProfile.setOnClickListener { requireContext().openInBrowser(LINK_PROFILE) }
-        binding.aboutDonate.setOnClickListener { requireContext().openInBrowser(LINK_DONATE) }
-        binding.aboutFeedbackGithub.setOnClickListener {
-            requireContext().openInBrowser(LINK_NEW_ISSUE)
+        // Where the source of THIS version lives. The GPL requires offering it when distributing,
+        // so fill in about_fork_source_url in strings_about.xml before sharing the app.
+        val sourceUrl = getString(R.string.about_fork_source_url)
+        binding.aboutCode.apply {
+            visibility = if (sourceUrl.isBlank()) View.GONE else View.VISIBLE
+            setOnClickListener { requireContext().openInBrowser(sourceUrl) }
         }
-        binding.aboutFeedbackEmail.setOnClickListener {
-            requireContext().sendEmail("feedback@auxio.app")
-        }
+        binding.aboutLicenses.setOnClickListener { showLegalNotices() }
+        binding.aboutProfile.setOnClickListener { requireContext().openInBrowser(LINK_SOURCE) }
 
-        binding.aboutSupportersBkkellyh.setOnClickListener {
-            requireContext().openInBrowser(LINK_BKKELLYH)
+        val siteUrl = getString(R.string.about_fork_site_url)
+        val email = getString(R.string.about_fork_email)
+        binding.aboutFeedbackCard.visibility =
+            if (siteUrl.isBlank() && email.isBlank()) View.GONE else View.VISIBLE
+        binding.aboutFeedbackGithub.apply {
+            visibility = if (siteUrl.isBlank()) View.GONE else View.VISIBLE
+            setOnClickListener { requireContext().openInBrowser(siteUrl) }
         }
-        binding.aboutSupportersGruntstumper.setOnClickListener {
-            requireContext().openInBrowser(LINK_GRUNTSTUMPER)
-        }
-
-        binding.aboutSupportersPromo.setOnClickListener {
-            requireContext().openInBrowser(LINK_DONATE)
+        binding.aboutFeedbackEmail.apply {
+            visibility = if (email.isBlank()) View.GONE else View.VISIBLE
+            setOnClickListener { requireContext().sendEmail(email) }
         }
 
         // VIEWMODEL SETUP
@@ -116,6 +118,27 @@ class AboutFragment : ViewBindingFragment<FragmentAboutBinding>() {
             )
     }
 
+    /** The legal notices the GPL asks interactive programs to show. */
+    private fun showLegalNotices() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.lbl_licenses)
+            .setMessage(
+                getString(
+                    R.string.about_legal_text,
+                    getString(R.string.about_fork_name),
+                    getString(R.string.about_fork_author),
+                )
+            )
+            .setPositiveButton(R.string.about_legal_gpl) { _, _ ->
+                requireContext().openInBrowser(LINK_GPL)
+            }
+            .setNeutralButton(R.string.about_legal_libs) { _, _ ->
+                requireContext().openInBrowser(LINK_LICENSES)
+            }
+            .setNegativeButton(android.R.string.ok, null)
+            .show()
+    }
+
     private fun Context.sendEmail(recipient: String) {
         val intent = Intent(Intent.ACTION_SENDTO).apply { data = "mailto:$recipient".toUri() }
         startIntent(intent)
@@ -123,12 +146,7 @@ class AboutFragment : ViewBindingFragment<FragmentAboutBinding>() {
 
     private companion object {
         const val LINK_SOURCE = "https://github.com/OxygenCobalt/Auxio"
-        const val LINK_WIKI = "$LINK_SOURCE/wiki"
-        const val LINK_LICENSES = "$LINK_WIKI/Licenses"
-        const val LINK_NEW_ISSUE = "$LINK_SOURCE/issues/new"
-        const val LINK_PROFILE = "https://github.com/OxygenCobalt"
-        const val LINK_BKKELLYH = "https://github.com/bkkellyh"
-        const val LINK_GRUNTSTUMPER = "https://github.com/gruntstumper"
-        const val LINK_DONATE = "https://github.com/sponsors/OxygenCobalt"
+        const val LINK_LICENSES = "$LINK_SOURCE/wiki/Licenses"
+        const val LINK_GPL = "https://www.gnu.org/licenses/gpl-3.0.html"
     }
 }

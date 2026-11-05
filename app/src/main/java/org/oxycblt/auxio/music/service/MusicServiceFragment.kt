@@ -90,10 +90,8 @@ constructor(
     }
 
     fun start() {
-        if (musicRepository.indexingState == null) {
-            L.d("Requesting index")
-            musicRepository.requestIndex(true)
-        }
+        L.d("Requesting index if idle")
+        indexer.start()
     }
 
     fun createNotification(post: (ForegroundServiceNotification?) -> Unit) {

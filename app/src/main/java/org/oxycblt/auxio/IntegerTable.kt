@@ -55,6 +55,8 @@ object IntegerTable {
     const val VIEW_TYPE_EDIT_HEADER = 0xA00D
     /** PlaylistSongViewHolder */
     const val VIEW_TYPE_PLAYLIST_SONG = 0xA00E
+    /** MissingTrackViewHolder */
+    const val VIEW_TYPE_MISSING_TRACK = 0xA00F
     /** "Music playback" notification code */
     const val PLAYBACK_NOTIFICATION_CODE = 0xA0A0
     /** "Music loading" notification code */

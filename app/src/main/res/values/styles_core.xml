@@ -17,6 +17,22 @@
     <!-- Base theme -->
     <style name="Theme.Auxio.Base" parent="Theme.Auxio.V31">
 
+        <!-- Style-dependent defaults (overridden by the Neon/Vinyl/Pop themes) -->
+        <item name="auxioShapeSmall">@style/ShapeAppearance.Material3.Corner.Medium</item>
+        <item name="auxioShapeLarge">@style/ShapeAppearance.Material3.Corner.ExtraLarge</item>
+        <item name="auxioShapeCover">@style/ShapeAppearance.Material3.Corner.Large</item>
+        <item name="auxioOverlay">@android:color/transparent</item>
+        <item name="auxioCoverDecor">@android:color/transparent</item>
+        <item name="auxioCoverGlow">@null</item>
+        <item name="auxioBackground">?attr/colorSurface</item>
+        <item name="auxioControlsBackground">@android:color/transparent</item>
+        <item name="auxioControlsPadding">0dp</item>
+        <item name="auxioShapeSheet">@style/ShapeAppearance.Auxio.BottomSheet</item>
+        <item name="auxioHomeCardStyle">@style/Widget.Auxio.HomeCard</item>
+        <item name="auxioPlaybackToggleStyle">@style/Widget.Auxio.Button.Playback.Toggle</item>
+        <item name="auxioPlaybackSkipStyle">@style/Widget.Auxio.Button.Playback.Skip</item>
+        <item name="auxioPlaybackPlayPauseStyle">@style/Widget.Auxio.Button.Playback.PlayPause</item>
+
         <!-- Material configuration -->
 <!--        <item name="colorOutline">@color/overlay_stroke</item>-->
         <item name="motionSpringFastSpatial">@style/Motion.Material3.Spring.Standard.Fast.Spatial</item>

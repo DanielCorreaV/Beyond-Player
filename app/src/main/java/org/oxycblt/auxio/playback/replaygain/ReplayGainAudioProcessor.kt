@@ -59,6 +59,12 @@ constructor(
             flush()
         }
 
+    /**
+     * Set the adjustment for a given song right now, without waiting for the playback state to
+     * move to it. Used by a player that is prepared before it takes over from another one.
+     */
+    fun applyFor(song: Song?) = applyReplayGain(song)
+
     fun attach() {
         playbackManager.addListener(this)
         playbackSettings.registerListener(this)
@@ -142,8 +148,7 @@ constructor(
                 ReplayGainMode.DYNAMIC -> {
                     L.d("Using dynamic strategy")
                     gain.album?.takeIf {
-                        playbackManager.parent is Album &&
-                            playbackManager.currentSong?.album == playbackManager.parent
+                        playbackManager.parent is Album && song.album == playbackManager.parent
                     } ?: gain.track
                 }
             }

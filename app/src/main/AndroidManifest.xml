@@ -11,6 +11,10 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Personal fork: only used when the user explicitly imports a YouTube Music playlist.
+         No background sync, no periodic checks, no telemetry. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Bluetooth auto-connect functionality (Disabled until permission workflow can be made) -->
 <!--    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />-->
 <!--    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" android:minSdkVersion="31" />-->
@@ -53,16 +57,6 @@
             android:windowSoftInputMode="adjustNothing">
 
             <intent-filter>
-                <!-- Expose that we are a music player. -->
-                <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.intent.action.MUSIC_PLAYER" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.APP_MUSIC" />
-            </intent-filter>
-
-            <intent-filter>
                 <!--
                 Signal that we can take audio of *any* format, file or content. This is important,
                 as some apps use this to determine if Auxio is eligible to be a default music
@@ -83,6 +77,26 @@
                 <data android:mimeType="application/itunes" />
             </intent-filter>
         </activity>
+
+        <!-- App icon "Default". Launcher entry of the app. The icon a user builds from a photo is a pinned shortcut (see CustomIcon). -->
+        <activity-alias
+            android:name=".IconDefault"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
+            android:label="@string/info_app_name"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <!-- Expose that we are a music player. -->
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.MUSIC_PLAYER" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.APP_MUSIC" />
+            </intent-filter>
+        </activity-alias>
 
 
         <!--

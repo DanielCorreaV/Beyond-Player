@@ -10,6 +10,11 @@
             app:summary="@string/set_lib_tabs_desc"
             app:title="@string/set_lib_tabs" />
 
+        <org.oxycblt.auxio.settings.ui.WrappedDialogPreference
+            app:key="@string/set_key_app_icon"
+            app:summary="@string/set_app_icon_desc"
+            app:title="@string/set_app_icon" />
+
         <org.oxycblt.auxio.settings.ui.IntListPreference
             app:defaultValue="@integer/action_mode_next"
             app:entries="@array/entries_bar_action"

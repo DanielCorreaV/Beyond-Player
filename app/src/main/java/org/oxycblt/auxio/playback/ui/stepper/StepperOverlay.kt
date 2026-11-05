@@ -22,7 +22,12 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.util.AttributeSet
+import android.graphics.drawable.GradientDrawable
+import android.view.Gravity
 import android.view.GestureDetector
+import android.view.HapticFeedbackConstants
+import android.view.ViewConfiguration
+import android.widget.TextView
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -71,10 +76,93 @@ class StepperOverlay(context: Context, attrs: AttributeSet?) :
 
     interface Listener {
         fun seek(direction: Direction)
+
+        /** The cover is being held still ([active]), or was let go. Used for the 2x speed. */
+        fun hold(active: Boolean) {}
+    }
+
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private var downX = 0f
+    private var downY = 0f
+    private var holdPending = false
+    private var holdActive = false
+    private val holdRunnable = Runnable {
+        holdPending = false
+        holdActive = true
+        // Keep the pager and the bottom sheet from taking the gesture over while holding.
+        parent?.requestDisallowInterceptTouchEvent(true)
+        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        boostBadge.visibility = VISIBLE
+        listener?.hold(true)
+    }
+    private val boostBadge =
+        TextView(context).apply {
+            text = "\u25B6\u25B6  x2"
+            setTextColor(Color.WHITE)
+            textSize = 14f
+            gravity = Gravity.CENTER
+            val pad = (12 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, pad / 2)
+            background =
+                GradientDrawable().apply {
+                    setColor(0x99000000.toInt())
+                    cornerRadius = 100f * resources.displayMetrics.density
+                }
+            visibility = GONE
+        }
+
+    private fun handleHold(event: MotionEvent) {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downX = event.x
+                downY = event.y
+                holdPending = true
+                postDelayed(holdRunnable, HOLD_DELAY_MS)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                // Moving to swipe the cover is not a hold. Once the boost is on, moving is fine.
+                if (
+                    holdPending &&
+                        (Math.abs(event.x - downX) > touchSlop ||
+                            Math.abs(event.y - downY) > touchSlop)
+                ) {
+                    cancelHold()
+                }
+            }
+            MotionEvent.ACTION_POINTER_DOWN,
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL -> cancelHold()
+        }
+    }
+
+    private fun cancelHold() {
+        if (holdPending) {
+            holdPending = false
+            removeCallbacks(holdRunnable)
+        }
+        if (holdActive) {
+            holdActive = false
+            boostBadge.visibility = GONE
+            listener?.hold(false)
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        cancelHold()
+        super.onDetachedFromWindow()
     }
 
     init {
         LayoutInflater.from(context).inflate(R.layout.player_fast_seek_overlay, this, true)
+        addView(
+            boostBadge,
+            LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+                topToTop = LayoutParams.PARENT_ID
+                startToStart = LayoutParams.PARENT_ID
+                endToEnd = LayoutParams.PARENT_ID
+                topMargin = (16 * resources.displayMetrics.density).toInt()
+            },
+        )
 
         // Set up shape appearance based on UISettings similar to CoverView
         context.withStyledAttributes(attrs, R.styleable.StepperOverlay) {
@@ -133,8 +221,10 @@ class StepperOverlay(context: Context, attrs: AttributeSet?) :
         rightTapView.setDirection(Direction.FORWARDS) // isLeft = false for right side
     }
 
-    override fun onTouchEvent(event: MotionEvent): Boolean =
-        gestureDetector.onTouchEvent(event) || super.onTouchEvent(event)
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        handleHold(event)
+        return gestureDetector.onTouchEvent(event) || super.onTouchEvent(event)
+    }
 
     override fun onSingleTapConfirmed(e: MotionEvent) = false
 
@@ -291,5 +381,6 @@ class StepperOverlay(context: Context, attrs: AttributeSet?) :
 
     private companion object {
         private const val EXIT_DELAY_MS = 500L
+        private const val HOLD_DELAY_MS = 300L
     }
 }

@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="170dp"
+    android:viewportWidth="120"
+    android:viewportHeight="170">
+    <!-- arm -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M100,17 L100,100 L66,146"
+        android:strokeColor="?attr/colorOnSurfaceVariant"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="6" />
+    <!-- head shell -->
+    <path
+        android:fillColor="?attr/colorOnSurface"
+        android:pathData="M58,140 L74,150 L68,160 L52,150 Z" />
+    <!-- pivot base -->
+    <path
+        android:fillColor="?attr/colorSurfaceContainerHigh"
+        android:pathData="M100,17m-15,0a15,15 0,1 1,30 0a15,15 0,1 1,-30 0" />
+    <path
+        android:fillColor="?attr/colorPrimary"
+        android:pathData="M100,17m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+</vector>

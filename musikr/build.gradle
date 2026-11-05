@@ -82,16 +82,18 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
 }
 
-tasks.register("assembleTaglib", Exec, {
+tasks.register("assembleTaglib", Exec) {
     def jniDir = "$projectDir/src/main/cpp"
     def libs = new File("$jniDir/taglib/pkg")
-    if (libs.exists()) {
-        commandLine "true"
-        return
-    }
+    onlyIf { !libs.exists() }
+
     def ndkDir = androidComponents.sdkComponents.ndkDirectory.get().asFile
-    commandLine "sh", "-c", "$jniDir/build_taglib.sh $jniDir $ndkDir"
-})
+    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        commandLine "bash", "$jniDir/build_taglib.sh", jniDir, ndkDir.absolutePath
+    } else {
+        commandLine "sh", "$jniDir/build_taglib.sh", jniDir, ndkDir.absolutePath
+    }
+}
 
 afterEvaluate {
     preDebugBuild.dependsOn assembleTaglib

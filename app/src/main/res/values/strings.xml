@@ -87,6 +87,21 @@
     <string name="lbl_empty_playlist">Empty playlist</string>
     <string name="lbl_imported_playlist">Imported playlist</string>
     <string name="lbl_import">Import</string>
+    <string name="lbl_import_youtube">Import from YouTube Music</string>
+    <string name="lbl_youtube_refresh">Update from YouTube Music</string>
+    <string name="lbl_youtube_refresh_all">Update YouTube Music playlists</string>
+    <string name="lng_youtube_none">No playlists imported from YouTube Music yet</string>
+    <string name="lbl_youtube_missing_section">Not on your phone</string>
+    <string name="fmt_youtube_importing_n">Reading playlist %1$d of %2$d from YouTube Music…</string>
+    <string name="lng_youtube_wait">It takes a few seconds. Keep Auxio open until it finishes.</string>
+    <string name="fmt_youtube_kept">+ %1$d songs you added yourself were kept</string>
+    <string name="lbl_import_youtube_hint">Paste one YouTube Music playlist link per line</string>
+    <string name="lbl_youtube_summary">YouTube Music import</string>
+    <string name="lng_youtube_importing">Reading playlist from YouTube Music…</string>
+    <string name="fmt_youtube_created">%1$s — created, %2$d of %3$d songs found</string>
+    <string name="fmt_youtube_updated">%1$s — updated, %2$d of %3$d songs found</string>
+    <string name="fmt_youtube_failed">%1$s — failed: %2$s</string>
+    <string name="lbl_youtube_missing">Not on your phone:</string>
     <string name="lbl_import_playlist">Import playlist</string>
     <string name="lbl_export">Export</string>
     <string name="lbl_export_playlist">Export playlist</string>
@@ -119,6 +134,34 @@
 
     <string name="lbl_playback">Now playing</string>
     <string name="lbl_equalizer">Equalizer</string>
+    <string name="lbl_sound">Sound</string>
+    <string name="lbl_sound_style">Sound style</string>
+    <string name="lbl_sound_bands">Fine tuning</string>
+    <string name="lng_sound_bands_hint">Drag each bar up to boost or down to cut (in dB).</string>
+    <string name="lbl_sound_effects">Effects</string>
+    <string name="lbl_effect_bass">Bass boost</string>
+    <string name="lbl_effect_spatial">Spatial sound</string>
+    <string name="lbl_stabilizer">Stable volume</string>
+    <string name="lng_stabilizer_hint">Evens out the loudness between songs and softens loud peaks, so you can leave the phone volume where it is.</string>
+    <string name="lbl_stabilizer_off">Off</string>
+    <string name="lbl_stabilizer_light">Light</string>
+    <string name="lbl_stabilizer_balanced">Balanced</string>
+    <string name="lbl_stabilizer_strong">Strong</string>
+    <string name="lbl_mode_flat">Flat</string>
+    <string name="lbl_mode_bass">Bass</string>
+    <string name="lbl_mode_treble">Treble</string>
+    <string name="lbl_mode_vocal">Vocal</string>
+    <string name="lbl_mode_rock">Rock</string>
+    <string name="lbl_mode_pop">Pop</string>
+    <string name="lbl_mode_electronic">Electronic</string>
+    <string name="lbl_mode_classical">Classical</string>
+    <string name="lbl_mode_cinema">Cinema</string>
+    <string name="lbl_equalizer_enable">Enable equalizer</string>
+    <string name="lbl_equalizer_presets">Presets</string>
+    <string name="lbl_equalizer_custom">Custom</string>
+    <string name="lbl_equalizer_reset">Reset to flat</string>
+    <string name="fmt_equalizer_preset">Preset: %1$s</string>
+    <string name="lng_equalizer_unavailable">The equalizer is not ready yet. Start playing a song and try again.</string>
     <string name="lbl_play">Play</string>
     <string name="lbl_shuffle">Shuffle</string>
 
@@ -454,7 +497,6 @@
 
     <!-- As in "Disc 1", "Disc 2", etc. in a set -->
     <string name="fmt_disc_no">Disc %d</string>
-    <string name="fmt_disc_no_subtitle">Disc %1$d – %2$s</string>
     <!-- As in "Playlist 1", "Playlist 2", etc. -->
     <string name="fmt_def_playlist">Playlist %d</string>
 

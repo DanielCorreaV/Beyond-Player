@@ -282,22 +282,29 @@ class PlaylistMenuDialogFragment : MenuDialogFragment<Menu.ForPlaylist>() {
     override val parcel
         get() = args.parcel
 
-    override fun getDisabledItemIds(menu: Menu.ForPlaylist) =
+    override fun getDisabledItemIds(menu: Menu.ForPlaylist): Set<Int> {
+        val disabled = mutableSetOf<Int>()
         if (menu.playlist.songs.isEmpty()) {
             // Disable any operations that require some kind of songs to work with, as there won't
             // be any in an empty playlist.
-            setOf(
-                R.id.action_play,
-                R.id.action_shuffle,
-                R.id.action_play_next,
-                R.id.action_queue_add,
-                R.id.action_playlist_add,
-                R.id.action_export,
-                R.id.action_share,
+            disabled.addAll(
+                setOf(
+                    R.id.action_play,
+                    R.id.action_shuffle,
+                    R.id.action_play_next,
+                    R.id.action_queue_add,
+                    R.id.action_playlist_add,
+                    R.id.action_export,
+                    R.id.action_share,
+                )
             )
-        } else {
-            setOf()
         }
+        // Only playlists created by a YouTube Music import can be refreshed.
+        if (!musicModel.isYouTubePlaylist(menu.playlist)) {
+            disabled.add(R.id.action_youtube_refresh)
+        }
+        return disabled
+    }
 
     override fun updateMenu(binding: DialogMenuBinding, menu: Menu.ForPlaylist) {
         val context = requireContext()
@@ -328,6 +335,7 @@ class PlaylistMenuDialogFragment : MenuDialogFragment<Menu.ForPlaylist>() {
             R.id.action_rename -> musicModel.renamePlaylist(menu.playlist)
             R.id.action_import -> musicModel.importPlaylist(target = menu.playlist)
             R.id.action_export -> musicModel.exportPlaylist(menu.playlist)
+            R.id.action_youtube_refresh -> musicModel.refreshYouTubePlaylist(menu.playlist)
             R.id.action_delete -> musicModel.deletePlaylist(menu.playlist)
             R.id.action_share -> requireContext().share(menu.playlist)
             else -> error("Unexpected menu item $item")

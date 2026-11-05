@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lbl_output_speaker">Altavoz del teléfono</string>
+    <string name="lbl_output_wired">Auriculares con cable</string>
+    <string name="lbl_output_bluetooth">Bluetooth</string>
+    <string name="lbl_equalizer_per_output">Ajustes separados por salida</string>
+    <string name="lng_equalizer_per_output_hint">El sonido va a: %s. Cada salida recuerda su propio ecualizador, graves y amplitud.</string>
+    <string name="lbl_fade">Crossfade (mezcla entre canciones)</string>
+    <string name="lng_fade_hint">La siguiente canción empieza antes de que termine la actual y las dos se mezclan. El final que se apaga no pasa por el volumen estable.</string>
+    <string name="lbl_fade_off">Apagado</string>
+    <string name="lbl_fade_seconds">%d s</string>
+</resources>

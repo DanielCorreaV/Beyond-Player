@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lbl_timer">Sleep timer</string>
+    <string name="lbl_timer_mode">Count by</string>
+    <string name="lbl_timer_by_time">Time</string>
+    <string name="lbl_timer_by_songs">Songs</string>
+    <string name="lbl_timer_amount">Amount</string>
+    <string name="lbl_timer_minutes">%d min</string>
+    <string name="lbl_timer_songs">%d songs</string>
+    <string name="lbl_timer_custom">Custom</string>
+    <string name="lbl_timer_custom_minutes">Minutes</string>
+    <string name="lbl_timer_custom_songs">Number of songs</string>
+    <string name="lbl_timer_end_title">When time is up</string>
+    <string name="lbl_timer_end_cut">Stop right away</string>
+    <string name="lbl_timer_end_finish">Let the song finish</string>
+    <string name="lbl_timer_songs_hint">Playback pauses when the last song ends. The song that is playing counts as the first.</string>
+    <string name="lbl_timer_start">Start</string>
+    <string name="lbl_timer_cancel">Cancel timer</string>
+    <string name="lbl_timer_close">Close</string>
+    <string name="lbl_timer_invalid">Enter a number from 1 to %d</string>
+    <string name="lbl_timer_started">Timer set: %s</string>
+    <string name="lbl_timer_status_time">Time left: %s</string>
+    <string name="lbl_timer_status_time_finish">Time left: %s, then the current song finishes</string>
+    <string name="lbl_timer_status_songs">%d songs left, counting the current one</string>
+    <string name="lbl_timer_status_finishing">Stopping when the current song ends</string>
+</resources>

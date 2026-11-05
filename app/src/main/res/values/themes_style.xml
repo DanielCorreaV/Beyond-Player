@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Auxio.Neon" parent="Theme.Auxio.Base">
+        <item name="colorPrimary">@color/neon_primary</item>
+        <item name="colorOnPrimary">@color/neon_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/neon_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/neon_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/neon_secondary</item>
+        <item name="colorOnSecondary">@color/neon_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/neon_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/neon_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/neon_tertiary</item>
+        <item name="colorOnTertiary">@color/neon_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/neon_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/neon_onTertiaryContainer</item>
+        <item name="colorError">@color/neon_error</item>
+        <item name="colorOnError">@color/neon_onError</item>
+        <item name="colorErrorContainer">@color/neon_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/neon_onErrorContainer</item>
+        <item name="android:colorBackground">@color/neon_background</item>
+        <item name="colorOnBackground">@color/neon_onBackground</item>
+        <item name="colorSurface">@color/neon_surface</item>
+        <item name="colorOnSurface">@color/neon_onSurface</item>
+        <item name="colorSurfaceVariant">@color/neon_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/neon_onSurfaceVariant</item>
+        <item name="colorOutline">@color/neon_outline</item>
+        <item name="colorOutlineVariant">@color/neon_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/neon_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/neon_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/neon_inversePrimary</item>
+        <item name="colorPrimaryFixed">@color/neon_primaryFixed</item>
+        <item name="colorOnPrimaryFixed">@color/neon_onPrimaryFixed</item>
+        <item name="colorPrimaryFixedDim">@color/neon_primaryFixedDim</item>
+        <item name="colorOnPrimaryFixedVariant">@color/neon_onPrimaryFixedVariant</item>
+        <item name="colorSecondaryFixed">@color/neon_secondaryFixed</item>
+        <item name="colorOnSecondaryFixed">@color/neon_onSecondaryFixed</item>
+        <item name="colorSecondaryFixedDim">@color/neon_secondaryFixedDim</item>
+        <item name="colorOnSecondaryFixedVariant">@color/neon_onSecondaryFixedVariant</item>
+        <item name="colorTertiaryFixed">@color/neon_tertiaryFixed</item>
+        <item name="colorOnTertiaryFixed">@color/neon_onTertiaryFixed</item>
+        <item name="colorTertiaryFixedDim">@color/neon_tertiaryFixedDim</item>
+        <item name="colorOnTertiaryFixedVariant">@color/neon_onTertiaryFixedVariant</item>
+        <item name="colorSurfaceDim">@color/neon_surfaceDim</item>
+        <item name="colorSurfaceBright">@color/neon_surfaceBright</item>
+        <item name="colorSurfaceContainerLowest">@color/neon_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/neon_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/neon_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/neon_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/neon_surfaceContainerHighest</item>
+    
+        <!-- shapes -->
+        <item name="auxioShapeSmall">@style/ShapeAppearance.Style.R14</item>
+        <item name="auxioShapeLarge">@style/ShapeAppearance.Style.R36</item>
+        <item name="auxioShapeCover">@style/ShapeAppearance.Style.R36</item>
+        <item name="auxioOverlay">@drawable/bg_style_neon_glow</item>
+
+        <!-- typography -->
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.Neon.DisplayLarge</item>
+        <item name="textAppearanceDisplayLargeEmphasized">@style/TextAppearance.Neon.DisplayLarge.Emphasized</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.Neon.DisplayMedium</item>
+        <item name="textAppearanceDisplayMediumEmphasized">@style/TextAppearance.Neon.DisplayMedium.Emphasized</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.Neon.DisplaySmall</item>
+        <item name="textAppearanceDisplaySmallEmphasized">@style/TextAppearance.Neon.DisplaySmall.Emphasized</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.Neon.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineLargeEmphasized">@style/TextAppearance.Neon.HeadlineLarge.Emphasized</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.Neon.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineMediumEmphasized">@style/TextAppearance.Neon.HeadlineMedium.Emphasized</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.Neon.HeadlineSmall</item>
+        <item name="textAppearanceHeadlineSmallEmphasized">@style/TextAppearance.Neon.HeadlineSmall.Emphasized</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.Neon.TitleLarge</item>
+        <item name="textAppearanceTitleLargeEmphasized">@style/TextAppearance.Neon.TitleLarge.Emphasized</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.Neon.TitleMedium</item>
+        <item name="textAppearanceTitleMediumEmphasized">@style/TextAppearance.Neon.TitleMedium.Emphasized</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.Neon.TitleSmall</item>
+        <item name="textAppearanceTitleSmallEmphasized">@style/TextAppearance.Neon.TitleSmall.Emphasized</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.Neon.LabelLarge</item>
+        <item name="textAppearanceLabelLargeEmphasized">@style/TextAppearance.Neon.LabelLarge.Emphasized</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.Neon.LabelMedium</item>
+        <item name="textAppearanceLabelMediumEmphasized">@style/TextAppearance.Neon.LabelMedium.Emphasized</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.Neon.LabelSmall</item>
+        <item name="textAppearanceLabelSmallEmphasized">@style/TextAppearance.Neon.LabelSmall.Emphasized</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.Neon.BodyLarge</item>
+        <item name="textAppearanceBodyLargeEmphasized">@style/TextAppearance.Neon.BodyLarge.Emphasized</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.Neon.BodyMedium</item>
+        <item name="textAppearanceBodyMediumEmphasized">@style/TextAppearance.Neon.BodyMedium.Emphasized</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.Neon.BodySmall</item>
+        <item name="textAppearanceBodySmallEmphasized">@style/TextAppearance.Neon.BodySmall.Emphasized</item>
+    
+        <!-- components -->
+        <item name="tabStyle">@style/Widget.Auxio.TabLayout.Pill</item>
+        <item name="auxioPlaybackToggleStyle">@style/Widget.Auxio.Button.Playback.Toggle.Flat</item>
+        <item name="auxioPlaybackSkipStyle">@style/Widget.Auxio.Button.Playback.Skip.Flat</item>
+        <item name="auxioPlaybackPlayPauseStyle">@style/Widget.Auxio.Button.Playback.PlayPause.Round</item>
+            <item name="auxioShapeSheet">@style/ShapeAppearance.Style.R28</item>
+        <item name="auxioHomeCardStyle">@style/Widget.Auxio.HomeCard.Neon</item>
+        <item name="auxioCoverGlow">@drawable/bg_neon_cover_glow</item>
+    </style>
+
+    <style name="Theme.Auxio.Vinyl" parent="Theme.Auxio.Base">
+        <item name="colorPrimary">@color/vinyl_primary</item>
+        <item name="colorOnPrimary">@color/vinyl_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/vinyl_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/vinyl_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/vinyl_secondary</item>
+        <item name="colorOnSecondary">@color/vinyl_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/vinyl_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/vinyl_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/vinyl_tertiary</item>
+        <item name="colorOnTertiary">@color/vinyl_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/vinyl_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/vinyl_onTertiaryContainer</item>
+        <item name="colorError">@color/vinyl_error</item>
+        <item name="colorOnError">@color/vinyl_onError</item>
+        <item name="colorErrorContainer">@color/vinyl_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/vinyl_onErrorContainer</item>
+        <item name="android:colorBackground">@color/vinyl_background</item>
+        <item name="colorOnBackground">@color/vinyl_onBackground</item>
+        <item name="colorSurface">@color/vinyl_surface</item>
+        <item name="colorOnSurface">@color/vinyl_onSurface</item>
+        <item name="colorSurfaceVariant">@color/vinyl_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/vinyl_onSurfaceVariant</item>
+        <item name="colorOutline">@color/vinyl_outline</item>
+        <item name="colorOutlineVariant">@color/vinyl_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/vinyl_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/vinyl_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/vinyl_inversePrimary</item>
+        <item name="colorPrimaryFixed">@color/vinyl_primaryFixed</item>
+        <item name="colorOnPrimaryFixed">@color/vinyl_onPrimaryFixed</item>
+        <item name="colorPrimaryFixedDim">@color/vinyl_primaryFixedDim</item>
+        <item name="colorOnPrimaryFixedVariant">@color/vinyl_onPrimaryFixedVariant</item>
+        <item name="colorSecondaryFixed">@color/vinyl_secondaryFixed</item>
+        <item name="colorOnSecondaryFixed">@color/vinyl_onSecondaryFixed</item>
+        <item name="colorSecondaryFixedDim">@color/vinyl_secondaryFixedDim</item>
+        <item name="colorOnSecondaryFixedVariant">@color/vinyl_onSecondaryFixedVariant</item>
+        <item name="colorTertiaryFixed">@color/vinyl_tertiaryFixed</item>
+        <item name="colorOnTertiaryFixed">@color/vinyl_onTertiaryFixed</item>
+        <item name="colorTertiaryFixedDim">@color/vinyl_tertiaryFixedDim</item>
+        <item name="colorOnTertiaryFixedVariant">@color/vinyl_onTertiaryFixedVariant</item>
+        <item name="colorSurfaceDim">@color/vinyl_surfaceDim</item>
+        <item name="colorSurfaceBright">@color/vinyl_surfaceBright</item>
+        <item name="colorSurfaceContainerLowest">@color/vinyl_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/vinyl_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/vinyl_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/vinyl_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/vinyl_surfaceContainerHighest</item>
+    
+        <!-- shapes -->
+        <item name="auxioShapeSmall">@style/ShapeAppearance.Style.Circle</item>
+        <item name="auxioShapeLarge">@style/ShapeAppearance.Style.Circle</item>
+        <item name="auxioShapeCover">@style/ShapeAppearance.Style.Circle</item>
+
+        <!-- typography -->
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.Vinyl.DisplayLarge</item>
+        <item name="textAppearanceDisplayLargeEmphasized">@style/TextAppearance.Vinyl.DisplayLarge.Emphasized</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.Vinyl.DisplayMedium</item>
+        <item name="textAppearanceDisplayMediumEmphasized">@style/TextAppearance.Vinyl.DisplayMedium.Emphasized</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.Vinyl.DisplaySmall</item>
+        <item name="textAppearanceDisplaySmallEmphasized">@style/TextAppearance.Vinyl.DisplaySmall.Emphasized</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.Vinyl.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineLargeEmphasized">@style/TextAppearance.Vinyl.HeadlineLarge.Emphasized</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.Vinyl.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineMediumEmphasized">@style/TextAppearance.Vinyl.HeadlineMedium.Emphasized</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.Vinyl.HeadlineSmall</item>
+        <item name="textAppearanceHeadlineSmallEmphasized">@style/TextAppearance.Vinyl.HeadlineSmall.Emphasized</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.Vinyl.TitleLarge</item>
+        <item name="textAppearanceTitleLargeEmphasized">@style/TextAppearance.Vinyl.TitleLarge.Emphasized</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.Vinyl.TitleMedium</item>
+        <item name="textAppearanceTitleMediumEmphasized">@style/TextAppearance.Vinyl.TitleMedium.Emphasized</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.Vinyl.TitleSmall</item>
+        <item name="textAppearanceTitleSmallEmphasized">@style/TextAppearance.Vinyl.TitleSmall.Emphasized</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.Vinyl.LabelLarge</item>
+        <item name="textAppearanceLabelLargeEmphasized">@style/TextAppearance.Vinyl.LabelLarge.Emphasized</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.Vinyl.LabelMedium</item>
+        <item name="textAppearanceLabelMediumEmphasized">@style/TextAppearance.Vinyl.LabelMedium.Emphasized</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.Vinyl.LabelSmall</item>
+        <item name="textAppearanceLabelSmallEmphasized">@style/TextAppearance.Vinyl.LabelSmall.Emphasized</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.Vinyl.BodyLarge</item>
+        <item name="textAppearanceBodyLargeEmphasized">@style/TextAppearance.Vinyl.BodyLarge.Emphasized</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.Vinyl.BodyMedium</item>
+        <item name="textAppearanceBodyMediumEmphasized">@style/TextAppearance.Vinyl.BodyMedium.Emphasized</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.Vinyl.BodySmall</item>
+        <item name="textAppearanceBodySmallEmphasized">@style/TextAppearance.Vinyl.BodySmall.Emphasized</item>
+    
+        <!-- components -->
+        <item name="tabStyle">@style/Widget.Auxio.TabLayout.Thick</item>
+        <item name="auxioCoverDecor">@drawable/bg_vinyl_grooves</item>
+        <item name="auxioPlaybackToggleStyle">@style/Widget.Auxio.Button.Playback.Toggle.Flat</item>
+        <item name="auxioPlaybackSkipStyle">@style/Widget.Auxio.Button.Playback.Skip.Flat</item>
+        <item name="auxioPlaybackPlayPauseStyle">@style/Widget.Auxio.Button.Playback.PlayPause.Round</item>
+            <item name="auxioShapeSheet">@style/ShapeAppearance.Style.R28</item>
+        <item name="auxioHomeCardStyle">@style/Widget.Auxio.HomeCard.Vinyl</item>
+            <item name="auxioControlsBackground">@drawable/bg_controls_pill</item>
+        <item name="auxioControlsPadding">8dp</item>
+    </style>
+
+    <style name="Theme.Auxio.Pop" parent="Theme.Auxio.Base">
+        <item name="colorPrimary">@color/pop_primary</item>
+        <item name="colorOnPrimary">@color/pop_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/pop_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/pop_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/pop_secondary</item>
+        <item name="colorOnSecondary">@color/pop_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/pop_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/pop_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/pop_tertiary</item>
+        <item name="colorOnTertiary">@color/pop_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/pop_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/pop_onTertiaryContainer</item>
+        <item name="colorError">@color/pop_error</item>
+        <item name="colorOnError">@color/pop_onError</item>
+        <item name="colorErrorContainer">@color/pop_errorContainer</item>
+        <item name="colorOnErrorContainer">@color/pop_onErrorContainer</item>
+        <item name="android:colorBackground">@color/pop_background</item>
+        <item name="colorOnBackground">@color/pop_onBackground</item>
+        <item name="colorSurface">@color/pop_surface</item>
+        <item name="colorOnSurface">@color/pop_onSurface</item>
+        <item name="colorSurfaceVariant">@color/pop_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/pop_onSurfaceVariant</item>
+        <item name="colorOutline">@color/pop_outline</item>
+        <item name="colorOutlineVariant">@color/pop_outlineVariant</item>
+        <item name="colorSurfaceInverse">@color/pop_inverseSurface</item>
+        <item name="colorOnSurfaceInverse">@color/pop_inverseOnSurface</item>
+        <item name="colorPrimaryInverse">@color/pop_inversePrimary</item>
+        <item name="colorPrimaryFixed">@color/pop_primaryFixed</item>
+        <item name="colorOnPrimaryFixed">@color/pop_onPrimaryFixed</item>
+        <item name="colorPrimaryFixedDim">@color/pop_primaryFixedDim</item>
+        <item name="colorOnPrimaryFixedVariant">@color/pop_onPrimaryFixedVariant</item>
+        <item name="colorSecondaryFixed">@color/pop_secondaryFixed</item>
+        <item name="colorOnSecondaryFixed">@color/pop_onSecondaryFixed</item>
+        <item name="colorSecondaryFixedDim">@color/pop_secondaryFixedDim</item>
+        <item name="colorOnSecondaryFixedVariant">@color/pop_onSecondaryFixedVariant</item>
+        <item name="colorTertiaryFixed">@color/pop_tertiaryFixed</item>
+        <item name="colorOnTertiaryFixed">@color/pop_onTertiaryFixed</item>
+        <item name="colorTertiaryFixedDim">@color/pop_tertiaryFixedDim</item>
+        <item name="colorOnTertiaryFixedVariant">@color/pop_onTertiaryFixedVariant</item>
+        <item name="colorSurfaceDim">@color/pop_surfaceDim</item>
+        <item name="colorSurfaceBright">@color/pop_surfaceBright</item>
+        <item name="colorSurfaceContainerLowest">@color/pop_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/pop_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/pop_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/pop_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/pop_surfaceContainerHighest</item>
+    
+        <!-- shapes -->
+        <item name="auxioShapeSmall">@style/ShapeAppearance.Style.R16</item>
+        <item name="auxioShapeLarge">@style/ShapeAppearance.Style.R40</item>
+        <item name="auxioShapeCover">@style/ShapeAppearance.Style.R40</item>
+
+        <!-- typography -->
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.Pop.DisplayLarge</item>
+        <item name="textAppearanceDisplayLargeEmphasized">@style/TextAppearance.Pop.DisplayLarge.Emphasized</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.Pop.DisplayMedium</item>
+        <item name="textAppearanceDisplayMediumEmphasized">@style/TextAppearance.Pop.DisplayMedium.Emphasized</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.Pop.DisplaySmall</item>
+        <item name="textAppearanceDisplaySmallEmphasized">@style/TextAppearance.Pop.DisplaySmall.Emphasized</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.Pop.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineLargeEmphasized">@style/TextAppearance.Pop.HeadlineLarge.Emphasized</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.Pop.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineMediumEmphasized">@style/TextAppearance.Pop.HeadlineMedium.Emphasized</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.Pop.HeadlineSmall</item>
+        <item name="textAppearanceHeadlineSmallEmphasized">@style/TextAppearance.Pop.HeadlineSmall.Emphasized</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.Pop.TitleLarge</item>
+        <item name="textAppearanceTitleLargeEmphasized">@style/TextAppearance.Pop.TitleLarge.Emphasized</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.Pop.TitleMedium</item>
+        <item name="textAppearanceTitleMediumEmphasized">@style/TextAppearance.Pop.TitleMedium.Emphasized</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.Pop.TitleSmall</item>
+        <item name="textAppearanceTitleSmallEmphasized">@style/TextAppearance.Pop.TitleSmall.Emphasized</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.Pop.LabelLarge</item>
+        <item name="textAppearanceLabelLargeEmphasized">@style/TextAppearance.Pop.LabelLarge.Emphasized</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.Pop.LabelMedium</item>
+        <item name="textAppearanceLabelMediumEmphasized">@style/TextAppearance.Pop.LabelMedium.Emphasized</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.Pop.LabelSmall</item>
+        <item name="textAppearanceLabelSmallEmphasized">@style/TextAppearance.Pop.LabelSmall.Emphasized</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.Pop.BodyLarge</item>
+        <item name="textAppearanceBodyLargeEmphasized">@style/TextAppearance.Pop.BodyLarge.Emphasized</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.Pop.BodyMedium</item>
+        <item name="textAppearanceBodyMediumEmphasized">@style/TextAppearance.Pop.BodyMedium.Emphasized</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.Pop.BodySmall</item>
+        <item name="textAppearanceBodySmallEmphasized">@style/TextAppearance.Pop.BodySmall.Emphasized</item>
+    
+        <!-- components -->
+        <item name="tabStyle">@style/Widget.Auxio.TabLayout.Pill.Dark</item>
+        <item name="auxioPlaybackToggleStyle">@style/Widget.Auxio.Button.Playback.Toggle.Pop</item>
+        <item name="auxioPlaybackSkipStyle">@style/Widget.Auxio.Button.Playback.Skip.Pop</item>
+        <item name="auxioPlaybackPlayPauseStyle">@style/Widget.Auxio.Button.Playback.PlayPause.Pop</item>
+            <item name="auxioShapeSheet">@style/ShapeAppearance.Style.R28</item>
+        <item name="auxioHomeCardStyle">@style/Widget.Auxio.HomeCard.Pop</item>
+        <item name="auxioCoverDecor">@drawable/bg_pop_cover_border</item>
+    </style>
+
+</resources>

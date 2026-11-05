@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lbl_output_speaker">Phone speaker</string>
+    <string name="lbl_output_wired">Wired headphones</string>
+    <string name="lbl_output_bluetooth">Bluetooth</string>
+    <string name="lbl_equalizer_per_output">Separate settings per output</string>
+    <string name="lng_equalizer_per_output_hint">Sound is going to: %s. Each output remembers its own equalizer, bass and widening.</string>
+    <string name="lbl_fade">Crossfade</string>
+    <string name="lng_fade_hint">The next song starts before the current one ends and the two blend. The fading-out end skips the volume leveler.</string>
+    <string name="lbl_fade_off">Off</string>
+    <string name="lbl_fade_seconds">%d s</string>
+</resources>

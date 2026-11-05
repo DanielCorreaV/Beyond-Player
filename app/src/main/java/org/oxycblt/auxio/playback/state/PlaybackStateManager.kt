@@ -233,6 +233,9 @@ interface PlaybackStateManager {
      */
     fun seekTo(positionMs: Long)
 
+    /** Play at double speed while [on] is true, normal speed otherwise. */
+    fun boost(on: Boolean)
+
     fun endSession()
 
     /**
@@ -485,6 +488,22 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
             play(QueueCommand(songs))
         } else {
             val stateHolder = stateHolder ?: return
+            // The song that is playing right now is already "next to nothing", queueing it again
+            // would only duplicate it.
+            val songs = songs.filter { it.uid != currentSong?.uid }
+            if (songs.isEmpty()) {
+                L.d("Only the current song was requested, nothing to do")
+                return
+            }
+            // A song that is already waiting later in the queue is moved up, not copied, so
+            // playing the same song next twice does not fill the queue with duplicates.
+            val wanted = songs.mapTo(mutableSetOf()) { it.uid }
+            for (i in stateMirror.queue.lastIndex downTo stateMirror.index + 1) {
+                if (stateMirror.queue.getOrNull(i)?.uid in wanted) {
+                    L.d("Song at $i is already queued, moving it instead of copying it")
+                    stateHolder.remove(i, StateAck.Remove(i))
+                }
+            }
             L.d("Adding ${songs.size} songs to start of queue")
             stateHolder.playNext(songs, StateAck.PlayNext(stateMirror.index + 1, songs.size))
         }
@@ -565,6 +584,13 @@ class PlaybackStateManagerImpl @Inject constructor() : PlaybackStateManager {
         val stateHolder = stateHolder ?: return
         L.d("Updating repeat mode to $repeatMode")
         stateHolder.repeatMode(repeatMode)
+    }
+
+    @Synchronized
+    override fun boost(on: Boolean) {
+        val stateHolder = stateHolder ?: return
+        L.d("Speed boost: $on")
+        stateHolder.boost(on)
     }
 
     @Synchronized

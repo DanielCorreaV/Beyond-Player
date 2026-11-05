@@ -32,6 +32,7 @@ import com.google.android.material.shape.MaterialShapeDrawable
 import org.oxycblt.auxio.IntegerTable
 import org.oxycblt.auxio.databinding.ItemEditHeaderBinding
 import org.oxycblt.auxio.databinding.ItemEditableSongBinding
+import org.oxycblt.auxio.databinding.ItemMissingTrackBinding
 import org.oxycblt.auxio.list.EditableListListener
 import org.oxycblt.auxio.list.Item
 import org.oxycblt.auxio.list.PlainHeader
@@ -42,6 +43,7 @@ import org.oxycblt.auxio.list.recycler.MaterialDragCallback
 import org.oxycblt.auxio.list.recycler.SongViewHolder
 import org.oxycblt.auxio.music.resolve
 import org.oxycblt.auxio.music.resolveNames
+import org.oxycblt.auxio.music.youtube.RemoteTrack
 import org.oxycblt.auxio.util.context
 import org.oxycblt.auxio.util.getAttrColorCompat
 import org.oxycblt.auxio.util.inflater
@@ -64,6 +66,7 @@ class PlaylistDetailListAdapter(private val listener: Listener) :
         when (getItem(position)) {
             is EditHeader -> EditHeaderViewHolder.VIEW_TYPE
             is Song -> PlaylistSongViewHolder.VIEW_TYPE
+            is MissingTrackItem -> MissingTrackViewHolder.VIEW_TYPE
             else -> super.getItemViewType(position)
         }
 
@@ -71,6 +74,7 @@ class PlaylistDetailListAdapter(private val listener: Listener) :
         when (viewType) {
             EditHeaderViewHolder.VIEW_TYPE -> EditHeaderViewHolder.from(parent)
             PlaylistSongViewHolder.VIEW_TYPE -> PlaylistSongViewHolder.from(parent)
+            MissingTrackViewHolder.VIEW_TYPE -> MissingTrackViewHolder.from(parent)
             else -> super.onCreateViewHolder(parent, viewType)
         }
 
@@ -85,6 +89,7 @@ class PlaylistDetailListAdapter(private val listener: Listener) :
             when (val item = getItem(position)) {
                 is EditHeader -> (holder as EditHeaderViewHolder).bind(item, listener)
                 is Song -> (holder as PlaylistSongViewHolder).bind(item, listener)
+                is MissingTrackItem -> (holder as MissingTrackViewHolder).bind(item)
             }
         }
 
@@ -137,6 +142,8 @@ class PlaylistDetailListAdapter(private val listener: Listener) :
 
                         is EditHeader if newItem is EditHeader ->
                             EditHeaderViewHolder.DIFF_CALLBACK.areContentsTheSame(oldItem, newItem)
+
+                        is MissingTrackItem if newItem is MissingTrackItem -> oldItem == newItem
 
                         else -> DetailListAdapter.DIFF_CALLBACK.areContentsTheSame(oldItem, newItem)
                     }
@@ -302,5 +309,40 @@ private constructor(private val binding: ItemEditableSongBinding) :
 
         /** A comparator that can be used with DiffUtil. */
         val DIFF_CALLBACK = SongViewHolder.DIFF_CALLBACK
+    }
+}
+
+/**
+ * A song of the linked YouTube Music playlist that is not on the phone. Shown greyed out below the
+ * real songs so it is always visible what is left to download.
+ */
+data class MissingTrackItem(val track: RemoteTrack)
+
+/**
+ * Displays a [MissingTrackItem]. It does nothing when clicked. Use [from] to create an instance.
+ */
+private class MissingTrackViewHolder private constructor(private val binding: ItemMissingTrackBinding) :
+    RecyclerView.ViewHolder(binding.root) {
+    fun bind(item: MissingTrackItem) {
+        val track = item.track
+        binding.missingName.text = track.title
+        binding.missingInfo.text =
+            listOfNotNull(
+                    track.artist.takeIf { it.isNotBlank() },
+                    track.durationSec
+                        .takeIf { it >= 0 }
+                        ?.let { "%d:%02d".format(it / 60, it % 60) },
+                )
+                .joinToString(" • ")
+    }
+
+    companion object {
+        /** A unique ID for this [RecyclerView.ViewHolder] type. */
+        const val VIEW_TYPE = IntegerTable.VIEW_TYPE_MISSING_TRACK
+
+        fun from(parent: ViewGroup) =
+            MissingTrackViewHolder(
+                ItemMissingTrackBinding.inflate(parent.context.inflater, parent, false)
+            )
     }
 }
