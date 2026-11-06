@@ -120,6 +120,7 @@ class TagParserTest {
             createTestMetadata(
                 id3v2Tags =
                     mapOf(
+                        "TPE1" to listOf("Artist Name"),
                         "TXXX:MUSICBRAINZ RELEASE TRACK ID" to listOf("track-id-123"),
                         "TXXX:MUSICBRAINZ ALBUM ID" to listOf("album-id-456"),
                         "TXXX:MUSICBRAINZ ARTIST ID" to listOf("artist-id-789"),
