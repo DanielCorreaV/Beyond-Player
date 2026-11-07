@@ -463,7 +463,16 @@ constructor(
         emitIndexingCompletion(null)
     }
 
+    @Volatile private var lastProgressNanos = 0L
+
     private suspend fun emitIndexingProgress(progress: IndexingProgress) {
+        // Progress arrives once per song. Throttle it so the UI and notification are not
+        // flooded; non-song phases (finalizing) always go through.
+        if (progress is IndexingProgress.Songs) {
+            val now = System.nanoTime()
+            if (now - lastProgressNanos < 150_000_000L) return
+            lastProgressNanos = now
+        }
         yield()
         synchronized(this) {
             currentIndexingState = IndexingState.Indexing(progress)
