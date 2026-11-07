@@ -65,6 +65,16 @@ android {
                 includeInBundle = false
             }
         }
+
+        // Release-grade performance, signed with the debug key so it installs over debug builds.
+        fast {
+            initWith release
+            matchingFallbacks = ["release"]
+            signingConfig signingConfigs.debug
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-FAST"
+            debuggable false
+        }
     }
 
     packagingOptions {
