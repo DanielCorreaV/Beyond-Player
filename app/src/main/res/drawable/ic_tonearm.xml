@@ -15,11 +15,4 @@
     <path
         android:fillColor="?attr/colorOnSurface"
         android:pathData="M58,140 L74,150 L68,160 L52,150 Z" />
-    <!-- pivot base -->
-    <path
-        android:fillColor="?attr/colorSurfaceContainerHigh"
-        android:pathData="M100,17m-15,0a15,15 0,1 1,30 0a15,15 0,1 1,-30 0" />
-    <path
-        android:fillColor="?attr/colorPrimary"
-        android:pathData="M100,17m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
 </vector>

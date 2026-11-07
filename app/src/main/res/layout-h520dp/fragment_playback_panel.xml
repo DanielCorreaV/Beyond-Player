@@ -140,6 +140,19 @@
         app:layout_constraintTop_toBottomOf="@+id/playback_toolbar"
         app:layout_constraintVertical_chainStyle="packed" />
 
+    <!-- Arm-rest of the Vinyl style: the head of the tonearm lands here while paused. -->
+    <ImageView
+        android:id="@+id/playback_tonearm_rest"
+        android:layout_width="30dp"
+        android:layout_height="40dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_tonearm_rest"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <!-- Tonearm of the Vinyl style: rests off the record while paused. -->
     <ImageView
         android:id="@+id/playback_tonearm"
@@ -155,6 +168,19 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/playback_pager" />
+
+    <!-- Mounting base of the tonearm (static; the arm rotates under it). -->
+    <ImageView
+        android:id="@+id/playback_tonearm_base"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_tonearm_base"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <LinearLayout
         android:id="@+id/playback_info_container"

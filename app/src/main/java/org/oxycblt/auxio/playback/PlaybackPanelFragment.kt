@@ -338,7 +338,31 @@ class PlaybackPanelFragment :
                 pivotX = it.width * TONEARM_PIVOT_X
                 pivotY = it.height * TONEARM_PIVOT_Y
                 rotation = if (playbackModel.isPlaying.value) 0f else TONEARM_REST_ANGLE
+                mountTonearm(binding, it)
             }
+        }
+    }
+
+    /** Places the arm-rest and the mounting base from the geometry of the (unrotated) tonearm. */
+    private fun mountTonearm(binding: FragmentPlaybackPanelBinding, arm: View) {
+        val pivotX = arm.x + arm.width * TONEARM_PIVOT_X
+        val pivotY = arm.y + arm.height * TONEARM_PIVOT_Y
+        binding.playbackTonearmBase?.let {
+            it.isVisible = true
+            it.translationX = pivotX - it.layoutParams.width / 2f
+            it.translationY = pivotY - it.layoutParams.height / 2f
+        }
+        binding.playbackTonearmRest?.let {
+            // Where the head ends up once the arm is swung to its resting angle.
+            val dx = arm.width * (TONEARM_HEAD_X - TONEARM_PIVOT_X)
+            val dy = arm.height * (TONEARM_HEAD_Y - TONEARM_PIVOT_Y)
+            val rad = Math.toRadians(TONEARM_REST_ANGLE.toDouble())
+            val headX = pivotX + (dx * Math.cos(rad) - dy * Math.sin(rad)).toFloat()
+            val headY = pivotY + (dx * Math.sin(rad) + dy * Math.cos(rad)).toFloat()
+            it.isVisible = true
+            it.translationX = headX - it.layoutParams.width / 2f
+            // The head sits in the notch of the cradle, a bit above the middle of the view.
+            it.translationY = headY - it.layoutParams.height * 0.25f
         }
     }
 
@@ -589,6 +613,9 @@ class PlaybackPanelFragment :
         const val TONEARM_PIVOT_Y = 17f / 170f
         /** Angle of the tonearm when it rests away from the record. */
         const val TONEARM_REST_ANGLE = -30f
+        /** Center of the head shell, as a fraction of the tonearm size. */
+        const val TONEARM_HEAD_X = 63f / 120f
+        const val TONEARM_HEAD_Y = 150f / 170f
         const val TONEARM_MOVE_MS = 600L
     }
 }

@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+    <!-- soft shadow -->
+    <path
+        android:fillColor="#33000000"
+        android:pathData="M22,24m-21,0a21,21 0,1 1,42 0a21,21 0,1 1,-42 0" />
+    <!-- plate -->
+    <path
+        android:fillColor="?attr/colorSurfaceContainerHigh"
+        android:pathData="M22,22m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0"
+        android:strokeColor="?attr/colorOutline"
+        android:strokeWidth="1.5" />
+    <!-- ring -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M22,22m-14,0a14,14 0,1 1,28 0a14,14 0,1 1,-28 0"
+        android:strokeColor="?attr/colorOutlineVariant"
+        android:strokeWidth="1.5" />
+    <!-- pivot -->
+    <path
+        android:fillColor="?attr/colorPrimary"
+        android:pathData="M22,22m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+    <!-- screw -->
+    <path
+        android:fillColor="?attr/colorOnPrimary"
+        android:pathData="M22,22m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+</vector>
