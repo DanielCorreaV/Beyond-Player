@@ -456,7 +456,10 @@ constructor(
         result.cleanup()
         // Finish up loading.
         L.d("Indexing complete")
-        android.util.Log.i("AuxioPerf", "index total: ${android.os.SystemClock.elapsedRealtime() - perfStart}ms")
+        android.util.Log.i(
+            "AuxioPerf",
+            "index total: ${android.os.SystemClock.elapsedRealtime() - perfStart}ms",
+        )
         emitIndexingCompletion(null)
     }
 

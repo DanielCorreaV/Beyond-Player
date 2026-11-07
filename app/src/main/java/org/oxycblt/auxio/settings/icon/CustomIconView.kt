@@ -110,7 +110,9 @@ class CustomIconView @JvmOverloads constructor(context: Context, attrs: Attribut
         val canvas = Canvas(out)
         // Around the window the launcher may show a bit more, or the picture may not reach: fill
         // with its average color.
-        canvas.drawColor(Bitmap.createScaledBitmap(bmp, 1, 1, true).getPixel(0, 0) or 0xFF000000.toInt())
+        canvas.drawColor(
+            Bitmap.createScaledBitmap(bmp, 1, 1, true).getPixel(0, 0) or 0xFF000000.toInt()
+        )
         val visible = size * 72f / 108f
         val m = Matrix(matrix)
         m.postTranslate(-crop.left, -crop.top)

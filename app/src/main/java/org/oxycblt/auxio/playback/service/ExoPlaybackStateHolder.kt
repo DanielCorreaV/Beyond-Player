@@ -28,8 +28,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
-import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.Player
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer
 import androidx.media3.exoplayer.BaseRenderer
@@ -290,13 +290,12 @@ class ExoPlaybackStateHolder(
         boostJob = null
         if (on) {
             // The seek bar moves at normal speed on its own, so remind it where we really are.
-            boostJob =
-                timerScope.launch {
-                    while (true) {
-                        delay(BOOST_SYNC_MS)
-                        playbackManager.ack(this@ExoPlaybackStateHolder, StateAck.ProgressionChanged)
-                    }
+            boostJob = timerScope.launch {
+                while (true) {
+                    delay(BOOST_SYNC_MS)
+                    playbackManager.ack(this@ExoPlaybackStateHolder, StateAck.ProgressionChanged)
                 }
+            }
         } else {
             playbackManager.ack(this, StateAck.ProgressionChanged)
         }
@@ -679,17 +678,16 @@ class ExoPlaybackStateHolder(
 
     override fun fadeOutAndPause() {
         fadeJob?.cancel()
-        fadeJob =
-            timerScope.launch {
-                for (step in FADE_STEPS downTo 1) {
-                    timerFadeFactor = step / FADE_STEPS.toFloat()
-                    applyVolume()
-                    delay(FADE_MS / FADE_STEPS)
-                }
-                player.pause()
-                timerFadeFactor = 1f
+        fadeJob = timerScope.launch {
+            for (step in FADE_STEPS downTo 1) {
+                timerFadeFactor = step / FADE_STEPS.toFloat()
                 applyVolume()
+                delay(FADE_MS / FADE_STEPS)
             }
+            player.pause()
+            timerFadeFactor = 1f
+            applyVolume()
+        }
     }
 
     override fun cancelFade() {
@@ -806,18 +804,17 @@ class ExoPlaybackStateHolder(
             crossfade.stop()
             return
         }
-        crossfadeJob =
-            timerScope.launch {
-                while (true) {
-                    val requested = songFade.ms.value
-                    if (!crossfade.isFading && (requested <= 0 || !player.playWhenReady)) {
-                        crossfade.stop()
-                        break
-                    }
-                    crossfade.tick(requested)
-                    delay(if (crossfade.isFading) CROSSFADE_FADING_TICK_MS else CROSSFADE_TICK_MS)
+        crossfadeJob = timerScope.launch {
+            while (true) {
+                val requested = songFade.ms.value
+                if (!crossfade.isFading && (requested <= 0 || !player.playWhenReady)) {
+                    crossfade.stop()
+                    break
                 }
+                crossfade.tick(requested)
+                delay(if (crossfade.isFading) CROSSFADE_FADING_TICK_MS else CROSSFADE_TICK_MS)
             }
+        }
     }
 
     private fun save(cb: () -> Unit) {
@@ -944,7 +941,12 @@ class ExoPlaybackStateHolder(
             // battery/apk size/cache size]
             val audioRenderer = RenderersFactory { handler, _, audioListener, _, _ ->
                 arrayOf<BaseRenderer>(
-                    FfmpegAudioRenderer(handler, audioListener, replayGainProcessor, dynamicsProcessor),
+                    FfmpegAudioRenderer(
+                        handler,
+                        audioListener,
+                        replayGainProcessor,
+                        dynamicsProcessor,
+                    ),
                     MediaCodecAudioRenderer(
                         context,
                         MediaCodecSelector.DEFAULT,

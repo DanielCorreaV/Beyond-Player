@@ -19,13 +19,7 @@
 package org.oxycblt.auxio.home
 
 import android.annotation.SuppressLint
-import androidx.recyclerview.widget.GridLayoutManager
 import android.graphics.drawable.ColorDrawable
-import org.oxycblt.auxio.playback.ui.DiscSpinner
-import com.google.android.material.color.MaterialColors
-import com.google.android.material.R as MR
-import androidx.core.view.updatePadding
-import androidx.core.graphics.ColorUtils
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -39,9 +33,12 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.R as MR
 import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.tabs.TabLayoutMediator
 import com.google.android.material.transition.MaterialSharedAxis
 import dagger.hilt.android.AndroidEntryPoint
@@ -69,6 +66,7 @@ import org.oxycblt.auxio.music.resolve
 import org.oxycblt.auxio.music.resolveNames
 import org.oxycblt.auxio.playback.PlaybackDecision
 import org.oxycblt.auxio.playback.PlaybackViewModel
+import org.oxycblt.auxio.playback.ui.DiscSpinner
 import org.oxycblt.auxio.ui.AppStyle
 import org.oxycblt.auxio.ui.FadingToolbarOffsetListener
 import org.oxycblt.auxio.ui.UISettings
@@ -79,8 +77,8 @@ import org.oxycblt.auxio.util.navigateSafe
 import org.oxycblt.auxio.util.showToast
 import org.oxycblt.musikr.IndexingProgress
 import org.oxycblt.musikr.Music
-import org.oxycblt.musikr.Song
 import org.oxycblt.musikr.Playlist
+import org.oxycblt.musikr.Song
 import org.oxycblt.musikr.playlist.m3u.M3U
 import timber.log.Timber as L
 
@@ -146,7 +144,8 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             )
         } else {
             setupStickyHeader(binding)
-            if (uiSettings.style == AppStyle.NEON || uiSettings.style == AppStyle.POP) setupNeonTitle(binding)
+            if (uiSettings.style == AppStyle.NEON || uiSettings.style == AppStyle.POP)
+                setupNeonTitle(binding)
         }
         binding.homeNormalToolbar.apply {
             setOnMenuItemClickListener(this@HomeFragment)
@@ -205,7 +204,10 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
     private fun setupNeonTitle(binding: FragmentHomeBinding) {
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         binding.homeNormalToolbar.title =
-            getString(if (uiSettings.style == AppStyle.POP) R.string.lbl_pop_title else R.string.lbl_neon_title)
+            getString(
+                if (uiSettings.style == AppStyle.POP) R.string.lbl_pop_title
+                else R.string.lbl_neon_title
+            )
         binding.homeNormalToolbar.subtitle =
             getString(
                 when {
@@ -240,11 +242,12 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             if (discover == null) discover = homeModel.songList.value.randomOrNull()
             return discover
         }
-        fun available(m: Int) = when (m) {
-            0 -> resumeSong() != null
-            1 -> discoverSong() != null
-            else -> true
-        }
+        fun available(m: Int) =
+            when (m) {
+                0 -> resumeSong() != null
+                1 -> discoverSong() != null
+                else -> true
+            }
         lateinit var action: () -> Unit
         fun render() {
             if (!available(mode)) mode = 2
@@ -287,7 +290,8 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
                 (0..2).joinToString(" ") { if (it == mode) "\u25CF" else "\u25CB" }
             action = {
                 when (mode) {
-                    0, 1 -> song?.let { playbackModel.play(it, homeModel.playWith) }
+                    0,
+                    1 -> song?.let { playbackModel.play(it, homeModel.playWith) }
                     else -> playbackModel.shuffleAll()
                 }
             }
@@ -347,8 +351,9 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         binding.homeSearchPill.setOnClickListener {
             findNavController().navigateSafe(HomeFragmentDirections.search())
         }
-        binding.homeRecents.adapter =
-            NeonRecentAdapter { song -> playbackModel.play(song, homeModel.playWith) }
+        binding.homeRecents.adapter = NeonRecentAdapter { song ->
+            playbackModel.play(song, homeModel.playWith)
+        }
         binding.homeLists.layoutManager =
             GridLayoutManager(requireContext(), 2, GridLayoutManager.HORIZONTAL, false)
         binding.homeLists.adapter =
@@ -389,8 +394,12 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
 
     private fun updateNowCard(song: Song?) {
         val binding = requireBinding()
-        if (song == null || uiSettings.style == AppStyle.CLASSIC ||
-            uiSettings.style == AppStyle.NEON || uiSettings.style == AppStyle.POP) {
+        if (
+            song == null ||
+                uiSettings.style == AppStyle.CLASSIC ||
+                uiSettings.style == AppStyle.NEON ||
+                uiSettings.style == AppStyle.POP
+        ) {
             binding.homeNowCard.isVisible = false
             return
         }
@@ -496,7 +505,12 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
                 } else {
                     // Sticky toolbar: only the now playing card scrolls away.
                     AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
-                        (if (uiSettings.style == AppStyle.NEON || uiSettings.style == AppStyle.VINYL || uiSettings.style == AppStyle.POP) 0
+                        (if (
+                            uiSettings.style == AppStyle.NEON ||
+                                uiSettings.style == AppStyle.VINYL ||
+                                uiSettings.style == AppStyle.POP
+                        )
+                            0
                         else AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS) or
                         AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
                 }

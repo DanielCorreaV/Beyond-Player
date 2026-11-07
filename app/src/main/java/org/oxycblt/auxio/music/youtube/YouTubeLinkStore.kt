@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.music.youtube
 
 import android.content.Context
@@ -32,9 +32,9 @@ import timber.log.Timber as L
  * @property ytId The YouTube playlist ID.
  * @property playlistUid The string form of the local playlist's [org.oxycblt.musikr.Music.UID].
  * @property missing Tracks of the last import that were not found in the library.
- * @property syncedUids String forms of the song UIDs the last sync put in the playlist. Songs of the
- *   playlist that are not in here were added by the user and survive the next sync. Null for links
- *   saved before this was tracked.
+ * @property syncedUids String forms of the song UIDs the last sync put in the playlist. Songs of
+ *   the playlist that are not in here were added by the user and survive the next sync. Null for
+ *   links saved before this was tracked.
  */
 data class YouTubeLink(
     val ytId: String,
@@ -58,7 +58,8 @@ class YouTubeLinkStore(context: Context) {
 
     @Synchronized fun get(ytId: String): YouTubeLink? = readAll()[ytId]
 
-    @Synchronized fun getByPlaylist(playlistUid: String): YouTubeLink? =
+    @Synchronized
+    fun getByPlaylist(playlistUid: String): YouTubeLink? =
         readAll().values.firstOrNull { it.playlistUid == playlistUid }
 
     @Synchronized fun all(): List<YouTubeLink> = readAll().values.toList()

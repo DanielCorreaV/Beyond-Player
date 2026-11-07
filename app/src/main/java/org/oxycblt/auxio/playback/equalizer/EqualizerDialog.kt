@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.playback.equalizer
 
 import android.content.Context
@@ -144,7 +144,9 @@ object EqualizerDialog {
             // --- Equalizer ---
             if (state == null) {
                 title(R.string.lbl_equalizer)
-                root.addView(TextView(context).apply { setText(R.string.lng_equalizer_unavailable) })
+                root.addView(
+                    TextView(context).apply { setText(R.string.lng_equalizer_unavailable) }
+                )
             } else {
                 val bandsArea = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
                 val styleArea = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
@@ -227,7 +229,12 @@ object EqualizerDialog {
                         LinearLayout(context).apply {
                             orientation = LinearLayout.VERTICAL
                             gravity = Gravity.CENTER_HORIZONTAL
-                            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                            layoutParams =
+                                LinearLayout.LayoutParams(
+                                    0,
+                                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                                    1f,
+                                )
                         }
                     val dbLabel =
                         TextView(context).apply {

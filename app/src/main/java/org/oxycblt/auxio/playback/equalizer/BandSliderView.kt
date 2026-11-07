@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.playback.equalizer
 
 import android.content.Context
@@ -78,6 +78,7 @@ class BandSliderView(context: Context) : View(context) {
     var onLevelChanged: ((Int) -> Unit)? = null
 
     private fun top() = thumbRadius
+
     private fun bottom() = height - thumbRadius
 
     private fun yFor(level: Int): Float {

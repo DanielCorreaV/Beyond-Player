@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2026 Beyond Player contributors
- * BackgroundImage.kt is part of Beyond Player, a fork of Auxio.
+ * Copyright (c) 2026 Auxio Project
+ * BackgroundImage.kt is part of Auxio.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.ui
 
 import android.content.Context
@@ -28,8 +28,8 @@ import java.io.File
 import kotlin.math.max
 
 /**
- * The optional custom background image of the app. The picked photo is copied (and downscaled)
- * into the app's private storage, so no storage permission has to be kept around.
+ * The optional custom background image of the app. The picked photo is copied (and downscaled) into
+ * the app's private storage, so no storage permission has to be kept around.
  */
 object BackgroundImage {
     private const val FILE_NAME = "style_background.jpg"

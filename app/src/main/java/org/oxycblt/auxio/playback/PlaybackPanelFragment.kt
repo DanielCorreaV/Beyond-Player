@@ -19,41 +19,36 @@
 package org.oxycblt.auxio.playback
 
 import android.annotation.SuppressLint
-import com.google.android.material.button.MaterialButton
-import androidx.appcompat.view.ContextThemeWrapper
-import androidx.core.content.ContextCompat
-import com.google.android.material.shape.RelativeCornerSize
-import com.google.android.material.shape.ShapeAppearanceModel
-import android.view.ViewGroup
 import android.content.res.ColorStateList
-import org.oxycblt.musikr.Music
-import org.oxycblt.auxio.ui.UISettings
-import org.oxycblt.auxio.ui.AppStyle
-import org.oxycblt.auxio.playback.ui.DiscSpinner
-import org.oxycblt.auxio.music.MusicViewModel
-import androidx.recyclerview.widget.RecyclerView
-import androidx.core.view.isVisible
-import androidx.core.view.doOnLayout
-import androidx.core.view.children
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.children
+import androidx.core.view.doOnLayout
+import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.dynamicanimation.animation.SpringForce
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.shape.RelativeCornerSize
+import com.google.android.material.shape.ShapeAppearanceModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.math.abs
 import org.oxycblt.auxio.R
 import org.oxycblt.auxio.databinding.FragmentPlaybackPanelBinding
 import org.oxycblt.auxio.detail.DetailViewModel
-import androidx.viewpager2.widget.ViewPager2
 import org.oxycblt.auxio.list.ListViewModel
 import org.oxycblt.auxio.list.adapter.UpdateInstructions
+import org.oxycblt.auxio.music.MusicViewModel
 import org.oxycblt.auxio.music.resolve
 import org.oxycblt.auxio.music.resolveNames
 import org.oxycblt.auxio.playback.equalizer.EqualizerController
@@ -61,16 +56,19 @@ import org.oxycblt.auxio.playback.equalizer.EqualizerDialog
 import org.oxycblt.auxio.playback.equalizer.SongFade
 import org.oxycblt.auxio.playback.equalizer.SoundStabilizer
 import org.oxycblt.auxio.playback.queue.QueueViewModel
+import org.oxycblt.auxio.playback.state.RepeatMode
 import org.oxycblt.auxio.playback.timer.SleepTimer
 import org.oxycblt.auxio.playback.timer.SleepTimerDialog
 import org.oxycblt.auxio.playback.timer.TimerState
-import org.oxycblt.auxio.playback.state.RepeatMode
+import org.oxycblt.auxio.playback.ui.DiscSpinner
 import org.oxycblt.auxio.playback.ui.StyledSeekBar
 import org.oxycblt.auxio.playback.ui.stepper.Direction
 import org.oxycblt.auxio.playback.ui.stepper.StepperOverlay
 import org.oxycblt.auxio.playback.ui.swiper.CarouselTransformer
 import org.oxycblt.auxio.playback.ui.swiper.CoverPagerAdapter
 import org.oxycblt.auxio.playback.ui.swiper.UserAwarePagerCallback
+import org.oxycblt.auxio.ui.AppStyle
+import org.oxycblt.auxio.ui.UISettings
 import org.oxycblt.auxio.ui.ViewBindingFragment
 import org.oxycblt.auxio.util.collectImmediately
 import org.oxycblt.auxio.util.dampen
@@ -78,6 +76,7 @@ import org.oxycblt.auxio.util.recycler
 import org.oxycblt.auxio.util.showToast
 import org.oxycblt.auxio.util.smoothScrollByPageTo
 import org.oxycblt.auxio.util.systemBarInsetsCompat
+import org.oxycblt.musikr.Music
 import org.oxycblt.musikr.MusicParent
 import org.oxycblt.musikr.Song
 import timber.log.Timber as L
@@ -327,7 +326,8 @@ class PlaybackPanelFragment :
                 object : RecyclerView.OnChildAttachStateChangeListener {
                     override fun onChildViewAttachedToWindow(view: View) = spinner.attachPage(view)
 
-                    override fun onChildViewDetachedFromWindow(view: View) = spinner.detachPage(view)
+                    override fun onChildViewDetachedFromWindow(view: View) =
+                        spinner.detachPage(view)
                 }
             )
             recycler.children.forEach(spinner::attachPage)
@@ -345,9 +345,9 @@ class PlaybackPanelFragment :
     private fun updateDisc(isPlaying: Boolean) {
         discSpinner?.setPlaying(isPlaying)
         reelSpinner?.setPlaying(isPlaying)
-        walkman?.state?.setText(
-            if (isPlaying) R.string.lbl_walkman_playing else R.string.lbl_walkman_paused
-        )
+        walkman
+            ?.state
+            ?.setText(if (isPlaying) R.string.lbl_walkman_playing else R.string.lbl_walkman_paused)
         requireBinding()
             .playbackTonearm
             ?.animate()
@@ -392,9 +392,7 @@ class PlaybackPanelFragment :
     private fun updateTimerIcon(state: TimerState?) {
         val item = requireBinding().playbackToolbar.menu.findItem(R.id.action_sleep_timer) ?: return
         // A dot on the icon shows that a timer is running.
-        item.setIcon(
-            if (state != null) R.drawable.ic_timer_active_24 else R.drawable.ic_timer_24
-        )
+        item.setIcon(if (state != null) R.drawable.ic_timer_active_24 else R.drawable.ic_timer_24)
     }
 
     private fun updateSong(song: Song?) {
@@ -532,7 +530,8 @@ class PlaybackPanelFragment :
             // aligned. Don't want broken UI.
             val pager = binding.playbackPager
             if (
-                pager.scrollState == ViewPager2.SCROLL_STATE_IDLE && pager.currentItem != queue.index
+                pager.scrollState == ViewPager2.SCROLL_STATE_IDLE &&
+                    pager.currentItem != queue.index
             ) {
                 pager.setCurrentItem(queue.index, false)
             }

@@ -15,18 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.playback.equalizer
 
 import android.content.Context
 import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
-import android.os.Handler
-import android.os.Looper
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.Virtualizer
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.StringRes
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -255,7 +255,10 @@ class EqualizerController @Inject constructor(@ApplicationContext context: Conte
     fun setBandLevel(band: Int, level: Int) {
         val eq = equalizer ?: return
         val range = eq.bandLevelRange
-        eq.setBandLevel(band.toShort(), level.coerceIn(range[0].toInt(), range[1].toInt()).toShort())
+        eq.setBandLevel(
+            band.toShort(),
+            level.coerceIn(range[0].toInt(), range[1].toInt()).toShort(),
+        )
         save(eq, mode = -1)
     }
 
@@ -268,7 +271,10 @@ class EqualizerController @Inject constructor(@ApplicationContext context: Conte
         for (band in 0 until eq.numberOfBands) {
             val hz = eq.getCenterFreq(band.toShort()) / 1000
             val level = (mode.gainAt(hz) * 100).roundToInt()
-            eq.setBandLevel(band.toShort(), level.coerceIn(range[0].toInt(), range[1].toInt()).toShort())
+            eq.setBandLevel(
+                band.toShort(),
+                level.coerceIn(range[0].toInt(), range[1].toInt()).toShort(),
+            )
         }
         save(eq, mode = index)
         publish()
@@ -317,14 +323,14 @@ class EqualizerController @Inject constructor(@ApplicationContext context: Conte
                 level.coerceIn(range[0].toInt(), range[1].toInt()).toShort(),
             )
         }
-        eq.setEnabled(
-            prefs.getBoolean(key(KEY_ENABLED), prefs.getBoolean(KEY_ENABLED, false))
-        )
+        eq.setEnabled(prefs.getBoolean(key(KEY_ENABLED), prefs.getBoolean(KEY_ENABLED, false)))
     }
 
     private fun save(eq: Equalizer, mode: Int) {
         val levels =
-            (0 until eq.numberOfBands).joinToString(",") { eq.getBandLevel(it.toShort()).toString() }
+            (0 until eq.numberOfBands).joinToString(",") {
+                eq.getBandLevel(it.toShort()).toString()
+            }
         prefs.edit().putString(key(KEY_LEVELS), levels).putInt(key(KEY_MODE), mode).apply()
     }
 

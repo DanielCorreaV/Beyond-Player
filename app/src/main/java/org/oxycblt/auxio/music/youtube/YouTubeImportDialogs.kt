@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.music.youtube
 
 import android.content.Context
@@ -25,8 +25,8 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
-import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import org.oxycblt.auxio.R
 
 /** Plain dialogs for the YouTube Music import: paste the link(s), then read the summary. */
@@ -56,7 +56,11 @@ object YouTubeImportDialogs {
     }
 
     /** A progress dialog that stays on screen while a playlist is being read. */
-    class Progress(private val context: Context, private val dialog: AlertDialog, private val text: TextView) {
+    class Progress(
+        private val context: Context,
+        private val dialog: AlertDialog,
+        private val text: TextView,
+    ) {
         /** Show which link is being read, [current] of [total]. */
         fun update(current: Int, total: Int) {
             text.text =

@@ -1,16 +1,34 @@
+/*
+ * Copyright (c) 2026 Auxio Project
+ * NeonAdapters.kt is part of Auxio.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
 package org.oxycblt.auxio.home
 
-import android.view.LayoutInflater
-import com.google.android.material.color.MaterialColors
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.R as MR
 import android.content.res.ColorStateList
-import android.widget.ImageView
 import android.graphics.drawable.GradientDrawable
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.R as MR
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.MaterialColors
 import org.oxycblt.auxio.R
 import org.oxycblt.auxio.image.CoverView
 import org.oxycblt.auxio.music.resolve
@@ -31,7 +49,9 @@ class NeonRecentAdapter(private val onClick: (Song) -> Unit) :
     override fun getItemCount() = songs.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        Holder(LayoutInflater.from(parent.context).inflate(R.layout.item_neon_recent, parent, false))
+        Holder(
+            LayoutInflater.from(parent.context).inflate(R.layout.item_neon_recent, parent, false)
+        )
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val song = songs[position]
@@ -77,7 +97,9 @@ class NeonPlaylistAdapter(
             GradientDrawable(GradientDrawable.Orientation.TL_BR, colors).apply {
                 cornerRadius = context.resources.displayMetrics.density * 14
             }
-        holder.icon.setImageResource(if (liked) R.drawable.ic_favorite_24 else R.drawable.ic_playlist_24)
+        holder.icon.setImageResource(
+            if (liked) R.drawable.ic_favorite_24 else R.drawable.ic_playlist_24
+        )
         if (gradients === POP_GRADIENTS) {
             // Pop: pastel tiles with dark icons and a thick border.
             holder.icon.imageTintList = ColorStateList.valueOf(0xFF17142B.toInt())
@@ -88,7 +110,8 @@ class NeonPlaylistAdapter(
         }
         holder.title.text = name
         val count = playlist.songs.size
-        holder.subtitle.text = context.resources.getQuantityString(R.plurals.fmt_song_count, count, count)
+        holder.subtitle.text =
+            context.resources.getQuantityString(R.plurals.fmt_song_count, count, count)
         holder.itemView.setOnClickListener { onClick(playlist) }
     }
 
@@ -98,7 +121,6 @@ class NeonPlaylistAdapter(
         val title: TextView = view.findViewById(R.id.neon_item_title)
         val subtitle: TextView = view.findViewById(R.id.neon_item_subtitle)
     }
-
 }
 
 /** Gradient pairs of the playlist tiles. */

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.music.youtube
 
 import java.io.InputStream
@@ -34,8 +34,8 @@ import org.schabi.newpipe.extractor.playlist.PlaylistInfo
 import timber.log.Timber as L
 
 /**
- * [RemotePlaylistSource] backed by NewPipeExtractor. Nothing here touches the network until
- * [fetch] is called, which only happens when the user taps import.
+ * [RemotePlaylistSource] backed by NewPipeExtractor. Nothing here touches the network until [fetch]
+ * is called, which only happens when the user taps import.
  */
 class NewPipePlaylistSource : RemotePlaylistSource {
     override suspend fun fetch(link: String): RemotePlaylist =

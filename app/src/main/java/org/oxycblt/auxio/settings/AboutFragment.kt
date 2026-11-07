@@ -22,8 +22,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.format.Formatter
-import android.view.View
 import android.view.LayoutInflater
+import android.view.View
 import androidx.core.net.toUri
 import androidx.core.view.updatePadding
 import androidx.fragment.app.activityViewModels

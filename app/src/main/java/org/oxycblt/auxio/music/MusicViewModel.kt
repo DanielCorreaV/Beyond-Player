@@ -303,11 +303,10 @@ constructor(
         youTubeImporting.value = true
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val items =
-                    lines.mapIndexed { index, line ->
-                        youTubeProgress.value = (index + 1) to lines.size
-                        importOneFromYouTube(line)
-                    }
+                val items = lines.mapIndexed { index, line ->
+                    youTubeProgress.value = (index + 1) to lines.size
+                    importOneFromYouTube(line)
+                }
                 youTubeImportResult.put(YouTubeImportResult(items))
             } finally {
                 youTubeImportRunning = false
@@ -332,9 +331,13 @@ constructor(
                 ?: return YouTubeImportItem.Failed(link, "The music library is not loaded yet")
 
         L.d("YT import: ${remote.tracks.size} remote tracks, ${library.songs.size} local songs")
-        remote.tracks.take(5).forEach { L.d("YT remote: '${it.title}' | '${it.artist}' | ${it.durationSec}s") }
+        remote.tracks.take(5).forEach {
+            L.d("YT remote: '${it.title}' | '${it.artist}' | ${it.durationSec}s")
+        }
         library.songs.take(5).forEach {
-            L.d("YT local: '${it.name.raw}' | ${it.artists.joinToString { a -> (a.name as? org.oxycblt.musikr.tag.Name.Known)?.raw ?: "?" }} | ${it.durationMs / 1000}s")
+            L.d(
+                "YT local: '${it.name.raw}' | ${it.artists.joinToString { a -> (a.name as? org.oxycblt.musikr.tag.Name.Known)?.raw ?: "?" }} | ${it.durationMs / 1000}s"
+            )
         }
         val match = SongMatcher.match(remote.tracks, library.songs)
         L.d("YT match: ${match.matchedCount} matched, ${match.missing.size} missing")
@@ -348,7 +351,9 @@ constructor(
         match.weakPairs.forEach { (t, song) ->
             L.d("YT weak: '${t.title}' | '${t.artist}' | ${t.durationSec}s => '${song.name.raw}'")
         }
-        match.missing.forEach { L.d("YT missing: '${it.title}' | '${it.artist}' | ${it.durationSec}s") }
+        match.missing.forEach {
+            L.d("YT missing: '${it.title}' | '${it.artist}' | ${it.durationSec}s")
+        }
         match.unmatched.forEach {
             L.d(
                 "YT unmatched local: '${it.name.raw}' | " +
@@ -357,10 +362,9 @@ constructor(
             )
         }
         val stored = youTubeLinks.get(id)
-        val existing =
-            stored?.let {
-                Music.UID.fromString(it.playlistUid)?.let(library::findPlaylist)
-            }
+        val existing = stored?.let {
+            Music.UID.fromString(it.playlistUid)?.let(library::findPlaylist)
+        }
 
         val playlist: Playlist?
         val created: Boolean
@@ -372,7 +376,8 @@ constructor(
             val lastSynced = stored?.syncedUids?.toSet()
             val additions =
                 if (lastSynced == null) emptyList()
-                else existing.songs.filter { it.uid.toString() !in lastSynced && it !in match.songs }
+                else
+                    existing.songs.filter { it.uid.toString() !in lastSynced && it !in match.songs }
             kept = additions.size
             // Never wipe a list because nothing matched (e.g. the library is still scanning).
             if (match.songs.isNotEmpty()) {

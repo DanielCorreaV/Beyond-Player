@@ -100,21 +100,19 @@ class UIPreferenceFragment : BasePreferenceFragment(R.xml.preferences_ui) {
                         if (BackgroundImage.exists(requireContext())) R.string.set_bg_image_set
                         else R.string.set_bg_image_none
                     )
-                preference.onPreferenceClickListener =
-                    Preference.OnPreferenceClickListener {
-                        pickBackground.launch("image/*")
-                        true
-                    }
+                preference.onPreferenceClickListener = Preference.OnPreferenceClickListener {
+                    pickBackground.launch("image/*")
+                    true
+                }
             }
             getString(R.string.set_key_bg_image_clear) -> {
                 L.d("Configuring background image removal")
                 preference.isEnabled = BackgroundImage.exists(requireContext())
-                preference.onPreferenceClickListener =
-                    Preference.OnPreferenceClickListener {
-                        BackgroundImage.clear(requireContext())
-                        requireActivity().recreate()
-                        true
-                    }
+                preference.onPreferenceClickListener = Preference.OnPreferenceClickListener {
+                    BackgroundImage.clear(requireContext())
+                    requireActivity().recreate()
+                    true
+                }
             }
             getString(R.string.set_key_bg_fade) -> {
                 L.d("Configuring background image intensity")

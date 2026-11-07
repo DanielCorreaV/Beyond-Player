@@ -37,8 +37,8 @@ import timber.log.Timber as L
 class Incoming(val player: ExoPlayer, val signature: Any)
 
 /**
- * Mixes the end of a song with the start of the next one by handing the "main player" role from
- * one player to another.
+ * Mixes the end of a song with the start of the next one by handing the "main player" role from one
+ * player to another.
  *
  * A few seconds before the song ends, a second player is built with the same queue and prepared on
  * the next song, silent and paused. When the fade starts, that player becomes the main player (the
@@ -156,7 +156,9 @@ class CrossfadeEngine(
             indexAtPrepare = player.currentMediaItemIndex
             uriAtPrepare = player.currentMediaItem?.localConfiguration?.uri
             phase = Phase.PREPARED
-            log("prepared: fade=${requestedMs}ms duration=${durationMs(player)} position=${player.currentPosition}")
+            log(
+                "prepared: fade=${requestedMs}ms duration=${durationMs(player)} position=${player.currentPosition}"
+            )
         }
     }
 

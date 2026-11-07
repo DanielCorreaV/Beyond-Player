@@ -199,18 +199,17 @@ private constructor(
                     MediaStore.from(workerContext, musicSettings.mediaStoreQuery)
                 LocationMode.SAF -> SAF.from(workerContext, musicSettings.safQuery)
             }
-        trackingJob =
-            indexScope.launch {
-                fs.track().collect {
-                    if (currentIndexJob?.isActive == true) {
-                        // Restarting a running scan throws away all its work and doubles the
-                        // startup time. Remember the change and rescan once this one finishes.
-                        changedDuringIndex = true
-                    } else {
-                        requestIndex(true)
-                    }
+        trackingJob = indexScope.launch {
+            fs.track().collect {
+                if (currentIndexJob?.isActive == true) {
+                    // Restarting a running scan throws away all its work and doubles the
+                    // startup time. Remember the change and rescan once this one finishes.
+                    changedDuringIndex = true
+                } else {
+                    requestIndex(true)
                 }
             }
+        }
     }
 
     private fun stopTracking() {

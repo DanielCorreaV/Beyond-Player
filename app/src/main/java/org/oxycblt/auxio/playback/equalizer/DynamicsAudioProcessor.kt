@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.playback.equalizer
 
 import androidx.media3.common.C
@@ -35,8 +35,8 @@ import kotlin.math.sqrt
 /**
  * An [AudioProcessor] that keeps the volume steady from song to song and tames peaks inside a song,
  * so the phone volume can be set once. In three stages:
- * 1. A slow leveler measures how loud the output has been over the last seconds and raises or lowers
- *    the gain towards the target loudness (up to +12 dB / -12 dB). It holds on near-silence.
+ * 1. A slow leveler measures how loud the output has been over the last seconds and raises or
+ *    lowers the gain towards the target loudness (up to +12 dB / -12 dB). It holds on near-silence.
  * 2. A gentle compressor lowers peaks that go well above the target in proportion to how far they
  *    go over. Since the leveler measures what comes out, it makes up for the lost level.
  * 3. A limiter makes sure nothing clips.
@@ -149,7 +149,8 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
                     val error = targetDb - rmsDb
                     val factor = 10.0.pow(error / 20.0)
                     val step = if (error < 0) levelAttackStep else levelReleaseStep
-                    levelGain = (levelGain * (1.0 + (factor - 1.0) * step)).coerceIn(MIN_GAIN, MAX_GAIN)
+                    levelGain =
+                        (levelGain * (1.0 + (factor - 1.0) * step)).coerceIn(MIN_GAIN, MAX_GAIN)
                 }
             }
 

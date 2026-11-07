@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.music.youtube
 
 /**
@@ -59,8 +59,7 @@ interface RemotePlaylistSource {
     suspend fun fetch(link: String): RemotePlaylist
 }
 
-class RemotePlaylistException(message: String, cause: Throwable? = null) :
-    Exception(message, cause)
+class RemotePlaylistException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /** Extract the playlist ID from a YouTube / YouTube Music link, or null if there isn't one. */
 fun parsePlaylistId(link: String): String? =

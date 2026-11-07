@@ -321,7 +321,8 @@ data class MissingTrackItem(val track: RemoteTrack)
 /**
  * Displays a [MissingTrackItem]. It does nothing when clicked. Use [from] to create an instance.
  */
-private class MissingTrackViewHolder private constructor(private val binding: ItemMissingTrackBinding) :
+private class MissingTrackViewHolder
+private constructor(private val binding: ItemMissingTrackBinding) :
     RecyclerView.ViewHolder(binding.root) {
     fun bind(item: MissingTrackItem) {
         val track = item.track

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2026 Beyond Player contributors
- * FadeImageDrawable.kt is part of Beyond Player, a fork of Auxio.
+ * Copyright (c) 2026 Auxio Project
+ * FadeImageDrawable.kt is part of Auxio.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.ui
 
 import android.graphics.Bitmap
@@ -90,6 +90,5 @@ class FadeImageDrawable(private val bitmap: Bitmap, private val strength: Float)
         imagePaint.colorFilter = colorFilter
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun getOpacity() = PixelFormat.TRANSLUCENT
+    @Deprecated("Deprecated in Java") override fun getOpacity() = PixelFormat.TRANSLUCENT
 }

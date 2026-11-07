@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+ 
 package org.oxycblt.auxio.music.youtube
 
 import java.text.Normalizer
@@ -47,15 +47,14 @@ data class MatchResult(
  * 1. Every (remote, local) pair that looks alike is an edge: same cleaned title and artist
  *    (priority 0), shared title variant (1) or similar title (2), always confirmed by duration
  *    within [DURATION_TOLERANCE_SEC]. Edges are ranked by duration difference, then priority.
- * 2. A one-to-one assignment takes the best edges first, so two playlist entries with similar
- *    names get two different files. Entries left over may reuse a file already taken.
+ * 2. A one-to-one assignment takes the best edges first, so two playlist entries with similar names
+ *    get two different files. Entries left over may reuse a file already taken.
  * 3. Entries still without a file are paired with an unused local song of the same artist whose
  *    duration is within 1 s, but only if the titles are related (they share words, or one is in
- *    another script, as in a translation or romanization). Entries and files that fit
- *    each other form groups; a group is only paired when it has as many entries as files, since
- *    then every entry is known to be on the phone even if the exact pairing inside the group is
- *    a guess. A new song that is not on the phone stays missing even if the artist has other
- *    songs.
+ *    another script, as in a translation or romanization). Entries and files that fit each other
+ *    form groups; a group is only paired when it has as many entries as files, since then every
+ *    entry is known to be on the phone even if the exact pairing inside the group is a guess. A new
+ *    song that is not on the phone stays missing even if the artist has other songs.
  */
 object SongMatcher {
     const val SIMILARITY_THRESHOLD = 0.8
@@ -352,7 +351,9 @@ object SongMatcher {
     private val NON_ALNUM = Regex("""[^\p{L}\p{N}]+""")
     private val SEPARATORS = Regex("""\s+[-–—|]\s+|\s*[/|]\s*""")
     private val ARTIST_NOISE =
-        Regex("""\s-\s+topic\b|\bofficial( youtube)?( channel)?\b|\bvevo\b|\boficial\b|\bchannel\b""")
+        Regex(
+            """\s-\s+topic\b|\bofficial( youtube)?( channel)?\b|\bvevo\b|\boficial\b|\bchannel\b"""
+        )
     private const val BRACKET_CHARS = "()[]【】「」『』 "
 
     /** Lowercase, compatibility-normalized (full-width forms), without Latin accents. */

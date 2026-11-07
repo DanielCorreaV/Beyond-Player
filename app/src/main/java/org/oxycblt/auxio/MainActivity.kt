@@ -19,7 +19,6 @@
 package org.oxycblt.auxio
 
 import android.content.Intent
-import androidx.core.graphics.ColorUtils
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -30,9 +29,11 @@ import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.WindowCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.R as MR
 import com.google.android.material.color.MaterialColors
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -42,14 +43,13 @@ import kotlinx.coroutines.withContext
 import org.oxycblt.auxio.databinding.ActivityMainBinding
 import org.oxycblt.auxio.playback.PlaybackViewModel
 import org.oxycblt.auxio.playback.state.DeferredPlayback
+import org.oxycblt.auxio.ui.AppStyle
 import org.oxycblt.auxio.ui.BackgroundImage
 import org.oxycblt.auxio.ui.FadeImageDrawable
 import org.oxycblt.auxio.ui.UISettings
-import org.oxycblt.auxio.ui.AppStyle
 import org.oxycblt.auxio.util.isNight
 import org.oxycblt.auxio.util.systemBarInsetsCompat
 import timber.log.Timber as L
-import com.google.android.material.R as MR
 
 /**
  * Auxio's single [AppCompatActivity].

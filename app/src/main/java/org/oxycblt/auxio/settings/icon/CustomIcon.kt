@@ -20,8 +20,8 @@ package org.oxycblt.auxio.settings.icon
 
 import android.content.ComponentName
 import android.content.Context
-import android.content.pm.PackageManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat

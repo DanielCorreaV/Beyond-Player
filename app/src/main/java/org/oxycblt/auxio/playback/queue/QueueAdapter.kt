@@ -49,8 +49,7 @@ import timber.log.Timber as L
 class QueueAdapter(
     private val listener: EditClickListListener<Song>,
     private val onOpenMenu: (Song) -> Unit,
-) :
-    FlexibleListAdapter<Song, QueueSongViewHolder>(QueueSongViewHolder.DIFF_CALLBACK) {
+) : FlexibleListAdapter<Song, QueueSongViewHolder>(QueueSongViewHolder.DIFF_CALLBACK) {
     // Since PlayingIndicator adapter relies on an item value, we cannot use it for this
     // adapter, as one item can appear at several points in the UI. Use a similar implementation
     // with an index value instead.

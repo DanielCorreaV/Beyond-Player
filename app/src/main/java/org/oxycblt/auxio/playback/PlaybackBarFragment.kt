@@ -18,23 +18,23 @@
  
 package org.oxycblt.auxio.playback
 
-import android.os.Bundle
-import org.oxycblt.auxio.ui.UISettings
-import org.oxycblt.auxio.ui.AppStyle
-import javax.inject.Inject
-import com.google.android.material.color.MaterialColors
-import com.google.android.material.R as MR
-import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
+import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.fragment.app.activityViewModels
+import com.google.android.material.R as MR
+import com.google.android.material.color.MaterialColors
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import org.oxycblt.auxio.R
 import org.oxycblt.auxio.databinding.FragmentPlaybackBarBinding
 import org.oxycblt.auxio.detail.DetailViewModel
 import org.oxycblt.auxio.music.resolve
 import org.oxycblt.auxio.music.resolveNames
 import org.oxycblt.auxio.playback.state.RepeatMode
+import org.oxycblt.auxio.ui.AppStyle
+import org.oxycblt.auxio.ui.UISettings
 import org.oxycblt.auxio.ui.ViewBindingFragment
 import org.oxycblt.auxio.util.collectImmediately
 import org.oxycblt.musikr.Song
@@ -69,7 +69,13 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
             }
         // A card inset from the edges: drawn as an inset background, content padded to match.
         binding.root.background =
-            InsetDrawable(card, (10 * d).toInt(), (6 * d).toInt(), (10 * d).toInt(), (2 * d).toInt())
+            InsetDrawable(
+                card,
+                (10 * d).toInt(),
+                (6 * d).toInt(),
+                (10 * d).toInt(),
+                (2 * d).toInt(),
+            )
         binding.root.setPadding((14 * d).toInt(), 0, (14 * d).toInt(), 0)
     }
 

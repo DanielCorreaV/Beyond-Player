@@ -62,7 +62,8 @@ class PersonalizePreferenceFragment : BasePreferenceFragment(R.xml.preferences_p
         when (preference.key) {
             getString(R.string.set_key_home_tabs) -> {
                 L.d("Navigating to home tab dialog")
-                findNavController().navigateSafe(PersonalizePreferenceFragmentDirections.tabSettings())
+                findNavController()
+                    .navigateSafe(PersonalizePreferenceFragmentDirections.tabSettings())
             }
             getString(R.string.set_key_app_icon) -> showIconInfo()
         }
@@ -96,7 +97,8 @@ class PersonalizePreferenceFragment : BasePreferenceFragment(R.xml.preferences_p
                     CustomIcon.setOriginalHidden(context, checked)
                     Toast.makeText(
                             context,
-                            if (checked) R.string.icon_original_hidden else R.string.icon_original_shown,
+                            if (checked) R.string.icon_original_hidden
+                            else R.string.icon_original_shown,
                             Toast.LENGTH_SHORT,
                         )
                         .show()
@@ -142,7 +144,8 @@ class PersonalizePreferenceFragment : BasePreferenceFragment(R.xml.preferences_p
             fun dp(value: Int) = (value * density).toInt()
             val editor =
                 CustomIconView(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(320))
+                    layoutParams =
+                        LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(320))
                     setBitmap(bitmap)
                 }
             val hint =
@@ -165,9 +168,11 @@ class PersonalizePreferenceFragment : BasePreferenceFragment(R.xml.preferences_p
                     val icon = editor.render() ?: return@setPositiveButton
                     when (CustomIcon.pin(context, icon)) {
                         CustomIcon.Result.UPDATED ->
-                            Toast.makeText(context, R.string.icon_updated, Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, R.string.icon_updated, Toast.LENGTH_SHORT)
+                                .show()
                         CustomIcon.Result.UNSUPPORTED ->
-                            Toast.makeText(context, R.string.icon_unsupported, Toast.LENGTH_LONG).show()
+                            Toast.makeText(context, R.string.icon_unsupported, Toast.LENGTH_LONG)
+                                .show()
                         CustomIcon.Result.REQUESTED -> {
                             // The launcher shows its own confirmation.
                         }
@@ -185,7 +190,10 @@ class PersonalizePreferenceFragment : BasePreferenceFragment(R.xml.preferences_p
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 // Also applies the rotation the camera stored with the photo.
-                ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, info, _ ->
+                ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) {
+                    decoder,
+                    info,
+                    _ ->
                     decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
                     val longest = max(info.size.width, info.size.height)
                     if (longest > MAX_SIDE) {

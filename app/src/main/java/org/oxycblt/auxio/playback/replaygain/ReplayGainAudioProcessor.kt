@@ -60,8 +60,8 @@ constructor(
         }
 
     /**
-     * Set the adjustment for a given song right now, without waiting for the playback state to
-     * move to it. Used by a player that is prepared before it takes over from another one.
+     * Set the adjustment for a given song right now, without waiting for the playback state to move
+     * to it. Used by a player that is prepared before it takes over from another one.
      */
     fun applyFor(song: Song?) = applyReplayGain(song)
 
