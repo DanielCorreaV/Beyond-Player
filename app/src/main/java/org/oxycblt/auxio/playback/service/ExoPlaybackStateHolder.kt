@@ -141,6 +141,10 @@ class ExoPlaybackStateHolder(
     fun attach() {
         playbackManager.registerStateHolder(this)
         musicRepository.addUpdateListener(this)
+        // The library may already be there (preloaded); act on anything that was waiting for it.
+        if (musicRepository.library?.takeIf { !it.empty() } != null) {
+            playbackManager.requestAction(this)
+        }
         player.addListener(this)
         bundle.replayGain.attach()
         equalizer.attach(player.audioSessionId)

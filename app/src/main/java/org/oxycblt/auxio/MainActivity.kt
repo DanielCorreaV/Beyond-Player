@@ -69,9 +69,12 @@ import timber.log.Timber as L
 class MainActivity : AppCompatActivity() {
     private val playbackModel: PlaybackViewModel by viewModels()
     @Inject lateinit var uiSettings: UISettings
+    @Inject lateinit var musicRepository: org.oxycblt.auxio.music.MusicRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Start loading the saved library now, in parallel with everything else.
+        musicRepository.preload()
         setupTheme()
         // Inflate the views after setting up the theme so that the theme attributes are applied.
         val binding = ActivityMainBinding.inflate(layoutInflater)
