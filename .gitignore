@@ -4,6 +4,7 @@ local.properties
 build/
 release/
 patches/
+*:Zone.Identifier
 
 # Studio
 .idea/
