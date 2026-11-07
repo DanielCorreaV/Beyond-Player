@@ -1,191 +1,207 @@
 <p align="center"><img src="fastlane/metadata/android/en-US/images/icon.png" width="150"></p>
-<h1 align="center"><b>Auxio</b></h1>
-<h4 align="center">A simple, rational music player for Android.</h4>
+<h1 align="center"><b>Beyond Player</b></h1>
+<h4 align="center">Un reproductor de música local para Android, con estilo propio. Fork personal de <a href="https://github.com/OxygenCobalt/Auxio">Auxio</a>.</h4>
 <p align="center">
-    <a href="https://github.com/oxygencobalt/Auxio/releases/tag/v4.1.5">
-        <img alt="Latest Version" src="https://img.shields.io/static/v1?label=tag&message=v4.1.5&color=64B5F6&style=flat">
-    </a>
-    <a href="https://github.com/oxygencobalt/Auxio/releases/">
-        <img alt="Releases" src="https://img.shields.io/github/downloads/OxygenCobalt/Auxio/total.svg?color=4B95DE&style=flat">
+    <a href="https://github.com/DanielCorreaV/Beyond-Player/releases">
+        <img alt="Releases" src="https://img.shields.io/github/v/release/DanielCorreaV/Beyond-Player?include_prereleases&style=flat">
     </a>
     <a href="https://www.gnu.org/licenses/gpl-3.0">
         <img src="https://img.shields.io/badge/license-GPL%20v3-2B6DBE.svg?style=flat">
     </a>
-    <img alt="Minimum SDK Version" src="https://img.shields.io/badge/API-24%2B-1450A8?style=flat">
-</p>
-<h4 align="center"><a href="/CHANGELOG.md">Changelog</a> | <a href="https://github.com/OxygenCobalt/Auxio/wiki">Wiki</a> | <a href="https://github.com/OxygenCobalt/Auxio#Donate">Donate</a></h4>
-<p align="center">
-    <a href="https://f-droid.org/app/org.oxycblt.auxio"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" width="250"></a>
-    <a href="https://accrescent.app/app/org.oxycblt.auxio">
-        <img alt="Get it on Accrescent" src="https://accrescent.app/badges/get-it-on.png" width="250">
-    </a>
-</p>
-<p align="center">
-    <a href="https://hosted.weblate.org/engage/auxio/"><img height=64 src="https://hosted.weblate.org/widgets/auxio/-/strings/287x66-grey.png" alt="Translation status" /></a>
 </p>
 
-## About
+> [insertar imagen: collage o captura principal de la app, por ejemplo el inicio en estilo Neón o Pop]
+> Archivo sugerido: `docs/images/portada.png`
 
-Auxio is a local music player with a fast, reliable UI/UX without the many useless features present in other music players. Built off of modern media playback libraries, Auxio has superior library support and listening quality compared to other apps that use outdated Android functionality. In short, **It plays music.**
+## Acerca de
 
-**The default branch is the development version of the repository. For a stable version, see the master branch.**
+Beyond Player es un reproductor de música **local y sin conexión** basado en Auxio. Mantiene lo que hace bien Auxio (biblioteca rápida, reproducción sin cortes, etiquetas bien leídas) y le suma un sistema de estilos visuales, un reproductor con forma de Walkman, herramientas de sonido y la posibilidad de armar listas locales a partir de enlaces de YouTube Music.
 
-## Screenshots
+La reproducción y la biblioteca no necesitan internet. Internet solo se usa en el momento puntual de importar una lista desde YouTube Music.
 
-<p align="center">
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/shot0.png" width=250>
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/shot1.png" width=250>
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/shot2.png" width=250>
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/shot3.png" width=250>
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/shot4.png" width=250>
-    <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/shot5.png" width=250>
-</p>
+## Descargar
 
+Los APK se publican en [Releases](https://github.com/DanielCorreaV/Beyond-Player/releases):
 
-## Features
+- **Pre-release (`vX.Y.Z-bN`)**: sale de la rama `releases`. Es para probar.
+- **Release estable**: sale de la rama `master`.
 
-- Playback based on [Media3 ExoPlayer](https://developer.android.com/guide/topics/media/exoplayer)
-- Snappy UI derived from the latest Material Design guidelines
-- Opinionated UX that prioritizes ease of use over edge cases
-- Customizable behavior
-- Support for disc numbers, multiple artists, release types,
-precise/original dates, sort tags, and more
-- Advanced artist system that unifies artists and album artists
-- SD Card-aware folder management
-- Reliable playlisting functionality
-- Playback state persistence
-- Android Auto support
-- Automatic gapless playback
-- Full ReplayGain support (On MP3, FLAC, OGG, OPUS, and MP4 files)
-- External equalizer support (ex. Wavelet)
-- Edge-to-edge
-- Embedded covers support
-- Search functionality
-- Headset autoplay
-- Stylish widgets that automatically adapt to their size
-- Completely private and offline
-- No rounded album covers (if you want them)
+Son APK de depuración. Si ya tienes instalada otra versión firmada con una clave distinta, Android no te dejará actualizar encima y tendrás que desinstalarla antes.
 
-## Permissions
+## Estilos
 
-- Storage (`READ_MEDIA_AUDIO`, `READ_EXTERNAL_STORAGE`) to read and play your music files
-- Services (`FOREGROUND_SERVICE`, `WAKE_LOCK`) to keep the music playing in the background
-- Notifications (`POST_NOTIFICATION`) to indicate ongoing playback and music loading
+Beyond Player trae cuatro estilos que se eligen en **Ajustes → Personalizar**. Cada uno tiene versión clara y oscura.
 
-## Donate
+| Estilo | Idea |
+| --- | --- |
+| **Clásico** | El aspecto original de Auxio, limpio y sobrio. |
+| **Neón** | Oscuro con degradados luminosos, tarjetas y brillo alrededor de la carátula. Se inspira en reproductores modernos. |
+| **Vinilo** | La carátula es un disco que gira, con surcos y brazo. Toma inspiración de la epoca de los discos de vinilo. |
+| **Pop** | Colorido y juguetón, con tarjetas de borde grueso, sombras duras. Se inspira en la epoca de los 80s cuando el Walkman era el reproductor estrella. |
 
-You can support Auxio's development through [my Github Sponsors page](https://github.com/sponsors/OxygenCobalt). Get the ability to prioritize features and have your profile added to the README, Release Changelogs, and even the app itself!
+> [insertar imagen: los cuatro estilos lado a lado, mostrando la pantalla de inicio de cada uno]
+> Archivo sugerido: `docs/images/estilos.png`
 
-<h3 align="center">Legendary supporters:</h3>
-<p align="center">
-    <a href="https://github.com/bkkellyh"><img src="https://avatars.githubusercontent.com/u/248118457?v=4" width=250 /></a> 
-    <a href="ttps://github.com/gruntstumper"><img src="https://avatars.githubusercontent.com/u/308816080?v=4" width=125 /></a> 
-</p>
-<h3 align="center">
-    <a href="https://github.com/bkkellyh">@bkkellyh</a> - <i>$500!</i>, <a href="https://github.com/gruntstumper">@gruntstumper</a> - $100
-</h3>
+### Fondo personalizado
 
-<hr />
+Puedes poner una imagen propia como fondo de la app. Las pantallas se vuelven translúcidas para que la imagen se vea detrás.
 
-<p align="center"><b>$8/month supporters:</b></p>
+> [insertar imagen: la app con un fondo personalizado, por ejemplo el inicio o la lista de canciones]
+> Archivo sugerido: `docs/images/fondo-personalizado.png`
 
-<p align="center">
-    <a href="https://github.com/uku3lig"><img src="https://avatars.githubusercontent.com/u/61147779?v=4" width=50 /></a>
-</p>
-<p align="center">
-    And **1** Private Sponsor!
-</p>
+### Estilo Neón
 
-## Building
+- Pantalla de inicio con buscador, **Seguir escuchando** (tus últimas canciones) y **Tus listas**.
+- Tarjeta de reproducción compacta que flota sobre la lista.
+- Reproductor con carátula grande, brillo suave y botones redondos.
 
-Auxio relies on a patched version of Media3 that enables some extra playback features, alongside taglib for metadata
-parsing. This adds some caveats to the build process:
-1. `cmake` and `ninja-build` must be installed before building the project.
-2. The project uses submodules, so when cloning initially, use `git clone --recurse-submodules` to properly
-download the external code.
-3. You are **unable** to build this project on windows, as the custom Media3 build runs shell scripts that
-will only work on unix-based systems.
+> [insertar imagen: inicio en estilo Neón]
+> Archivo sugerido: `docs/images/neon-inicio.png`
 
-### Set up Android Studio
+> [insertar imagen: reproductor en estilo Neón]
+> Archivo sugerido: `docs/images/neon-reproductor.png`
 
-#### Install Android Studio.
+### Estilo Vinilo
 
-```bash
-pkg -S android-studio
-```
+- La carátula se convierte en un disco que gira mientras suena la música y se detiene en pausa.
+- Cabecera de inicio con la canción actual y las mismas herramientas del estilo Neón.
 
-#### Configuring Android Studio:
+> [insertar imagen: reproductor en estilo Vinilo con el disco]
+> Archivo sugerido: `docs/images/vinilo-reproductor.png`
 
-- Be sure to have NDK tools, version 28.2.13676358. You can search it on Languages & Frameworks > Android SDK.
-- Install Java-21 with your system package manager
+> [insertar imagen: inicio en estilo Vinilo]
+> Archivo sugerido: `docs/images/vinilo-inicio.png`
 
-    ```bash
-    sudo pkg -S jdk21-openjdk
-    ```
-    Additionally: Set java version to jdk21-openjdk
+### Estilo Pop
 
-- Run ./gradlew assembleDebug
+- **Tarjeta rotativa en el inicio**, que se cambia deslizándola a los lados:
+  - *Retoma donde quedaste*: tu última canción con su carátula.
+  - *Descubre*: una canción al azar de tu biblioteca.
+  - *Mezcla aleatoria*: toda tu biblioteca en modo aleatorio.
+- **Reproductor Walkman** (ver más abajo).
 
-#### Connecting to your Android Device
+> [insertar imagen: inicio en estilo Pop con la tarjeta rotativa, idealmente los tres modos]
+> Archivo sugerido: `docs/images/pop-inicio.png`
 
-You can connect your Mobile Phone through USB to run the app. 
+## Reproductor Walkman
 
-1. **Enable Developer Options on your phone**
-   - Go to **Settings > About phone**  
-   - Tap **Build number** 7 times until you see *"You are now a developer!"*
+En el estilo Pop, el reproductor es un walkman de los 80:
 
-2. **Enable USB debugging**
-   - Go to **Settings > Developer options**  
-   - Turn on **USB debugging**
+- Cuerpo azul marino con franja de estado (indicadores decorativos y **contador de cinta** que avanza con la canción).
+- **Casete** con etiqueta crema que muestra la carátula, el título y el artista, y una ventana con las **bobinas que giran** mientras suena la música.
+- Indicador *SONANDO / EN PAUSA*, barra **TAPE POSITION** y teclas de control con tecla PLAY naranja.
+- Toda la tarjeta del casete responde al **doble toque** a cada lado para adelantar o retroceder 10 segundos.
+- El título de la barra superior muestra **BEYOND PLAYER**.
 
-3. **Connect your phone to the computer**
-   - Use a USB cable  
-   - On your phone, accept the *Allow USB debugging?* prompt
+> [insertar imagen: el reproductor Walkman completo, con una canción sonando]
+> Archivo sugerido: `docs/images/walkman.png`
 
-4. **Verify that your device is detected**
+> [insertar imagen (opcional): detalle del casete con las bobinas, o una captura en pausa]
+> Archivo sugerido: `docs/images/walkman-casete.png`
+
+## Herramientas de sonido
+
+- **Ecualizador** de bandas integrado, con su propio diálogo.
+- **Estabilizador de sonido** para parejar el volumen entre canciones.
+- **Desvanecimiento entre canciones** y **crossfade** configurables.
+- Soporte de ReplayGain y de ecualizadores externos, como en Auxio.
+
+> [insertar imagen: el diálogo del ecualizador]
+> Archivo sugerido: `docs/images/ecualizador.png`
+
+## Temporizador de apagado
+
+Programa que la música se detenga pasado un tiempo, con una opción para dejar que termine la canción en curso antes de parar.
+
+> [insertar imagen: el diálogo del temporizador]
+> Archivo sugerido: `docs/images/temporizador.png`
+
+## Controles del reproductor
+
+- **Doble toque** en la carátula (o en el casete en el estilo Pop) para saltar ±10 segundos.
+- **Mantener pulsado** para reproducir a doble velocidad mientras se mantiene el dedo.
+- Botón de **favoritos** en el reproductor y lista **Canciones que me gustan**.
+- Botones de temporizador y sonido en la barra superior del reproductor.
+
+## Importar listas de YouTube Music
+
+Crea listas locales a partir de un enlace de YouTube Music **usando solo las canciones que ya tienes en el teléfono**:
+
+1. Copia tus canciones a la carpeta Music del teléfono (Beyond Player la escanea como biblioteca).
+2. En Beyond Player, elige *Importar desde YouTube Music* y pega el enlace de la lista.
+3. La app empareja las canciones de la lista con las de tu biblioteca y crea la lista local.
+4. Verás un resumen con las que se emparejaron y las que **faltan**.
+5. Cuando consigas las que faltaban, vuelve a importar el mismo enlace: la lista se **actualiza sin duplicarse**.
+
+No descarga música ni inicia sesión en YouTube: solo lee listas públicas.
+
+> [insertar imagen: el diálogo de importación con el enlace pegado]
+> Archivo sugerido: `docs/images/youtube-importar.png`
+
+> [insertar imagen: el resumen de la importación con canciones emparejadas y faltantes]
+> Archivo sugerido: `docs/images/youtube-resumen.png`
+
+## Íconos de la app
+
+El ícono por defecto es el logo de Beyond Player: un disco de vinilo con una estrella y las letras **BP**. Se puede cambiar por otros desde Ajustes. En Android 13 o superior hay también versión monocromática para íconos temáticos.
+
+> [insertar imagen: el logo grande, o el selector de íconos en ajustes]
+> Archivo sugerido: `docs/images/icono.png`
+
+## Lo que viene de Auxio
+
+- Reproducción basada en [Media3 ExoPlayer](https://developer.android.com/guide/topics/media/exoplayer) y reproducción sin cortes (gapless)
+- Soporte de números de disco, varios artistas, tipos de lanzamiento, fechas, etiquetas de orden y más
+- Sistema de artistas avanzado que unifica artistas y artistas del álbum
+- Gestión de carpetas con soporte de tarjeta SD
+- Listas de reproducción fiables y persistencia del estado de reproducción
+- Compatible con Android Auto
+- Carátulas incrustadas, búsqueda, autoplay con auriculares
+- Widgets que se adaptan a su tamaño
+- Completamente privado y sin conexión
+
+## Permisos
+
+- Almacenamiento (`READ_MEDIA_AUDIO`, `READ_EXTERNAL_STORAGE`) para leer y reproducir tus archivos
+- Servicios (`FOREGROUND_SERVICE`, `WAKE_LOCK`) para mantener la música sonando en segundo plano
+- Notificaciones (`POST_NOTIFICATION`) para mostrar la reproducción y la carga de la biblioteca
+- Internet, solo para importar listas de YouTube Music
+
+## Compilar
+
+Beyond Player usa una versión parcheada de Media3 y taglib para leer etiquetas.
+
+1. Instala `cmake` y `ninja-build`.
+2. Clona con submódulos: `git clone --recurse-submodules https://github.com/DanielCorreaV/Beyond-Player.git`
+3. Usa Linux (o WSL en Windows): el Media3 propio ejecuta scripts de shell que no funcionan en Windows.
+4. NDK `28.2.13676358` y JDK 21.
+5. El submódulo `media` debe estar en el commit `72d7aac` con `androidGradlePlugin = "9.4.1"` en `media/gradle/libs.versions.toml` (el repo de `media` trae `9.3.2` y choca con el del proyecto; el CI hace ese ajuste solo):
    ```bash
-   cd ~/Android/Sdk/platform-tools
-   ./adb devices
+   git -C media checkout 72d7aacc93fe69e9b3afde1490e9daba568045ea
+   sed -i 's/androidGradlePlugin = "9.3.2"/androidGradlePlugin = "9.4.1"/' media/gradle/libs.versions.toml
    ```
+6. Compila con `./gradlew assembleDebug`.
 
-Android Studio also offers virtual devices that come with this pre-configured.
-
-#### Install the app on the Android Phone
-To install the app on your physical device or emulator, run this command:
+Antes de subir cambios puedes comprobar formato y pruebas como lo hace el CI:
 
 ```bash
-./gradlew installDebug
+./gradlew spotlessCheck musikr:testDebug
 ```
 
-Auxio should now appear in the list of Apps
+## Ramas y publicación
 
-#### Load music to Auxio (Optional)
+| Rama | Para qué sirve | Qué hace el CI |
+| --- | --- | --- |
+| `dev` | Desarrollo diario | Revisa formato y pruebas, sin publicar nada |
+| `releases` | Versiones de prueba | Compila y publica un **pre-release** con el APK |
+| `master` | Versiones estables | Compila y publica un **release estable** con el APK |
 
-You can move files from your pc to your device / emulator to test the music using this command:
+También se puede publicar con un tag `v*`, o lanzar el workflow a mano desde la pestaña *Actions*.
 
-```bash
-cd ~/Android/Sdk/platform-tools
-./adb push ~Music/ /sdcard/Music
-```
+## Créditos y licencia
 
-## Contributing
+Beyond Player es un fork de [Auxio](https://github.com/OxygenCobalt/Auxio), de Alexander Capehart ([@OxygenCobalt](https://github.com/OxygenCobalt)), cuyo trabajo hace posible este proyecto. Este fork incluye modificaciones propias: estilos, reproductor Walkman, herramientas de sonido, importación desde YouTube Music, íconos y cambios de interfaz.
 
-Auxio accepts most contributions as long as they follow the [Contribution Guidelines](/.github/CONTRIBUTING.md).
+Está bajo la licencia **GNU GPL v3**, igual que el original. Consulta [LICENSE](LICENSE) y [NOTICE](NOTICE). Las marcas y el logo de Auxio pertenecen a su autor; el logo de Beyond Player es propio.
 
-However, feature additions and major UI changes are less likely to be accepted. See
-[Why Are These Features Missing?](https://github.com/OxygenCobalt/Auxio/wiki/Why-Are-These-Features-Missing%3F)
-for more information.
-
-
-
-## License
-
-[![GNU GPLv3 Image](https://www.gnu.org/graphics/gplv3-127x51.png)](http://www.gnu.org/licenses/gpl-3.0.en.html)
-
-Auxio is Free Software: You can use, study share and improve it at your
-will. Specifically you can redistribute and/or modify it under the terms of the
-[GNU General Public License](https://www.gnu.org/licenses/gpl.html) as
-published by the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-More information can be found [here](https://github.com/OxygenCobalt/Auxio/wiki/Licenses).
+---
