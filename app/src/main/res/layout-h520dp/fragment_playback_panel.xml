@@ -126,6 +126,25 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- Turntable plinth of the Vinyl style: hugs the record with a rim all around. -->
+    <View
+        android:id="@+id/playback_vinyl_deck"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="-24dp"
+        android:layout_marginTop="-24dp"
+        android:layout_marginEnd="-24dp"
+        android:layout_marginBottom="-24dp"
+        android:background="@drawable/bg_vinyl_plinth"
+        android:clickable="false"
+        android:focusable="false"
+        android:importantForAccessibility="no"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/playback_pager"
+        app:layout_constraintEnd_toEndOf="@+id/playback_pager"
+        app:layout_constraintStart_toStartOf="@+id/playback_pager"
+        app:layout_constraintTop_toTopOf="@+id/playback_pager" />
+
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/playback_pager"
         android:layout_width="0dp"
@@ -140,47 +159,50 @@
         app:layout_constraintTop_toBottomOf="@+id/playback_toolbar"
         app:layout_constraintVertical_chainStyle="packed" />
 
-    <!-- Arm-rest of the Vinyl style: the head of the tonearm lands here while paused. -->
-    <ImageView
-        android:id="@+id/playback_tonearm_rest"
-        android:layout_width="30dp"
-        android:layout_height="40dp"
-        android:clickable="false"
-        android:focusable="false"
-        android:importantForAccessibility="no"
-        android:src="@drawable/ic_tonearm_rest"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <!-- Tonearm of the Vinyl style. Arm, mounting base and arm-rest share one holder so they always
+         move together; the arm rests off the record while paused. -->
+    <FrameLayout
+        android:id="@+id/playback_tonearm_holder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="-27dp"
+        android:layout_marginEnd="0dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        app:layout_constraintEnd_toEndOf="@+id/playback_vinyl_deck"
+        app:layout_constraintTop_toTopOf="@+id/playback_vinyl_deck">
 
-    <!-- Tonearm of the Vinyl style: rests off the record while paused. -->
-    <ImageView
-        android:id="@+id/playback_tonearm"
-        android:layout_width="96dp"
-        android:layout_height="136dp"
-        android:layout_marginTop="-4dp"
-        android:layout_marginEnd="@dimen/spacing_medium"
-        android:clickable="false"
-        android:focusable="false"
-        android:importantForAccessibility="no"
-        android:scaleType="fitXY"
-        android:src="@drawable/ic_tonearm"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/playback_pager" />
+        <ImageView
+            android:id="@+id/playback_tonearm_rest"
+            android:layout_width="26dp"
+            android:layout_height="34dp"
+            android:clickable="false"
+            android:focusable="false"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_tonearm_rest"
+            android:visibility="gone" />
 
-    <!-- Mounting base of the tonearm (static; the arm rotates under it). -->
-    <ImageView
-        android:id="@+id/playback_tonearm_base"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:clickable="false"
-        android:focusable="false"
-        android:importantForAccessibility="no"
-        android:src="@drawable/ic_tonearm_base"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <ImageView
+            android:id="@+id/playback_tonearm"
+            android:layout_width="125dp"
+            android:layout_height="208dp"
+            android:clickable="false"
+            android:focusable="false"
+            android:importantForAccessibility="no"
+            android:scaleType="fitXY"
+            android:src="@drawable/ic_tonearm"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/playback_tonearm_base"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:clickable="false"
+            android:focusable="false"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_tonearm_base"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/playback_info_container"

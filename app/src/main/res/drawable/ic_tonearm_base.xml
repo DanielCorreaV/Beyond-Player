@@ -1,30 +1,35 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="44dp"
-    android:height="44dp"
-    android:viewportWidth="44"
-    android:viewportHeight="44">
+    android:width="56dp"
+    android:height="56dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
     <!-- soft shadow -->
     <path
-        android:fillColor="#33000000"
-        android:pathData="M22,24m-21,0a21,21 0,1 1,42 0a21,21 0,1 1,-42 0" />
-    <!-- plate -->
+        android:fillColor="#44000000"
+        android:pathData="M28,31m-26,0a26,26 0,1 1,52 0a26,26 0,1 1,-52 0" />
+    <!-- housing -->
     <path
-        android:fillColor="?attr/colorSurfaceContainerHigh"
-        android:pathData="M22,22m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0"
-        android:strokeColor="?attr/colorOutline"
-        android:strokeWidth="1.5" />
+        android:fillColor="#2A2A2F"
+        android:pathData="M28,28m-26,0a26,26 0,1 1,52 0a26,26 0,1 1,-52 0"
+        android:strokeColor="#D8D8DE"
+        android:strokeWidth="1.6" />
     <!-- ring -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M22,22m-14,0a14,14 0,1 1,28 0a14,14 0,1 1,-28 0"
-        android:strokeColor="?attr/colorOutlineVariant"
-        android:strokeWidth="1.5" />
+        android:pathData="M28,28m-19,0a19,19 0,1 1,38 0a19,19 0,1 1,-38 0"
+        android:strokeColor="#55D8D8DE"
+        android:strokeWidth="1.4" />
     <!-- pivot -->
     <path
         android:fillColor="?attr/colorPrimary"
-        android:pathData="M22,22m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+        android:pathData="M28,28m-11,0a11,11 0,1 1,22 0a11,11 0,1 1,-22 0" />
     <!-- screw -->
     <path
-        android:fillColor="?attr/colorOnPrimary"
-        android:pathData="M22,22m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+        android:fillColor="#1E1E22"
+        android:pathData="M28,28m-3.6,0a3.6,3.6 0,1 1,7.2 0a3.6,3.6 0,1 1,-7.2 0" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M25.4,28 L30.6,28"
+        android:strokeColor="#D8D8DE"
+        android:strokeWidth="1" />
 </vector>

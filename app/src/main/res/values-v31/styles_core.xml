@@ -2,7 +2,8 @@
 <resources>
 
     <style name="Theme.Auxio.V31" parent="Theme.Auxio.V29">
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_anim</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_bp_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#186070</item>
         <item name="android:windowSplashScreenAnimationDuration">1000</item>
     </style>
 

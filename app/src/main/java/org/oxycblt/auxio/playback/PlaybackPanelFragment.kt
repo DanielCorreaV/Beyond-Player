@@ -320,6 +320,18 @@ class PlaybackPanelFragment :
     private fun setupVinyl(binding: FragmentPlaybackPanelBinding) {
         if (uiSettings.style != AppStyle.VINYL) return
         // The Vinyl style spins the cover like a record and swings a tonearm onto it.
+        // A turntable seen from above: the record shrinks to leave room for the plinth around it.
+        if (binding.playbackVinylDeck != null) {
+            binding.playbackVinylDeck?.isVisible = true
+            binding.playbackPager?.let { pager ->
+                val margin = (VINYL_RECORD_MARGIN_DP * resources.displayMetrics.density).toInt()
+                (pager.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)
+                    ?.let {
+                        it.setMargins(margin, margin, margin, margin)
+                        pager.layoutParams = it
+                    }
+            }
+        }
         val spinner = DiscSpinner().also { discSpinner = it }
         binding.playbackPager?.recycler()?.let { recycler ->
             recycler.addOnChildAttachStateChangeListener(
@@ -345,8 +357,8 @@ class PlaybackPanelFragment :
 
     /** Places the arm-rest and the mounting base from the geometry of the (unrotated) tonearm. */
     private fun mountTonearm(binding: FragmentPlaybackPanelBinding, arm: View) {
-        val pivotX = arm.x + arm.width * TONEARM_PIVOT_X
-        val pivotY = arm.y + arm.height * TONEARM_PIVOT_Y
+        val pivotX = arm.left + arm.width * TONEARM_PIVOT_X
+        val pivotY = arm.top + arm.height * TONEARM_PIVOT_Y
         binding.playbackTonearmBase?.let {
             it.isVisible = true
             it.translationX = pivotX - it.layoutParams.width / 2f
@@ -608,14 +620,16 @@ class PlaybackPanelFragment :
     }
 
     private companion object {
+        /** Margin around the record in the Vinyl style: room for the turntable plinth. */
+        const val VINYL_RECORD_MARGIN_DP = 32
         /** Where the tonearm pivots, as a fraction of its size. */
         const val TONEARM_PIVOT_X = 100f / 120f
-        const val TONEARM_PIVOT_Y = 17f / 170f
+        const val TONEARM_PIVOT_Y = 47f / 200f
         /** Angle of the tonearm when it rests away from the record. */
-        const val TONEARM_REST_ANGLE = -30f
+        const val TONEARM_REST_ANGLE = -14f
         /** Center of the head shell, as a fraction of the tonearm size. */
-        const val TONEARM_HEAD_X = 63f / 120f
-        const val TONEARM_HEAD_Y = 150f / 170f
+        const val TONEARM_HEAD_X = 60f / 120f
+        const val TONEARM_HEAD_Y = 180f / 200f
         const val TONEARM_MOVE_MS = 600L
     }
 }
