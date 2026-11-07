@@ -10,8 +10,6 @@
     </a>
 </p>
 
-> [insertar imagen: collage o captura principal de la app, por ejemplo el inicio en estilo Neón o Pop]
-> Archivo sugerido: `docs/images/portada.png`
 
 ## Acerca de
 
@@ -39,15 +37,12 @@ Beyond Player trae cuatro estilos que se eligen en **Ajustes → Personalizar**.
 | **Vinilo** | La carátula es un disco que gira, con surcos y brazo. Toma inspiración de la epoca de los discos de vinilo. |
 | **Pop** | Colorido y juguetón, con tarjetas de borde grueso, sombras duras. Se inspira en la epoca de los 80s cuando el Walkman era el reproductor estrella. |
 
-> [insertar imagen: los cuatro estilos lado a lado, mostrando la pantalla de inicio de cada uno]
-> Archivo sugerido: `docs/images/estilos.png`
+<img width="1850" height="1024" alt="collage" src="https://github.com/user-attachments/assets/79f836d6-875e-490f-83fa-5f18b10b19f3" />
+
 
 ### Fondo personalizado
 
-Puedes poner una imagen propia como fondo de la app. Las pantallas se vuelven translúcidas para que la imagen se vea detrás.
-
-> [insertar imagen: la app con un fondo personalizado, por ejemplo el inicio o la lista de canciones]
-> Archivo sugerido: `docs/images/fondo-personalizado.png`
+>Puedes poner una imagen propia como fondo de la app. Las pantallas se vuelven translúcidas para que la imagen se vea detrás.
 
 ### Estilo Neón
 
@@ -55,22 +50,18 @@ Puedes poner una imagen propia como fondo de la app. Las pantallas se vuelven tr
 - Tarjeta de reproducción compacta que flota sobre la lista.
 - Reproductor con carátula grande, brillo suave y botones redondos.
 
-> [insertar imagen: inicio en estilo Neón]
-> Archivo sugerido: `docs/images/neon-inicio.png`
 
-> [insertar imagen: reproductor en estilo Neón]
-> Archivo sugerido: `docs/images/neon-reproductor.png`
+<img width="921" height="1024" alt="collage" src="https://github.com/user-attachments/assets/9b3b0e98-1ef5-4014-9ce1-cfe686cc0d94" />
+
 
 ### Estilo Vinilo
 
 - La carátula se convierte en un disco que gira mientras suena la música y se detiene en pausa.
 - Cabecera de inicio con la canción actual y las mismas herramientas del estilo Neón.
 
-> [insertar imagen: reproductor en estilo Vinilo con el disco]
-> Archivo sugerido: `docs/images/vinilo-reproductor.png`
 
-> [insertar imagen: inicio en estilo Vinilo]
-> Archivo sugerido: `docs/images/vinilo-inicio.png`
+<img width="921" height="1024" alt="collage" src="https://github.com/user-attachments/assets/b58ffdf2-3854-4007-98ba-199709ee3145" />
+
 
 ### Estilo Pop
 
@@ -80,8 +71,9 @@ Puedes poner una imagen propia como fondo de la app. Las pantallas se vuelven tr
   - *Mezcla aleatoria*: toda tu biblioteca en modo aleatorio.
 - **Reproductor Walkman** (ver más abajo).
 
-> [insertar imagen: inicio en estilo Pop con la tarjeta rotativa, idealmente los tres modos]
-> Archivo sugerido: `docs/images/pop-inicio.png`
+
+<img width="458" height="1024" alt="image" src="https://github.com/user-attachments/assets/d59f599f-c1b2-46fc-b29a-f5dbcaca12b6" />
+
 
 ## Reproductor Walkman
 
@@ -93,11 +85,9 @@ En el estilo Pop, el reproductor es un walkman de los 80:
 - Toda la tarjeta del casete responde al **doble toque** a cada lado para adelantar o retroceder 10 segundos.
 - El título de la barra superior muestra **BEYOND PLAYER**.
 
-> [insertar imagen: el reproductor Walkman completo, con una canción sonando]
-> Archivo sugerido: `docs/images/walkman.png`
 
-> [insertar imagen (opcional): detalle del casete con las bobinas, o una captura en pausa]
-> Archivo sugerido: `docs/images/walkman-casete.png`
+<img width="458" height="1024" alt="image" src="https://github.com/user-attachments/assets/12571a67-2021-4c1a-b225-9793d8d82f1c" />
+
 
 ## Herramientas de sonido
 
@@ -106,15 +96,17 @@ En el estilo Pop, el reproductor es un walkman de los 80:
 - **Desvanecimiento entre canciones** y **crossfade** configurables.
 - Soporte de ReplayGain y de ecualizadores externos, como en Auxio.
 
-> [insertar imagen: el diálogo del ecualizador]
-> Archivo sugerido: `docs/images/ecualizador.png`
+
+<img width="458" height="1024" alt="image" src="https://github.com/user-attachments/assets/9604336a-69d5-40d0-b50c-4e1742c90a49" />
+
 
 ## Temporizador de apagado
 
 Programa que la música se detenga pasado un tiempo, con una opción para dejar que termine la canción en curso antes de parar.
 
-> [insertar imagen: el diálogo del temporizador]
-> Archivo sugerido: `docs/images/temporizador.png`
+
+<img width="458" height="1024" alt="image" src="https://github.com/user-attachments/assets/772d14ca-756e-446d-99f1-9945409230d0" />
+
 
 ## Controles del reproductor
 
