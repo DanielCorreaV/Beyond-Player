@@ -22,11 +22,15 @@ import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
+import org.oxycblt.musikr.covers.CoverResult
 import org.oxycblt.musikr.pipeline.EvaluateStep
 import org.oxycblt.musikr.pipeline.ExploreStep
 import org.oxycblt.musikr.pipeline.Explored
 import org.oxycblt.musikr.pipeline.ExtractStep
 import org.oxycblt.musikr.pipeline.Extracted
+import org.oxycblt.musikr.pipeline.RawPlaylist
+import org.oxycblt.musikr.pipeline.RawSong
 import org.oxycblt.musikr.util.merge
 import org.oxycblt.musikr.util.tryAsyncWith
 
@@ -55,6 +59,12 @@ interface Musikr {
         onProgress: suspend (IndexingProgress) -> Unit = {},
         onPartial: (suspend (MutableLibrary) -> Unit)? = null,
     ): LibraryResult
+
+    /**
+     * Rebuild a library purely from the saved cache, without scanning files. Returns null if the
+     * cache is empty or unusable. The result may be slightly out of date; follow with [run].
+     */
+    suspend fun runCached(): LibraryResult?
 
     companion object {
         /**
@@ -117,6 +127,28 @@ private class MusikrImpl(
     private val extractStep: ExtractStep,
     private val evaluateStep: EvaluateStep,
 ) : Musikr {
+    override suspend fun runCached(): LibraryResult? {
+        val cached = config.storage.cache.snapshot()
+        if (cached.isEmpty()) return null
+        val channel = Channel<Extracted>(Channel.UNLIMITED)
+        withContext(Dispatchers.IO) {
+            for (entry in cached) {
+                val audio = entry.audio ?: continue
+                val cover =
+                    (audio.coverId?.let { config.storage.covers.obtain(it) } as? CoverResult.Hit)
+                        ?.cover
+                channel.send(
+                    RawSong(entry.file, audio.properties, audio.tags, cover, entry.addedMs)
+                )
+            }
+            for (playlist in config.storage.storedPlaylists.read()) {
+                channel.send(RawPlaylist(playlist))
+            }
+        }
+        channel.close()
+        return LibraryResultImpl(config, evaluateStep.evaluate(channel))
+    }
+
     override suspend fun run(
         onProgress: suspend (IndexingProgress) -> Unit,
         onPartial: (suspend (MutableLibrary) -> Unit)?,

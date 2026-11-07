@@ -425,6 +425,19 @@ constructor(
         val storage = Storage(cache, covers, storedPlaylists)
         val interpretation = Interpretation(nameFactory, separators)
         val config = Config(fs, storage, interpretation)
+        if (withCache && this.library == null) {
+            // Show the saved library immediately from the database; the real scan below will
+            // replace it only if something actually changed.
+            try {
+                val cachedStart = System.currentTimeMillis()
+                Musikr.new(context, config).runCached()?.let { emitLibrary(it.library) }
+                L.d("Cached library shown in ${System.currentTimeMillis() - cachedStart}ms")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                L.w("Could not load the saved library: $e")
+            }
+        }
         L.d("Running index...")
         val start = System.currentTimeMillis()
         // While there is no complete library yet, let the UI show songs as soon as they are read.

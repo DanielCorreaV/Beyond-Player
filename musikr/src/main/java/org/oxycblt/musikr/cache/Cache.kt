@@ -41,6 +41,12 @@ interface Cache {
      * @return a [CacheResult] representing the result of the operation.
      */
     suspend fun read(file: File): CacheResult
+
+    /**
+     * Read every cached audio file, rebuilt without touching the file system. Used to show the
+     * library instantly while the real scan runs. Implementations that cannot do this return empty.
+     */
+    suspend fun snapshot(): List<CachedFile> = emptyList()
 }
 
 /**
