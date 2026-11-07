@@ -430,7 +430,13 @@ constructor(
             // replace it only if something actually changed.
             try {
                 val cachedStart = System.currentTimeMillis()
-                Musikr.new(context, config).runCached()?.let { emitLibrary(it.library) }
+                val musikr = Musikr.new(context, config)
+                for (limit in listOf(200, 1500, null)) {
+                    val result = musikr.runCached(limit) ?: break
+                    emitLibrary(result.library, result.partial)
+                    if (!result.partial) break
+                    yield()
+                }
                 L.d("Cached library shown in ${System.currentTimeMillis() - cachedStart}ms")
             } catch (e: CancellationException) {
                 throw e
@@ -507,7 +513,7 @@ constructor(
         }
     }
 
-    private suspend fun emitLibrary(newLibrary: MutableLibrary) {
+    private suspend fun emitLibrary(newLibrary: MutableLibrary, partial: Boolean = false) {
         val deviceLibraryChanged: Boolean
         val userLibraryChanged: Boolean
         // We want to make sure that all reads and writes are synchronized due to the sheer
@@ -541,7 +547,7 @@ constructor(
         // Consumers expect their updates to be on the main thread (notably PlaybackService),
         // so switch to it.
         withContext(Dispatchers.Main) {
-            dispatchLibraryChange(deviceLibraryChanged, userLibraryChanged)
+            dispatchLibraryChange(deviceLibraryChanged, userLibraryChanged, partial)
         }
     }
 

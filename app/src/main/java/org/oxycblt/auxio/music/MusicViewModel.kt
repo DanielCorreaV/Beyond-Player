@@ -133,7 +133,7 @@ constructor(
                     ?.map { it.uid }
                     ?.toSet() ?: emptySet()
         }
-        if (!changes.deviceLibrary) return
+        if (!changes.deviceLibrary || changes.partial) return
         val library = musicRepository.library ?: return
         statistics.value =
             Statistics(

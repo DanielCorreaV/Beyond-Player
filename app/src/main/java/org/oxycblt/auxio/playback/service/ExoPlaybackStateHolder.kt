@@ -649,7 +649,11 @@ class ExoPlaybackStateHolder(
 
     override fun onMusicChanges(changes: MusicRepository.Changes) {
         if (changes.partial) return
-        if (changes.deviceLibrary && musicRepository.library?.takeIf { !it.empty() } != null) {
+        if (
+            !changes.partial &&
+            changes.deviceLibrary &&
+            musicRepository.library?.takeIf { !it.empty() } != null
+        ) {
             // We now have a library, see if we have anything we need to do.
             L.d("Library obtained, requesting action")
             playbackManager.requestAction(this)

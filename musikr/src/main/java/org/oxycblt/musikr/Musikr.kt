@@ -64,7 +64,7 @@ interface Musikr {
      * Rebuild a library purely from the saved cache, without scanning files. Returns null if the
      * cache is empty or unusable. The result may be slightly out of date; follow with [run].
      */
-    suspend fun runCached(): LibraryResult?
+    suspend fun runCached(limit: Int? = null): LibraryResult?
 
     companion object {
         /**
@@ -89,6 +89,10 @@ interface Musikr {
 
 /** Simple library handle returned by [Musikr.run]. */
 interface LibraryResult {
+    /** Whether this is a truncated preview rather than the full library. */
+    val partial: Boolean
+        get() = false
+
     val library: MutableLibrary
 
     /**
@@ -127,9 +131,13 @@ private class MusikrImpl(
     private val extractStep: ExtractStep,
     private val evaluateStep: EvaluateStep,
 ) : Musikr {
-    override suspend fun runCached(): LibraryResult? {
-        val cached = config.storage.cache.snapshot()
+    override suspend fun runCached(limit: Int?): LibraryResult? {
+        var cached = config.storage.cache.snapshot()
         if (cached.isEmpty()) return null
+        // With a limit, keep only the most recently added songs and skip playlists (they would
+        // be missing songs), so a first preview can be built almost instantly.
+        val partial = limit != null && cached.size >= limit
+        if (partial) cached = cached.sortedByDescending { it.addedMs }.take(limit!!)
         val channel = Channel<Extracted>(Channel.UNLIMITED)
         withContext(Dispatchers.IO) {
             for (entry in cached) {
@@ -141,12 +149,15 @@ private class MusikrImpl(
                     RawSong(entry.file, audio.properties, audio.tags, cover, entry.addedMs)
                 )
             }
-            for (playlist in config.storage.storedPlaylists.read()) {
-                channel.send(RawPlaylist(playlist))
+            if (!partial) {
+                for (playlist in config.storage.storedPlaylists.read()) {
+                    channel.send(RawPlaylist(playlist))
+                }
             }
         }
         channel.close()
-        return LibraryResultImpl(config, evaluateStep.evaluate(channel))
+        val result = LibraryResultImpl(config, evaluateStep.evaluate(channel))
+        return if (partial) PartialLibraryResult(result) else result
     }
 
     override suspend fun run(
@@ -210,4 +221,9 @@ private class LibraryResultImpl(private val config: Config, override val library
     override suspend fun cleanup() {
         config.storage.covers.cleanup(library.songs.mapNotNull { it.cover })
     }
+}
+
+/** A deliberately truncated preview of the library, see [Musikr.runCached]. */
+private class PartialLibraryResult(private val inner: LibraryResult) : LibraryResult by inner {
+    override val partial: Boolean = true
 }
