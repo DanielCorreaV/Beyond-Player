@@ -159,6 +159,14 @@ class MainFragment :
             context.getString(R.string.lbl_queue),
         )
 
+        // The handle's built-in "Drag handle" text shows up as a caption when the queue opens, and
+        // the wrapper around it already describes the action ("Open queue").
+        binding.queueHandle?.let { handle ->
+            handle.contentDescription = null
+            androidx.appcompat.widget.TooltipCompat.setTooltipText(handle, null)
+            handle.importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+
         if (queueSheetBehavior != null) {
             // In portrait mode, set up click listeners on the stacked sheets.
             L.d("Configuring stacked bottom sheets")

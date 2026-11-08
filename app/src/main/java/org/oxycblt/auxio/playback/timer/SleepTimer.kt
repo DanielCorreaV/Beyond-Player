@@ -56,6 +56,10 @@ data class TimerState(
     val endsAtMs: Long,
     val songsLeft: Int,
     val finishingSong: Boolean,
+    /** Length of the whole time-based timer, for the progress ring. */
+    val totalMs: Long = 0L,
+    /** Songs the timer started with, for the progress ring. */
+    val initialSongs: Int = 0,
 )
 
 /**
@@ -132,6 +136,7 @@ class SleepTimer @Inject constructor() {
                 SystemClock.elapsedRealtime() + durationMs,
                 songsLeft = 0,
                 finishingSong = false,
+                totalMs = durationMs,
             )
         handler.postDelayed(timeUp, durationMs)
     }
@@ -146,8 +151,20 @@ class SleepTimer @Inject constructor() {
                 endsAtMs = 0,
                 songsLeft = count,
                 finishingSong = false,
+                initialSongs = count,
             )
         armIfLastSong()
+    }
+
+        /** Add [minutes] to a running time-based timer that has not run out yet. */
+    fun extend(minutes: Int) {
+        val current = _state.value ?: return
+        if (current.mode != TimerMode.TIME || current.finishingSong) return
+        handler.removeCallbacks(timeUp)
+        val extra = minutes * 60_000L
+        val newEnd = current.endsAtMs + extra
+        _state.value = current.copy(endsAtMs = newEnd, totalMs = current.totalMs + extra)
+        handler.postDelayed(timeUp, (newEnd - SystemClock.elapsedRealtime()).coerceAtLeast(0L))
     }
 
     /** Stop the timer without touching playback. */
