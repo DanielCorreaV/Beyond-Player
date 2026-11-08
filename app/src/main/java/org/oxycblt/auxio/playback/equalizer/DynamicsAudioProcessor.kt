@@ -70,7 +70,14 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
     private var releaseCoef = 0.0
     private var limiterReleaseCoef = 0.0
     private var levelAttackStep = 0.0
-    private var levelReleaseStep = 0.0
+        private var levelReleaseStep = 0.0
+    private var fastPowerCoef = 0.0
+    private var fastAttackStep = 0.0
+    private var fastReleaseStep = 0.0
+
+    // Frames left of the quick adaptation that follows a song change.
+    @Volatile private var fastLeft = 0
+
 
     override fun onConfigure(
         inputAudioFormat: AudioProcessor.AudioFormat
@@ -87,11 +94,27 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
         releaseCoef = exp(-1.0 / (COMP_RELEASE_SEC * fs))
         limiterReleaseCoef = 1.0 - exp(-1.0 / (LIMITER_RELEASE_SEC * fs))
         levelAttackStep = 1.0 - exp(-LEVEL_STEP / (LEVEL_ATTACK_SEC * fs))
-        levelReleaseStep = 1.0 - exp(-LEVEL_STEP / (LEVEL_RELEASE_SEC * fs))
+                levelReleaseStep = 1.0 - exp(-LEVEL_STEP / (LEVEL_RELEASE_SEC * fs))
+        fastPowerCoef = 1.0 - exp(-1.0 / (FAST_POWER_TAU_SEC * fs))
+        fastAttackStep = 1.0 - exp(-LEVEL_STEP / (FAST_LEVEL_ATTACK_SEC * fs))
+        fastReleaseStep = 1.0 - exp(-LEVEL_STEP / (FAST_LEVEL_RELEASE_SEC * fs))
+        fastLeft = (FAST_SEC * fs).toInt()
+
         return inputAudioFormat
     }
 
+        override fun onFlush() {
+        // New stream or a seek: catch up with the loudness quickly.
+        fastLeft = (FAST_SEC * sampleRate).toInt()
+    }
+
+    /** The song changed (possibly without a flush, when playback is gapless). */
+    fun onSongChanged() {
+        fastLeft = (FAST_SEC * sampleRate).toInt()
+    }
+
     override fun queueInput(inputBuffer: ByteBuffer) {
+
         val start = inputBuffer.position()
         val end = inputBuffer.limit()
         val output = replaceOutputBuffer(end - start)
@@ -110,7 +133,10 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
         val slope = 1f - 1f / mode.ratio
         val bytesPerFrame = 2 * channels
         var index = start
-        while (index + bytesPerFrame <= end) {
+                while (index + bytesPerFrame <= end) {
+            val fast = fastLeft > 0
+            if (fast) fastLeft--
+
             var peak = 0f
             var power = 0f
             for (c in 0 until channels) {
@@ -149,7 +175,8 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
             val gain = levelGain * compGain
 
             // Stage 1: slow leveler, steering the loudness of the output towards the target.
-            meanSquare += (power * gain * gain - meanSquare) * powerCoef
+            meanSquare +=
+                (power * gain * gain - meanSquare) * (if (fast) fastPowerCoef else powerCoef)
             if (++levelCounter >= LEVEL_STEP) {
                 levelCounter = 0
                 val rmsDb = 20.0 * log10(sqrt(meanSquare) + 1e-9)
@@ -164,7 +191,12 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
                             else -> 0.0
                         }
                     val factor = 10.0.pow(error / 20.0)
-                    val step = if (error < 0) levelAttackStep else levelReleaseStep
+                    val step =
+                        if (error < 0) {
+                            if (fast) fastAttackStep else levelAttackStep
+                        } else {
+                            if (fast) fastReleaseStep else levelReleaseStep
+                        }
                     levelGain =
                         (levelGain * (1.0 + (factor - 1.0) * step)).coerceIn(MIN_GAIN, MAX_GAIN)
                 }
@@ -212,7 +244,14 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
 
         /** Width of the compressor's soft knee. */
         const val KNEE_DB = 6.0
-        const val LIMITER_RELEASE_SEC = 0.1
+                const val LIMITER_RELEASE_SEC = 0.1
+
+        /** How long, and how quickly, the leveler adapts right after a song change. */
+        const val FAST_SEC = 3.0
+        const val FAST_POWER_TAU_SEC = 0.6
+        const val FAST_LEVEL_ATTACK_SEC = 0.5
+        const val FAST_LEVEL_RELEASE_SEC = 0.8
+
 
         /** Gain limits of the leveler, +8 dB and -10 dB. */
         val MAX_GAIN = 10.0.pow(8.0 / 20.0)
