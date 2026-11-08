@@ -389,6 +389,7 @@ class PlaybackPanelFragment :
             ?.animate()
             ?.rotation(if (isPlaying) 0f else TONEARM_REST_ANGLE)
             ?.setDuration(TONEARM_MOVE_MS)
+            ?.setInterpolator(android.view.animation.DecelerateInterpolator(1.4f))
             ?.start()
     }
 
@@ -630,7 +631,7 @@ class PlaybackPanelFragment :
         /** Center of the head shell, as a fraction of the tonearm size. */
         const val TONEARM_HEAD_X = 60f / 120f
         const val TONEARM_HEAD_Y = 180f / 200f
-        const val TONEARM_MOVE_MS = 600L
+        const val TONEARM_MOVE_MS = 240L
     }
 }
 
