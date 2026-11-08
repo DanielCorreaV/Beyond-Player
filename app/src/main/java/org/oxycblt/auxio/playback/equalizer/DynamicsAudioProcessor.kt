@@ -133,7 +133,15 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
                 compGain =
                     if (compress) {
                         val over = 20.0 * log10(envelope + 1e-9) - threshold
-                        if (over > 0) 10.0.pow(-over * slope / 20.0) else 1.0
+                        // Soft knee: compression eases in over KNEE_DB instead of switching on.
+                        val reduction =
+                            when {
+                                over <= -KNEE_DB / 2 -> 0.0
+                                over < KNEE_DB / 2 ->
+                                    slope * (over + KNEE_DB / 2).pow(2) / (2 * KNEE_DB)
+                                else -> slope * over
+                            }
+                        10.0.pow(-reduction / 20.0)
                     } else {
                         1.0
                     }
@@ -146,7 +154,15 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
                 levelCounter = 0
                 val rmsDb = 20.0 * log10(sqrt(meanSquare) + 1e-9)
                 if (rmsDb > SILENCE_DB) {
-                    val error = targetDb - rmsDb
+                    // Differences inside the dead zone are left alone so the loud and quiet parts of a
+                    // song survive; only the excess is corrected.
+                    val rawError = targetDb - rmsDb
+                    val error =
+                        when {
+                            rawError > LEVEL_DEADBAND_DB -> rawError - LEVEL_DEADBAND_DB
+                            rawError < -LEVEL_DEADBAND_DB -> rawError + LEVEL_DEADBAND_DB
+                            else -> 0.0
+                        }
                     val factor = 10.0.pow(error / 20.0)
                     val step = if (error < 0) levelAttackStep else levelReleaseStep
                     levelGain =
@@ -178,7 +194,7 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
 
     private companion object {
         /** Window the loudness is measured over. */
-        const val POWER_TAU_SEC = 1.5
+        const val POWER_TAU_SEC = 5.0
 
         /** Frames between leveler gain updates. */
         const val LEVEL_STEP = 128
@@ -186,15 +202,21 @@ class DynamicsAudioProcessor @Inject constructor(private val stabilizer: SoundSt
         /** Frames between compressor gain updates. */
         const val COMP_STEP = 32
 
-        const val LEVEL_ATTACK_SEC = 0.3
-        const val LEVEL_RELEASE_SEC = 2.0
+        const val LEVEL_ATTACK_SEC = 3.0
+        const val LEVEL_RELEASE_SEC = 6.0
         const val COMP_ATTACK_SEC = 0.01
-        const val COMP_RELEASE_SEC = 0.15
+        const val COMP_RELEASE_SEC = 0.35
+
+        /** Differences from the target smaller than this are left alone. */
+        const val LEVEL_DEADBAND_DB = 3.0
+
+        /** Width of the compressor's soft knee. */
+        const val KNEE_DB = 6.0
         const val LIMITER_RELEASE_SEC = 0.1
 
-        /** Gain limits of the leveler, +12 dB and -12 dB. */
-        val MAX_GAIN = 10.0.pow(12.0 / 20.0)
-        val MIN_GAIN = 10.0.pow(-12.0 / 20.0)
+        /** Gain limits of the leveler, +8 dB and -10 dB. */
+        val MAX_GAIN = 10.0.pow(8.0 / 20.0)
+        val MIN_GAIN = 10.0.pow(-10.0 / 20.0)
 
         /** Below this loudness the leveler holds its gain instead of boosting silence. */
         const val SILENCE_DB = -55.0

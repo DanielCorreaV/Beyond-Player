@@ -42,8 +42,8 @@ enum class StabilizerMode(
 ) {
     OFF(R.string.lbl_stabilizer_off, 0f, 0f, 1f),
     LIGHT(R.string.lbl_stabilizer_light, -18f, 0f, 1f),
-    BALANCED(R.string.lbl_stabilizer_balanced, -17f, 8f, 2f),
-    STRONG(R.string.lbl_stabilizer_strong, -16f, 5f, 3.5f),
+    BALANCED(R.string.lbl_stabilizer_balanced, -17f, 10f, 1.6f),
+    STRONG(R.string.lbl_stabilizer_strong, -16f, 6f, 2.5f),
 }
 
 /** The chosen [StabilizerMode], remembered between sessions and read by the audio processor. */
