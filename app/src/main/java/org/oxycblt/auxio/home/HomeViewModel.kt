@@ -159,6 +159,9 @@ constructor(
     val chooseMusicLocations: Event<Unit>
         field = MutableEvent<Unit>()
 
+    // Must be declared before the init block below: attaching can already call invalidateMusic().
+    private val invalidateJobs = mutableMapOf<MusicType, Job>()
+
     init {
         homeGenerator.attach()
     }
@@ -170,8 +173,6 @@ constructor(
     override fun invalidateEmpty() {
         empty.value = homeGenerator.empty()
     }
-
-    private val invalidateJobs = mutableMapOf<MusicType, Job>()
 
     override fun invalidateMusic(type: MusicType, instructions: UpdateInstructions) {
         // Sorting thousands of items on the main thread froze the UI when the library arrived,
