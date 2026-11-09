@@ -31,6 +31,8 @@ import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -40,6 +42,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.color.MaterialColors
+import androidx.core.widget.doAfterTextChanged
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.min
@@ -133,6 +136,9 @@ private class TimerDialView(context: Context) : View(context) {
 
     var onValueChanged: ((Int) -> Unit)? = null
 
+    /** Whether the number is drawn here; off when a text field sits on top of it. */
+    var showValue = true
+
     private fun fraction(): Float =
         runningFraction ?: (value.toFloat() / maxValue.coerceAtLeast(1)).coerceIn(0f, 1f)
 
@@ -163,7 +169,7 @@ private class TimerDialView(context: Context) : View(context) {
         bigPaint.textSize = (if (big.length > 5) 44 else 68) * density
         val baseline = cy - (bigPaint.ascent() + bigPaint.descent()) / 2f
         val lift = if (unit.isNotEmpty()) 14 * density else 0f
-        canvas.drawText(big, cx, baseline - lift, bigPaint)
+        if (runningText != null || showValue) canvas.drawText(big, cx, baseline - lift, bigPaint)
         if (unit.isNotEmpty()) {
             canvas.drawText(unit, cx, baseline - lift + 30 * density, unitPaint)
         }
@@ -329,7 +335,75 @@ object SleepTimerDialog {
                         bottomMargin = dp(4)
                     }
             }
-        root.addView(dial)
+        val dialFrame = FrameLayout(context)
+        val dialParams = dial.layoutParams
+        dial.layoutParams = FrameLayout.LayoutParams(dp(268), dp(268))
+        dial.showValue = false
+        dialFrame.addView(dial)
+        // The number in the middle is a field, so a custom value can be typed.
+        val valueInput =
+            EditText(context).apply {
+                background = null
+                setPadding(0, 0, 0, 0)
+                includeFontPadding = false
+                gravity = Gravity.CENTER
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, 68 * density)
+                setTypeface(typeface, Typeface.BOLD)
+                setTextColor(
+                    MaterialColors.getColor(
+                        context,
+                        com.google.android.material.R.attr.colorOnSurface,
+                        0xFF000000.toInt(),
+                    )
+                )
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                filters = arrayOf<android.text.InputFilter>(android.text.InputFilter.LengthFilter(3))
+                imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+                setSelectAllOnFocus(true)
+                translationY = -14 * density
+            }
+        dialFrame.addView(
+            valueInput,
+            FrameLayout.LayoutParams(dp(150), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER),
+        )
+        root.addView(dialFrame, dialParams)
+        var updatingInput = false
+
+        fun syncInput(value: Int) {
+            val text = value.toString()
+            if (valueInput.text.toString() != text) {
+                updatingInput = true
+                valueInput.setText(text)
+                valueInput.setSelection(text.length)
+                updatingInput = false
+            }
+        }
+
+        valueInput.doAfterTextChanged { text ->
+            if (updatingInput) return@doAfterTextChanged
+            val typed = text?.toString()?.toIntOrNull() ?: return@doAfterTextChanged
+            if (typed < 1) return@doAfterTextChanged
+            val limit = if (mode == TimerMode.TIME) MAX_MINUTES else MAX_SONGS
+            val clamped = typed.coerceAtMost(limit)
+            if (mode == TimerMode.TIME) timeValue = clamped else songValue = clamped
+            dial.value = clamped
+            dial.unit = unitOf(amountLabel(clamped), clamped)
+            if (clamped != typed) syncInput(clamped)
+        }
+        fun finishTyping() {
+            syncInput(if (mode == TimerMode.TIME) timeValue else songValue)
+            valueInput.clearFocus()
+            (context.getSystemService(Context.INPUT_METHOD_SERVICE)
+                    as android.view.inputmethod.InputMethodManager)
+                .hideSoftInputFromWindow(valueInput.windowToken, 0)
+        }
+        valueInput.setOnEditorActionListener { _, _, _ ->
+            finishTyping()
+            true
+        }
+        valueInput.setOnFocusChangeListener { _, focused ->
+            if (!focused) syncInput(if (mode == TimerMode.TIME) timeValue else songValue)
+        }
 
         // --- Setup controls ---
         val setupGroup =
@@ -448,11 +522,13 @@ object SleepTimerDialog {
             val clamped = value.coerceIn(1, limit)
             if (mode == TimerMode.TIME) timeValue = clamped else songValue = clamped
             dial.value = clamped
+            syncInput(clamped)
             dial.unit = unitOf(amountLabel(clamped), clamped)
         }
 
         fun refreshSetup() {
             dial.interactive = true
+            valueInput.visibility = View.VISIBLE
             dial.runningFraction = null
             dial.runningText = null
             dial.minValue = 1
@@ -476,6 +552,7 @@ object SleepTimerDialog {
 
         fun refreshRunning(state: TimerState) {
             dial.interactive = false
+            valueInput.visibility = View.GONE
             when {
                 state.finishingSong -> {
                     dial.runningFraction = 0f
@@ -572,6 +649,9 @@ object SleepTimerDialog {
             refresh()
             handler.postDelayed(tick, 250)
         }
+        dialog.window?.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
         dialog.setOnShowListener {
             
             
