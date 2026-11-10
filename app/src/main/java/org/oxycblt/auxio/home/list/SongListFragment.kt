@@ -162,6 +162,30 @@ class SongListFragment :
 
     private fun updateSongs(songs: List<Song>) {
         songAdapter.update(songs, homeModel.songInstructions.consume())
+        updateLetterIndex(songs)
+    }
+
+    private fun updateLetterIndex(songs: List<Song>) {
+        val recycler = requireBinding().homeRecycler
+        if (homeModel.songSort.mode !is Sort.Mode.ByName) {
+            recycler.letterIndex = emptyList()
+            return
+        }
+        val entries = ArrayList<Pair<String, Int>>()
+        var last: String? = null
+        for ((i, song) in songs.withIndex()) {
+            val letter = song.name.thumb() ?: "?"
+            if (letter != last) {
+                entries.add(letter to i)
+                last = letter
+                if (entries.size > 40) {
+                    // Too many different "letters" (e.g. a non-latin library): no rail.
+                    recycler.letterIndex = emptyList()
+                    return
+                }
+            }
+        }
+        recycler.letterIndex = entries
     }
 
     private fun updateNoMusicIndicator(empty: Boolean, indexingState: IndexingState?) {
