@@ -97,6 +97,8 @@ class BandSliderView(context: Context) : View(context) {
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // Disabled (equalizer off): do not take the touch, so the dialog can scroll past.
+        if (!isEnabled) return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN,
             MotionEvent.ACTION_MOVE -> {

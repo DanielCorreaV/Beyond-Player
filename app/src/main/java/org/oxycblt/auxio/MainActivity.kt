@@ -19,6 +19,7 @@
 package org.oxycblt.auxio
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -26,6 +27,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
 import android.view.View
+import android.view.WindowManager
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -69,14 +71,22 @@ import timber.log.Timber as L
 class MainActivity : AppCompatActivity() {
     private val playbackModel: PlaybackViewModel by viewModels()
     @Inject lateinit var uiSettings: UISettings
+    @Inject lateinit var musicRepository: org.oxycblt.auxio.music.MusicRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Start loading the saved library now, in parallel with everything else.
+        musicRepository.preload()
         setupTheme()
         // Inflate the views after setting up the theme so that the theme attributes are applied.
         val binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setupEdgeToEdge(binding.root)
+        // Crossfade instead of a cut to black when the screen rotates.
+        window.attributes =
+            window.attributes.also {
+                it.rotationAnimation = WindowManager.LayoutParams.ROTATION_ANIMATION_CROSSFADE
+            }
         setupBackgroundImage()
         L.d("Activity created")
     }
@@ -138,20 +148,34 @@ class MainActivity : AppCompatActivity() {
                 else -> 0.7f
             }
         val surface = MaterialColors.getColor(this, MR.attr.colorSurface, Color.BLACK)
+        val stamp = file.lastModified()
+        backgroundCache
+            ?.takeIf { it.stamp == stamp }
+            ?.let {
+                // Already decoded (e.g. the screen was rotated): apply it right away so the
+                // window is never blank.
+                applyBackground(it.bitmap, strength, surface)
+                return
+            }
         lifecycleScope.launch {
             val bitmap =
                 withContext(Dispatchers.IO) { BitmapFactory.decodeFile(file.absolutePath) }
                     ?: return@launch
-            window.setBackgroundDrawable(
-                LayerDrawable(
-                    arrayOf<Drawable>(
-                        ColorDrawable(surface),
-                        FadeImageDrawable(bitmap, strength),
-                        ColorDrawable(ColorUtils.setAlphaComponent(surface, 0x80)),
-                    )
+            backgroundCache = CachedBackground(stamp, bitmap)
+            applyBackground(bitmap, strength, surface)
+        }
+    }
+
+    private fun applyBackground(bitmap: Bitmap, strength: Float, surface: Int) {
+        window.setBackgroundDrawable(
+            LayerDrawable(
+                arrayOf<Drawable>(
+                    ColorDrawable(surface),
+                    FadeImageDrawable(bitmap, strength),
+                    ColorDrawable(ColorUtils.setAlphaComponent(surface, 0x80)),
                 )
             )
-        }
+        )
     }
 
     private fun setupEdgeToEdge(contentView: View) {
@@ -206,5 +230,11 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val KEY_INTENT_USED = BuildConfig.APPLICATION_ID + ".key.FILE_INTENT_USED"
+
+        /** The decoded custom background, kept so rotating the screen can reuse it. */
+        @Volatile private var backgroundCache: CachedBackground? = null
     }
 }
+
+
+private class CachedBackground(val stamp: Long, val bitmap: Bitmap)

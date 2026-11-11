@@ -166,7 +166,7 @@ class AlbumListFragment :
     private fun updateNoMusicIndicator(empty: Boolean, indexingState: IndexingState?) {
         val binding = requireBinding()
         binding.homeRecycler.isInvisible = empty
-        binding.homeNoMusic.isInvisible = !empty
+        binding.homeNoMusic.isInvisible = !(empty && indexingState is IndexingState.Completed)
         binding.homeNoMusicAction.isVisible =
             indexingState == null || (empty && indexingState is IndexingState.Completed)
     }

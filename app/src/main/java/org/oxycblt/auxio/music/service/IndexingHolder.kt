@@ -175,7 +175,7 @@ private constructor(
         val library = musicRepository.library ?: return
         L.d("Music changed, updating shared objects")
         // Wipe possibly-invalidated outdated covers
-        imageLoader.memoryCache?.clear()
+        if (changes.deviceLibrary) imageLoader.memoryCache?.clear()
         // Clear invalid models from PlaybackStateManager. This is not connected
         // to a listener as it is bad practice for a shared object to attach to
         // the listener system of another.

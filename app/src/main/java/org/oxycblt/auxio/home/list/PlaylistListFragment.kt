@@ -151,7 +151,8 @@ class PlaylistListFragment :
     ) {
         val binding = requireBinding()
         binding.homeRecycler.isInvisible = empty
-        binding.homeNoMusic.isInvisible = !empty && playlists.isNotEmpty()
+        binding.homeNoMusic.isInvisible =
+            !(empty && indexingState is IndexingState.Completed) && playlists.isNotEmpty()
         if (!empty && playlists.isEmpty()) {
             binding.homeNoMusicAction.isVisible = true
             binding.homeNoMusicAction.text = getString(R.string.lbl_new_playlist)

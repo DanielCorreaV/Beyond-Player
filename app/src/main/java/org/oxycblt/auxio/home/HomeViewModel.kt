@@ -19,10 +19,15 @@
 package org.oxycblt.auxio.home
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.oxycblt.auxio.home.tabs.Tab
 import org.oxycblt.auxio.list.ListSettings
 import org.oxycblt.auxio.list.adapter.UpdateInstructions
@@ -154,6 +159,9 @@ constructor(
     val chooseMusicLocations: Event<Unit>
         field = MutableEvent<Unit>()
 
+    // Must be declared before the init block below: attaching can already call invalidateMusic().
+    private val invalidateJobs = mutableMapOf<MusicType, Job>()
+
     init {
         homeGenerator.attach()
     }
@@ -167,28 +175,39 @@ constructor(
     }
 
     override fun invalidateMusic(type: MusicType, instructions: UpdateInstructions) {
-        when (type) {
-            MusicType.SONGS -> {
-                songInstructions.put(instructions)
-                songList.value = homeGenerator.songs()
+        // Sorting thousands of items on the main thread froze the UI when the library arrived,
+        // so build each list in the background and only publish the result on Main.
+        invalidateJobs.remove(type)?.cancel()
+        invalidateJobs[type] =
+            viewModelScope.launch {
+                when (type) {
+                    MusicType.SONGS -> {
+                        val list = withContext(Dispatchers.Default) { homeGenerator.songs() }
+                        songInstructions.put(instructions)
+                        songList.value = list
+                    }
+                    MusicType.ALBUMS -> {
+                        val list = withContext(Dispatchers.Default) { homeGenerator.albums() }
+                        albumInstructions.put(instructions)
+                        albumList.value = list
+                    }
+                    MusicType.ARTISTS -> {
+                        val list = withContext(Dispatchers.Default) { homeGenerator.artists() }
+                        artistInstructions.put(instructions)
+                        _artistList.value = list
+                    }
+                    MusicType.GENRES -> {
+                        val list = withContext(Dispatchers.Default) { homeGenerator.genres() }
+                        genreInstructions.put(instructions)
+                        genreList.value = list
+                    }
+                    MusicType.PLAYLISTS -> {
+                        val list = withContext(Dispatchers.Default) { homeGenerator.playlists() }
+                        playlistInstructions.put(instructions)
+                        playlistList.value = list
+                    }
+                }
             }
-            MusicType.ALBUMS -> {
-                albumInstructions.put(instructions)
-                albumList.value = homeGenerator.albums()
-            }
-            MusicType.ARTISTS -> {
-                artistInstructions.put(instructions)
-                _artistList.value = homeGenerator.artists()
-            }
-            MusicType.GENRES -> {
-                genreInstructions.put(instructions)
-                genreList.value = homeGenerator.genres()
-            }
-            MusicType.PLAYLISTS -> {
-                playlistInstructions.put(instructions)
-                playlistList.value = homeGenerator.playlists()
-            }
-        }
     }
 
     override fun invalidateTabs() {

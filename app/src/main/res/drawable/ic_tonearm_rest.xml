@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="30dp"
+    android:height="40dp"
+    android:viewportWidth="30"
+    android:viewportHeight="40">
+    <!-- post -->
+    <path
+        android:fillColor="?attr/colorSurfaceContainerHigh"
+        android:pathData="M10,40 L10,22 L20,22 L20,40 Z"
+        android:strokeColor="?attr/colorOutline"
+        android:strokeWidth="1.2" />
+    <!-- cradle (the head sits in the notch) -->
+    <path
+        android:fillColor="?attr/colorSurfaceContainerHigh"
+        android:pathData="M3,6 L9,6 L9,12 Q15,18 21,12 L21,6 L27,6 L27,14 Q27,24 15,24 Q3,24 3,14 Z"
+        android:strokeColor="?attr/colorOutline"
+        android:strokeWidth="1.2"
+        android:strokeLineJoin="round" />
+</vector>

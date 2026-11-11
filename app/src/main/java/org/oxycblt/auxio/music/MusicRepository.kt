@@ -23,8 +23,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.oxycblt.auxio.image.covers.SettingCovers
@@ -109,6 +112,9 @@ interface MusicRepository {
      *
      * @param worker The [IndexingWorker] to register.
      */
+    /** Start showing the saved library right away, without waiting for the indexing service. */
+    fun preload()
+
     fun registerWorker(worker: IndexingWorker)
 
     /**
@@ -271,7 +277,11 @@ constructor(
     override fun addUpdateListener(listener: MusicRepository.UpdateListener) {
         L.d("Adding $listener to update listeners")
         updateListeners.add(listener)
-        listener.onMusicChanges(MusicRepository.Changes(deviceLibrary = true, userLibrary = true))
+        listener.onMusicChanges(MusicRepository.Changes(
+                deviceLibrary = true,
+                userLibrary = true,
+                partial = libraryPartial,
+            ))
     }
 
     @Synchronized
@@ -425,6 +435,26 @@ constructor(
         val storage = Storage(cache, covers, storedPlaylists)
         val interpretation = Interpretation(nameFactory, separators)
         val config = Config(fs, storage, interpretation)
+        preloadJob?.join()
+        if (withCache && this.library == null) {
+            // Show the saved library immediately from the database; the real scan below will
+            // replace it only if something actually changed.
+            try {
+                val cachedStart = System.currentTimeMillis()
+                val musikr = Musikr.new(context, config)
+                for (limit in listOf(200, 1500, null)) {
+                    val result = musikr.runCached(limit) ?: break
+                    emitLibrary(result.library, result.partial)
+                    if (!result.partial) break
+                    yield()
+                }
+                L.d("Cached library shown in ${System.currentTimeMillis() - cachedStart}ms")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                L.w("Could not load the saved library: $e")
+            }
+        }
         L.d("Running index...")
         val start = System.currentTimeMillis()
         // While there is no complete library yet, let the UI show songs as soon as they are read.
@@ -463,7 +493,64 @@ constructor(
         emitIndexingCompletion(null)
     }
 
+    @Volatile private var libraryPartial = false
+    @Volatile private var preloadJob: Job? = null
+    private val preloadScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    override fun preload() {
+        synchronized(this) {
+            if (library != null || preloadJob != null) return
+            preloadJob =
+                preloadScope.launch {
+                    try {
+                        val config = savedConfig() ?: return@launch
+                        showSavedLibrary(config)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        L.w("Could not preload the saved library: $e")
+                    }
+                }
+        }
+    }
+
+    private suspend fun savedConfig(): Config? {
+        // Same ingredients as a normal index, but only possible once a scan has happened before.
+        val revision = musicSettings.revision ?: return null
+        val covers = settingCovers.mutate(context, revision)
+        val fs =
+            when (musicSettings.locationMode) {
+                LocationMode.SAF -> SAF.from(context, musicSettings.safQuery)
+                LocationMode.MEDIA_STORE -> MediaStore.from(context, musicSettings.mediaStoreQuery)
+            }
+        val nameFactory =
+            if (musicSettings.intelligentSorting) Naming.intelligent() else Naming.simple()
+        val interpretation = Interpretation(nameFactory, Separators.from(musicSettings.separators))
+        return Config(fs, Storage(cache, covers, storedPlaylists), interpretation)
+    }
+
+    private suspend fun showSavedLibrary(config: Config) {
+        val start = System.currentTimeMillis()
+        val musikr = Musikr.new(context, config)
+        for (limit in listOf(200, 1500, null)) {
+            val result = musikr.runCached(limit) ?: break
+            emitLibrary(result.library, result.partial)
+            if (!result.partial) break
+            yield()
+        }
+        L.d("Preloaded saved library in ${System.currentTimeMillis() - start}ms")
+    }
+
+    @Volatile private var lastProgressNanos = 0L
+
     private suspend fun emitIndexingProgress(progress: IndexingProgress) {
+        // Progress arrives once per song. Throttle it so the UI and notification are not
+        // flooded; non-song phases (finalizing) always go through.
+        if (progress is IndexingProgress.Songs) {
+            val now = System.nanoTime()
+            if (now - lastProgressNanos < 150_000_000L) return
+            lastProgressNanos = now
+        }
         yield()
         synchronized(this) {
             currentIndexingState = IndexingState.Indexing(progress)
@@ -485,7 +572,7 @@ constructor(
         }
     }
 
-    private suspend fun emitLibrary(newLibrary: MutableLibrary) {
+    private suspend fun emitLibrary(newLibrary: MutableLibrary, partial: Boolean = false) {
         val deviceLibraryChanged: Boolean
         val userLibraryChanged: Boolean
         // We want to make sure that all reads and writes are synchronized due to the sheer
@@ -513,13 +600,14 @@ constructor(
             }
 
             this.library = newLibrary
+            libraryPartial = partial
             this.isLibraryPartial = false
         }
 
         // Consumers expect their updates to be on the main thread (notably PlaybackService),
         // so switch to it.
         withContext(Dispatchers.Main) {
-            dispatchLibraryChange(deviceLibraryChanged, userLibraryChanged)
+            dispatchLibraryChange(deviceLibraryChanged, userLibraryChanged, partial)
         }
     }
 

@@ -1,25 +1,69 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="120dp"
-    android:height="170dp"
+    android:height="200dp"
     android:viewportWidth="120"
-    android:viewportHeight="170">
-    <!-- arm -->
+    android:viewportHeight="200">
+    <!-- drop shadow -->
+    <group android:translateX="3" android:translateY="5">
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M100,47 L100,130 L66,176"
+            android:strokeColor="#66000000"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="10" />
+        <path
+            android:fillColor="#66000000"
+            android:pathData="M54,168 L74,180 L66,192 L46,180 Z" />
+    </group>
+    <!-- counterweight: rod and weight, sticking out behind the pivot -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M100,17 L100,100 L66,146"
-        android:strokeColor="?attr/colorOnSurfaceVariant"
+        android:pathData="M100,47 L100,26"
+        android:strokeColor="#1E1E22"
         android:strokeLineCap="round"
+        android:strokeWidth="8" />
+    <path
+        android:fillColor="#3A3A40"
+        android:pathData="M91,12 L109,12 L109,34 L91,34 Z"
+        android:strokeColor="#1E1E22"
         android:strokeLineJoin="round"
-        android:strokeWidth="6" />
-    <!-- head shell -->
-    <path
-        android:fillColor="?attr/colorOnSurface"
-        android:pathData="M58,140 L74,150 L68,160 L52,150 Z" />
-    <!-- pivot base -->
-    <path
-        android:fillColor="?attr/colorSurfaceContainerHigh"
-        android:pathData="M100,17m-15,0a15,15 0,1 1,30 0a15,15 0,1 1,-30 0" />
+        android:strokeWidth="2" />
     <path
         android:fillColor="?attr/colorPrimary"
-        android:pathData="M100,17m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+        android:pathData="M91,20 L109,20 L109,24 L91,24 Z" />
+    <!-- arm tube: outline, silver and highlight -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M100,47 L100,130 L66,176"
+        android:strokeColor="#1E1E22"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="11" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M100,47 L100,130 L66,176"
+        android:strokeColor="#D8D8DE"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="7" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M98.4,52 L98.4,128"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="1.6" />
+    <!-- head shell -->
+    <path
+        android:fillColor="#1E1E22"
+        android:pathData="M54,168 L74,180 L66,192 L46,180 Z"
+        android:strokeColor="#D8D8DE"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M55,170 L73,180"
+        android:strokeColor="?attr/colorPrimary"
+        android:strokeLineCap="round"
+        android:strokeWidth="2.5" />
 </vector>

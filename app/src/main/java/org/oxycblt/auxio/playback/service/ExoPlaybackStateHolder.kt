@@ -74,7 +74,11 @@ import org.oxycblt.musikr.Song
 import timber.log.Timber as L
 
 /** An ExoPlayer together with the audio processor that follows the ReplayGain of its songs. */
-class PlayerBundle(val player: ExoPlayer, val replayGain: ReplayGainAudioProcessor)
+class PlayerBundle(
+    val player: ExoPlayer,
+    val replayGain: ReplayGainAudioProcessor,
+    val dynamics: DynamicsAudioProcessor,
+)
 
 private val MUSIC_ATTRIBUTES =
     AudioAttributes.Builder()
@@ -141,6 +145,10 @@ class ExoPlaybackStateHolder(
     fun attach() {
         playbackManager.registerStateHolder(this)
         musicRepository.addUpdateListener(this)
+        // The library may already be there (preloaded); act on anything that was waiting for it.
+        if (musicRepository.library?.takeIf { !it.empty() } != null) {
+            playbackManager.requestAction(this)
+        }
         player.addListener(this)
         bundle.replayGain.attach()
         equalizer.attach(player.audioSessionId)
@@ -596,7 +604,9 @@ class ExoPlaybackStateHolder(
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         super.onMediaItemTransition(mediaItem, reason)
 
-        crossfade.onTransition()
+                crossfade.onTransition()
+        bundle.dynamics.onSongChanged()
+
 
         // A new queue replacing the old one is not "another song" for the sleep timer.
         if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) {
@@ -649,7 +659,11 @@ class ExoPlaybackStateHolder(
 
     override fun onMusicChanges(changes: MusicRepository.Changes) {
         if (changes.partial) return
-        if (changes.deviceLibrary && musicRepository.library?.takeIf { !it.empty() } != null) {
+        if (
+            !changes.partial &&
+            changes.deviceLibrary &&
+            musicRepository.library?.takeIf { !it.empty() } != null
+        ) {
             // We now have a library, see if we have anything we need to do.
             L.d("Library obtained, requesting action")
             playbackManager.requestAction(this)
@@ -970,7 +984,7 @@ class ExoPlaybackStateHolder(
                     .setAudioAttributes(MUSIC_ATTRIBUTES, true)
                     .build()
 
-            return PlayerBundle(exoPlayer, replayGainProcessor)
+            return PlayerBundle(exoPlayer, replayGainProcessor, dynamicsProcessor)
         }
     }
 

@@ -48,6 +48,7 @@ import androidx.core.view.isInvisible
 import androidx.core.view.updatePaddingRelative
 import androidx.core.widget.TextViewCompat
 import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.R as MR
 import com.google.android.material.textview.MaterialTextView
@@ -121,7 +122,7 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
 
     private var showingThumb = false
     private val hideThumbRunnable = Runnable {
-        if (!dragging) {
+        if (!dragging && !railDragging) {
             hideThumb()
         }
     }
@@ -194,6 +195,35 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
     private var popupShapeAlphaAnimation: SpringAnimation? = null
     private var showingPopup = false
 
+    // Letter rail (A-Z) shown next to the thumb
+    private val railWidth = context.getDimenPixels(R.dimen.size_touchable_small) * 3 / 8
+    private val railView =
+        LetterRailView(context).apply { visibility = android.view.View.INVISIBLE }
+    private var railAnimator: SpringAnimation? = null
+    private var railDragging = false
+    private var lastRailIndex = -1
+    private var railGutter = 0
+
+    /** Letters to show in the rail, each with the adapter position where it starts. */
+    var letterIndex: List<Pair<String, Int>> = emptyList()
+        set(value) {
+            if (field == value) {
+                return
+            }
+            field = value
+            railView.letters = value.map { it.first }
+            railView.active = -1
+            lastRailIndex = -1
+            // Reserve a strip on the right so rows (and their 3-dot buttons) end before the rail.
+            val gutter = if (value.isEmpty()) 0 else railWidth
+            if (gutter != railGutter) {
+                updatePaddingRelative(end = paddingEnd - railGutter + gutter)
+                railGutter = gutter
+            }
+            railView.visibility =
+                if (value.isEmpty()) android.view.View.INVISIBLE else android.view.View.VISIBLE
+        }
+
     // Touch
     private val minTouchTargetSize = context.getDimenPixels(R.dimen.size_touchable_small)
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
@@ -252,6 +282,7 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
     var listener: Listener? = null
 
     init {
+        overlay.add(railView)
         overlay.add(thumbView)
         overlay.add(popupView)
 
@@ -285,6 +316,7 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
         super.onLayout(changed, l, t, r, b)
         if (!showingThumb) {
             thumbView.translationX = if (isRtl) -thumbWidth.toFloat() else thumbWidth.toFloat()
+            
         }
     }
 
@@ -395,7 +427,26 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
                     height - thumbPadding.bottom - popupLayoutParams.bottomMargin - popupSize
                 )
 
-        popupView.layout(popupLeft, popupTop, popupLeft + popupSize, popupTop + popupSize)
+        val railLeft =
+            if (isRtl) {
+                thumbPadding.left
+            } else {
+                width - thumbPadding.right - railWidth
+            }
+        val railTop = thumbPadding.top
+        val railBottom = (height - thumbPadding.bottom).coerceAtLeast(railTop)
+        railView.layout(railLeft, railTop, railLeft + railWidth, railBottom)
+        if (!railDragging) {
+            railView.active = activeRailIndex(firstAdapterPos)
+        }
+        val railShift = if (letterIndex.isEmpty()) 0 else railWidth
+        val shiftedPopupLeft = if (isRtl) popupLeft + railShift else popupLeft - railShift
+        popupView.layout(
+            shiftedPopupLeft,
+            popupTop,
+            shiftedPopupLeft + popupSize,
+            popupTop + popupSize,
+        )
     }
 
     override fun onScrolled(dx: Int, dy: Int) {
@@ -430,9 +481,19 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
             hidePopup()
             return
         }
+        fastScrollingPossible = true
         val extentY = computeVerticalScrollExtent()
         val fraction = (offsetY).toFloat() / (computeVerticalScrollRange() - extentY)
         thumbOffset = (thumbOffsetRange * fraction).toInt()
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // The A-Z rail takes its touches here, before any parent or listener can intercept them.
+        if (railDragging || (ev.actionMasked == MotionEvent.ACTION_DOWN && hitRail(ev.x))) {
+            handleRailTouch(ev, ev.y)
+            return true
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun onItemTouch(event: MotionEvent): Boolean {
@@ -442,6 +503,10 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
         }
         val eventX = event.x
         val eventY = event.y
+
+        if (railDragging || (event.action == MotionEvent.ACTION_DOWN && hitRail(eventX))) {
+            return handleRailTouch(event, eventY)
+        }
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
@@ -512,6 +577,69 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
         scrollBy(0, max(dy.roundToInt(), -computeVerticalScrollOffset()))
     }
 
+    // --- LETTER RAIL ---
+
+    private fun activeRailIndex(pos: Int): Int {
+        if (pos == NO_POSITION) {
+            return -1
+        }
+        var found = -1
+        for ((i, entry) in letterIndex.withIndex()) {
+            if (entry.second <= pos) found = i else break
+        }
+        return found
+    }
+
+    private fun hitRail(x: Float): Boolean =
+        letterIndex.isNotEmpty() &&
+            
+            x >= railView.left &&
+            x < railView.right
+
+    private fun handleRailTouch(event: MotionEvent, y: Float): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                railDragging = true
+                parent.requestDisallowInterceptTouchEvent(true)
+                removeCallbacks(hideThumbRunnable)
+                showPopup()
+                listener?.onFastScrollingChanged(true)
+                jumpToRailLetter(y)
+            }
+            MotionEvent.ACTION_MOVE -> jumpToRailLetter(y)
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL -> {
+                railDragging = false
+                lastRailIndex = -1
+                hidePopup()
+                postAutoHideScrollbar()
+                listener?.onFastScrollingChanged(false)
+            }
+        }
+        return railDragging
+    }
+
+    private fun jumpToRailLetter(y: Float) {
+        val entries = letterIndex
+        if (entries.isEmpty()) {
+            return
+        }
+        val top = thumbPadding.top
+        val rangeY = (height - top - thumbPadding.bottom).coerceAtLeast(1)
+        val index = (((y - top) / rangeY) * entries.size).toInt().coerceIn(0, entries.size - 1)
+        if (index == lastRailIndex) {
+            return
+        }
+        lastRailIndex = index
+        timber.log.Timber.d("Rail jump to ${entries[index].first} at ${entries[index].second}")
+        railView.active = index
+        doPopupVibration()
+        stopScroll()
+        val position = entries[index].second
+        (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(position, 0)
+            ?: scrollToPosition(position)
+    }
+
     // --- SCROLLBAR APPEARANCE ---
 
     private fun postAutoHideScrollbar() {
@@ -527,9 +655,14 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
             return
         }
 
+        if (letterIndex.isNotEmpty()) {
+            // The letter rail already scrolls, so the thumb is not shown.
+            return
+        }
         showingThumb = true
         thumbAnimator?.cancel()
         thumbAnimator = thumbTranslateInSpring.translateX(thumbView, 0f)
+        
     }
 
     private fun hideThumb() {
@@ -544,6 +677,7 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
                 thumbView,
                 if (isRtl) -thumbWidth.toFloat() else thumbWidth.toFloat(),
             )
+        
     }
 
     private fun showPopup() {
@@ -849,5 +983,63 @@ private class SoftBurstPopupDrawable(context: Context) : Drawable() {
     private fun updatePaintAlpha() {
         paint.alpha = (shapeAlpha * revealAlpha).roundToInt().coerceIn(0, 255)
         invalidateSelf()
+    }
+}
+
+
+/** The slim A-Z strip drawn next to the fast scroll thumb. */
+private class LetterRailView(context: Context) : android.view.View(context) {
+    private val density = context.resources.displayMetrics.density
+    private val backgroundPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = context.getAttrColorCompat(MR.attr.colorSurfaceVariant).defaultColor
+            alpha = 210
+        }
+    private val textPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER
+            color = context.getAttrColorCompat(MR.attr.colorOnSurfaceVariant).defaultColor
+        }
+    private val activePaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            color = context.getAttrColorCompat(MR.attr.colorSecondary).defaultColor
+        }
+    private val bounds = RectF()
+
+    var letters: List<String> = emptyList()
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    var active = -1
+        set(value) {
+            if (field == value) {
+                return
+            }
+            field = value
+            invalidate()
+        }
+
+    override fun onDraw(canvas: Canvas) {
+        val count = letters.size
+        if (count == 0) {
+            return
+        }
+        val w = width.toFloat()
+        val h = height.toFloat()
+        bounds.set(0f, 0f, w, h)
+        canvas.drawRoundRect(bounds, w / 2f, w / 2f, backgroundPaint)
+        val cell = h / count
+        val size = min(11 * density, cell * 0.75f)
+        textPaint.textSize = size
+        activePaint.textSize = size * 1.15f
+        for ((i, letter) in letters.withIndex()) {
+            val paint = if (i == active) activePaint else textPaint
+            val cy = cell * (i + 0.5f)
+            canvas.drawText(letter, w / 2f, cy - (paint.ascent() + paint.descent()) / 2f, paint)
+        }
     }
 }

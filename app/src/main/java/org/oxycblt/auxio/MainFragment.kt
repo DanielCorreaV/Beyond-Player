@@ -29,9 +29,12 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.R as MR
+import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.bottomsheet.BackportBottomSheetBehavior
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.shape.MaterialShapeDrawable
@@ -101,6 +104,8 @@ class MainFragment :
     private var normalCornerSize = 0f
     private var maxScaleXDistance = 0f
     private var sheetRising: Boolean? = null
+    private var topFabRecycler: RecyclerView? = null
+    private var topFabRecyclerTab: MusicType? = null
     @Inject lateinit var uiSettings: UISettings
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -159,6 +164,14 @@ class MainFragment :
             context.getString(R.string.lbl_queue),
         )
 
+        // The handle's built-in "Drag handle" text shows up as a caption when the queue opens, and
+        // the wrapper around it already describes the action ("Open queue").
+        binding.queueHandle?.let { handle ->
+            handle.contentDescription = null
+            androidx.appcompat.widget.TooltipCompat.setTooltipText(handle, null)
+            handle.importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }
+
         if (queueSheetBehavior != null) {
             // In portrait mode, set up click listeners on the stacked sheets.
             L.d("Configuring stacked bottom sheets")
@@ -193,6 +206,8 @@ class MainFragment :
         binding.mainScrim.setOnClickListener { binding.homeNewPlaylistFab.close() }
         binding.sheetScrim.setOnClickListener { binding.homeNewPlaylistFab.close() }
         binding.homeShuffleFab.setOnClickListener { playbackModel.shuffleAll() }
+        binding.homeTopFab?.contentDescription = "Volver arriba"
+        binding.homeTopFab?.setOnClickListener { scrollListToTop(binding) }
         binding.homeNewPlaylistFab.apply {
             inflate(R.menu.new_playlist_actions)
             setOnActionSelectedListener(this@MainFragment)
@@ -386,11 +401,63 @@ class MainFragment :
         requireNotNull(sheetBackCallback) { "SheetBackPressedCallback was not available" }
             .invalidateEnabled()
 
+        updateTopFab(binding)
+
         // Stop the FrameLayout containing the fabs from eating touch events elsewhere
         binding.mainFabContainer.isVisible =
             binding.homeNewPlaylistFab.mainFab.isVisible || binding.homeShuffleFab.isVisible
 
         return true
+    }
+
+    private fun currentListRecycler(binding: FragmentMainBinding): RecyclerView? {
+        val tab = homeModel.currentTabType.value
+        val cached = topFabRecycler
+        if (cached != null && cached.isAttachedToWindow && topFabRecyclerTab == tab) {
+            return cached
+        }
+        val id =
+            when (tab) {
+                MusicType.SONGS -> R.id.home_song_recycler
+                MusicType.ALBUMS -> R.id.home_album_recycler
+                MusicType.ARTISTS -> R.id.home_artist_recycler
+                MusicType.GENRES -> R.id.home_genre_recycler
+                MusicType.PLAYLISTS -> R.id.home_playlist_recycler
+            }
+        topFabRecycler = binding.root.findViewById<RecyclerView>(id)
+        topFabRecyclerTab = tab
+        return topFabRecycler
+    }
+
+    /** Shows the back-to-top button above the shuffle button when the list is scrolled far. */
+    private fun updateTopFab(binding: FragmentMainBinding) {
+        val top = binding.homeTopFab ?: return
+        val shuffle = binding.homeShuffleFab
+        var want = false
+        if (shuffle.isOrWillBeShown) {
+            val recycler = currentListRecycler(binding)
+            want = recycler != null && recycler.computeVerticalScrollOffset() > recycler.height * 3 / 2
+        }
+        if (want && !top.isOrWillBeShown) {
+            top.show()
+        } else if (!want && top.isOrWillBeShown) {
+            top.hide()
+        }
+        val density = resources.displayMetrics.density
+        top.translationY = -(shuffle.height + 12 * density)
+        val topWidth = if (top.width > 0) top.width else shuffle.width
+        top.translationX = -((shuffle.width - topWidth) / 2f)
+    }
+
+    private fun scrollListToTop(binding: FragmentMainBinding) {
+        val recycler = currentListRecycler(binding) ?: return
+        val first = (recycler.layoutManager as? LinearLayoutManager)?.findFirstVisibleItemPosition() ?: 0
+        if (first > 30) {
+            // Do not animate through thousands of rows, jump close first.
+            recycler.scrollToPosition(30)
+        }
+        recycler.post { recycler.smoothScrollToPosition(0) }
+        binding.root.findViewById<AppBarLayout>(R.id.home_appbar)?.setExpanded(true, true)
     }
 
     private fun updateYouTubeImporting(importing: Boolean) {
