@@ -607,6 +607,7 @@ object SleepTimerDialog {
         dial.onValueChanged = { value ->
             if (mode == TimerMode.TIME) timeValue = value else songValue = value
             dial.unit = unitOf(amountLabel(value), value)
+            syncInput(value)
         }
         minusButton.setOnClickListener { setValue(currentValue() - 1) }
         plusButton.setOnClickListener { setValue(currentValue() + 1) }
