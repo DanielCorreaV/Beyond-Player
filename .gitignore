@@ -3,7 +3,6 @@
 local.properties
 build/
 release/
-patches/
 *:Zone.Identifier
 
 # Studio
@@ -18,3 +17,5 @@ captures/
 .kotlin
 .aider*
 .env
+patches/bak*/
+patches/
