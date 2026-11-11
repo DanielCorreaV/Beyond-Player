@@ -481,9 +481,19 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
             hidePopup()
             return
         }
+        fastScrollingPossible = true
         val extentY = computeVerticalScrollExtent()
         val fraction = (offsetY).toFloat() / (computeVerticalScrollRange() - extentY)
         thumbOffset = (thumbOffsetRange * fraction).toInt()
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // The A-Z rail takes its touches here, before any parent or listener can intercept them.
+        if (railDragging || (ev.actionMasked == MotionEvent.ACTION_DOWN && hitRail(ev.x))) {
+            handleRailTouch(ev, ev.y)
+            return true
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun onItemTouch(event: MotionEvent): Boolean {
@@ -621,6 +631,7 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
             return
         }
         lastRailIndex = index
+        timber.log.Timber.d("Rail jump to ${entries[index].first} at ${entries[index].second}")
         railView.active = index
         doPopupVibration()
         stopScroll()
