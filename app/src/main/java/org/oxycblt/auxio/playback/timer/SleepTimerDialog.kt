@@ -517,7 +517,7 @@ object SleepTimerDialog {
         // --- Behaviour ---
         fun currentValue() = if (mode == TimerMode.TIME) timeValue else songValue
 
-        fun setValue(value: Int) {
+        fun applyValue(value: Int) {
             val limit = if (mode == TimerMode.TIME) MAX_MINUTES else MAX_SONGS
             val clamped = value.coerceIn(1, limit)
             if (mode == TimerMode.TIME) timeValue = clamped else songValue = clamped
@@ -534,11 +534,11 @@ object SleepTimerDialog {
             dial.minValue = 1
             dial.maxValue = if (mode == TimerMode.TIME) 180 else 30
             dial.step = if (mode == TimerMode.TIME) 5 else 1
-            setValue(currentValue())
+            applyValue(currentValue())
             presetRow.removeAllViews()
             (if (mode == TimerMode.TIME) TIME_PRESETS else SONG_PRESETS).forEachIndexed { i, p ->
                 presetRow.addView(
-                    outlinedButton(amountLabel(p)).apply { setOnClickListener { setValue(p) } },
+                    outlinedButton(amountLabel(p)).apply { setOnClickListener { applyValue(p) } },
                     LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -609,8 +609,8 @@ object SleepTimerDialog {
             dial.unit = unitOf(amountLabel(value), value)
             syncInput(value)
         }
-        minusButton.setOnClickListener { setValue(currentValue() - 1) }
-        plusButton.setOnClickListener { setValue(currentValue() + 1) }
+        minusButton.setOnClickListener { applyValue(currentValue() - 1) }
+        plusButton.setOnClickListener { applyValue(currentValue() + 1) }
         modeToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
                 mode = if (checkedId == timeButton.id) TimerMode.TIME else TimerMode.SONGS
