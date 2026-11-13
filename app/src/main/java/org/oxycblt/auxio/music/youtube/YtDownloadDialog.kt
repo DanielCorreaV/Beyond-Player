@@ -18,32 +18,39 @@
  
 package org.oxycblt.auxio.music.youtube
 
+import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.PackageManager
+import android.os.Build
 import android.view.inputmethod.EditorInfo
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
-import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber as L
 
 /**
- * Temporary proof-of-concept screen: search YouTube Music, tap a result to download it as a real
- * file. Plain views on purpose; the real UI comes after the pipeline is proven.
+ * Temporary proof-of-concept screen: search YouTube Music, tap results to queue them. Downloads
+ * run in [YtDownloadService], so closing this dialog or the app does not stop them.
  */
 object YtDownloadDialog {
-    // Downloads outlive the dialog, so they run on an app-wide scope.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val source: YtSource = NewPipeYtSource()
 
     fun show(context: Context) {
+        askNotificationPermission(context)
         val density = context.resources.displayMetrics.density
         val pad = (20 * density).toInt()
         val results = mutableListOf<YtTrack>()
@@ -71,10 +78,26 @@ object YtDownloadDialog {
                 )
             }
 
+        // Status line = last search message, plus the live state of the queue when it has work.
+        var searchMessage = ""
+        var queue = YtDownloadService.queueState.value
+        fun render() {
+            status.text =
+                if (queue.total > 0 && !queue.idle)
+                    "Cola: ${queue.finished}/${queue.total}" +
+                        (if (queue.failed > 0) " · ${queue.failed} con error" else "") +
+                        " · puedes cerrar esto, sigue en segundo plano"
+                else if (queue.total > 0 && queue.done + queue.failed > 0)
+                    "Terminado: ${queue.done} descargadas" +
+                        (if (queue.failed > 0) " · ${queue.failed} con error" else "")
+                else searchMessage
+        }
+
         fun search() {
             val q = input.text.toString().trim()
             if (q.isEmpty()) return
-            status.text = "Buscando…"
+            searchMessage = "Buscando…"
+            render()
             scope.launch {
                 val found =
                     runCatching { withContext(Dispatchers.IO) { source.search(q) } }
@@ -83,11 +106,15 @@ object YtDownloadDialog {
                 found.getOrNull()?.let { results.addAll(it) }
                 adapter.clear()
                 adapter.addAll(results.map { "${it.title}\n${it.artist} · ${fmt(it.durationSec)}" })
-                status.text =
+                searchMessage =
                     found.fold(
-                        { if (it.isEmpty()) "Sin resultados" else "${it.size} resultados. Toca uno para descargar" },
+                        {
+                            if (it.isEmpty()) "Sin resultados"
+                            else "${it.size} resultados. Toca uno para añadirlo a la cola"
+                        },
                         { "Error: ${it.message}" },
                     )
+                render()
             }
         }
         input.setOnEditorActionListener { _, action, _ ->
@@ -98,59 +125,57 @@ object YtDownloadDialog {
         }
         list.setOnItemClickListener { _, _, position, _ ->
             val track = results.getOrNull(position) ?: return@setOnItemClickListener
-            download(context.applicationContext, track, status)
+            YtDownloadService.enqueue(context, track)
+            searchMessage = "Añadida: ${track.title}"
+            render()
         }
 
+        var watcher: Job? = null
         MaterialAlertDialogBuilder(context)
             .setTitle("Buscar y descargar (prueba)")
             .setView(column)
             .setPositiveButton("Buscar") { _, _ -> }
+            .setNeutralButton("Cancelar descargas") { _, _ -> YtDownloadService.cancelAll(context) }
             .setNegativeButton("Cerrar", null)
+            .setOnDismissListener { watcher?.cancel() }
             .create()
             .apply {
                 show()
                 // Keep the dialog open when pressing Search.
                 getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener { search() }
+                watcher =
+                    scope.launch {
+                        YtDownloadService.queueState.collect {
+                            queue = it
+                            render()
+                        }
+                    }
             }
     }
 
-    private fun download(context: Context, track: YtTrack, status: TextView) {
-        status.text = "Resolviendo ${track.title}…"
-        scope.launch {
-            val result = runCatching {
-                withContext(Dispatchers.IO) {
-                    val audio = source.resolveAudio(track.videoId)
-                    withContext(Dispatchers.Main) {
-                        status.text = "Descargando (${audio.extension} ${audio.bitrate}kbps)…"
-                    }
-                    var lastPct = -1
-                    YtDownloader(context).download(track, audio) { done, total ->
-                        val pct = if (total > 0) (done * 100 / total).toInt() else -1
-                        if (pct != lastPct) {
-                            lastPct = pct
-                            status.post { status.text = "Descargando… $pct%" }
-                        }
-                    }
-                }
+    /** Android 13+ hides the progress notification until this is granted. Fire and forget. */
+    private fun askNotificationPermission(context: Context) {
+        if (Build.VERSION.SDK_INT < 33) return
+        if (
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+        )
+            return
+        var c: Context? = context
+        while (c is ContextWrapper) {
+            if (c is Activity) {
+                ActivityCompat.requestPermissions(
+                    c,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    NOTIFICATION_PERMISSION_CODE,
+                )
+                return
             }
-            result
-                .onSuccess {
-                    val msg =
-                        if (it.existed) "Ya estaba: ${it.displayName}"
-                        else
-                            "Guardado: ${it.displayName} (${it.bytes / 1024} KB)" +
-                                " · etiquetas ${if (it.tagged) "sí" else "no"}" +
-                                " · portada ${if (it.hasCover) "sí" else "no"}"
-                    status.text = msg
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                }
-                .onFailure {
-                    L.e(it, "YT download failed")
-                    status.text = "Error: ${it.message}"
-                    Toast.makeText(context, "Error: ${it.message}", Toast.LENGTH_LONG).show()
-                }
+            c = c.baseContext
         }
     }
+
+    private const val NOTIFICATION_PERMISSION_CODE = 0xA0D0
 
     private fun fmt(sec: Long) = if (sec < 0) "?" else "%d:%02d".format(sec / 60, sec % 60)
 }

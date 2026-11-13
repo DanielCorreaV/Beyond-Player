@@ -115,6 +115,12 @@
             </intent-filter>
         </service>
 
+        <!-- Background YouTube downloads (progress notification, up to 3 songs at once). -->
+        <service
+            android:name=".music.youtube.YtDownloadService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
         <!--
         Expose Auxio's cover data to the android system
         -->
