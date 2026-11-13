@@ -36,6 +36,8 @@ data class YtAudio(
     /** Album and year when YouTube knows them (only for auto-generated "Topic" uploads). */
     val album: String? = null,
     val year: Int? = null,
+    /** Biggest thumbnail of the video, used for the cover when the search gave none. */
+    val thumbnailUrl: String? = null,
 )
 
 class YtException(message: String, cause: Throwable? = null) : Exception(message, cause)

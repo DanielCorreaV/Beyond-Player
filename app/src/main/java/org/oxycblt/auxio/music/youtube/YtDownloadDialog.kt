@@ -154,7 +154,7 @@ object YtDownloadDialog {
     }
 
     /** Android 13+ hides the progress notification until this is granted. Fire and forget. */
-    private fun askNotificationPermission(context: Context) {
+    fun askNotificationPermission(context: Context) {
         if (Build.VERSION.SDK_INT < 33) return
         if (
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==

@@ -67,11 +67,13 @@ data class YtQueueState(
     val total: Int = 0,
     val done: Int = 0,
     val failed: Int = 0,
+    /** Songs that were already on the phone (downloaded earlier), so nothing was fetched. */
+    val skipped: Int = 0,
     val active: Map<String, YtActive> = emptyMap(),
     val lastError: String? = null,
 ) {
     val finished: Int
-        get() = done + failed
+        get() = done + failed + skipped
 
     val idle: Boolean
         get() = finished >= total
@@ -155,17 +157,25 @@ class YtDownloadService : Service() {
     private suspend fun runOne(track: YtTrack) {
         val job = currentJob()
         var error: String? = null
+        var skipped = false
         var cancelled = false
         try {
             gate.withPermit {
                 _state.update { it.copy(active = it.active + (track.videoId to YtActive(track.title, 0f))) }
                 notifyProgress(force = true)
+                val downloader = YtDownloader(applicationContext)
+                // Already downloaded before (playlists overlap): no network, no duplicate.
+                if (downloader.existing(track) != null) {
+                    skipped = true
+                    return@withPermit
+                }
                 val audio = source.resolveAudio(track.videoId)
-                YtDownloader(applicationContext).download(track, audio) { done, total ->
+                downloader.download(track, audio) { done, total ->
                     // The socket read is blocking: this is the only place to notice a cancel.
                     if (!job.isActive) throw CancellationException("cancelled")
                     if (total > 0) setFraction(track, done.toFloat() / total)
                 }
+                Unit
             }
         } catch (e: CancellationException) {
             cancelled = true
@@ -174,7 +184,7 @@ class YtDownloadService : Service() {
             L.e(e, "YT download failed: ${track.videoId}")
             error = e.message ?: e.javaClass.simpleName
         } finally {
-            if (!cancelled) completeOne(track, error) else dropActive(track)
+            if (!cancelled) completeOne(track, error, skipped) else dropActive(track)
         }
     }
 
@@ -193,11 +203,12 @@ class YtDownloadService : Service() {
         jobs.remove(track.videoId)
     }
 
-    private fun completeOne(track: YtTrack, error: String?) {
+    private fun completeOne(track: YtTrack, error: String?, skipped: Boolean) {
         _state.update {
             it.copy(
                 active = it.active - track.videoId,
-                done = it.done + if (error == null) 1 else 0,
+                done = it.done + if (error == null && !skipped) 1 else 0,
+                skipped = it.skipped + if (error == null && skipped) 1 else 0,
                 failed = it.failed + if (error == null) 0 else 1,
                 lastError = error ?: it.lastError,
             )
@@ -211,7 +222,7 @@ class YtDownloadService : Service() {
             finishQueue()
         } else {
             // Long lists: let songs appear in the library as they arrive, not only at the end.
-            if (error == null && _state.value.done % REFRESH_EVERY == 0) refreshLibrary()
+            if (error == null && !skipped && _state.value.done % REFRESH_EVERY == 0) refreshLibrary()
             notifyProgress(force = true)
         }
     }
@@ -292,16 +303,22 @@ class YtDownloadService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun postSummary(s: YtQueueState) {
-        val text =
-            buildString {
-                append(if (s.done == 1) "1 canción descargada" else "${s.done} canciones descargadas")
-                if (s.failed > 0) append(" · ${s.failed} con error")
+        val parts = mutableListOf<String>()
+        if (s.done > 0) parts.add(if (s.done == 1) "1 descargada" else "${s.done} descargadas")
+        if (s.skipped > 0) parts.add(if (s.skipped == 1) "1 ya estaba" else "${s.skipped} ya estaban")
+        if (s.failed > 0) parts.add("${s.failed} con error")
+        val text = parts.joinToString(" · ")
+        val title =
+            when {
+                s.done > 0 -> "Descarga terminada"
+                s.skipped > 0 && s.failed == 0 -> "Ya estaba todo descargado"
+                else -> "No se pudo descargar"
             }
         val notification =
             NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_download_24)
-                .setContentTitle(if (s.done > 0) "Descarga terminada" else "No se pudo descargar")
-                .setContentText(if (s.done > 0) text else (s.lastError ?: text))
+                .setContentTitle(title)
+                .setContentText(if (s.done == 0 && s.skipped == 0) (s.lastError ?: text) else text)
                 .setCategory(NotificationCompat.CATEGORY_STATUS)
                 .setSilent(true)
                 .setAutoCancel(true)

@@ -147,6 +147,25 @@ object YouTubeImportDialogs {
             .setTitle(R.string.lbl_youtube_summary)
             .setMessage(text)
             .setPositiveButton(R.string.lbl_ok, null)
+            .apply {
+                // Only what the matcher could not find on the phone; videoId is needed to fetch it.
+                val tracks =
+                    result.items
+                        .filterIsInstance<YouTubeImportItem.Done>()
+                        .flatMap { it.missing }
+                        .distinctBy { it.videoId }
+                        .mapNotNull { t ->
+                            t.videoId?.let { id ->
+                                YtTrack(id, t.title, YtDescription.cleanArtist(t.artist), t.durationSec, null)
+                            }
+                        }
+                if (tracks.isNotEmpty()) {
+                    setNeutralButton("Descargar ${tracks.size} faltantes") { _, _ ->
+                        YtDownloadDialog.askNotificationPermission(context)
+                        YtDownloadService.enqueueAll(context, tracks)
+                    }
+                }
+            }
             .show()
     }
 }

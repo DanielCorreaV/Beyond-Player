@@ -88,6 +88,7 @@ class NewPipeYtSource : YtSource {
                 bitrate = best.averageBitrate,
                 album = album,
                 year = year,
+                thumbnailUrl = info.thumbnails.maxByOrNull { it.height }?.url,
             )
         } catch (e: YtException) {
             throw e

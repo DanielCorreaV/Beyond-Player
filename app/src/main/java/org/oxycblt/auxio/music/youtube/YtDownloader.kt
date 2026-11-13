@@ -66,7 +66,7 @@ class YtDownloader(context: Context) {
         onProgress: (Long, Long) -> Unit = { _, _ -> },
     ): Saved {
         val name = fileName(track, audio.extension)
-        findExisting(name)?.let { return it }
+        existing(track, audio.extension)?.let { return it }
 
         val cacheDir = File(context.cacheDir, "yt").apply { mkdirs() }
         val temp = File(cacheDir, "${track.videoId}.${audio.extension}")
@@ -76,7 +76,7 @@ class YtDownloader(context: Context) {
             var tagged = false
             var hasCover = false
             if (audio.extension.equals("m4a", ignoreCase = true)) {
-                val cover = track.thumbnailUrl?.let { runCatching { fetchCover(it) }.getOrNull() }
+                val cover = (track.thumbnailUrl ?: audio.thumbnailUrl)?.let { runCatching { fetchCover(it) }.getOrNull() }
                 hasCover = cover != null
                 try {
                     Mp4Tagger.write(
@@ -103,6 +103,7 @@ class YtDownloader(context: Context) {
             val saved =
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) saveViaMediaStore(name, audio, temp)
                 else saveLegacy(name, audio, temp)
+            YtDownloadIndex.record(context, track.videoId, name)
             return saved.copy(tagged = tagged, hasCover = hasCover)
         } finally {
             temp.delete()
@@ -112,6 +113,18 @@ class YtDownloader(context: Context) {
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.Q)
     private fun audioCollection(): Uri =
         MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+
+    /**
+     * The file this song was already saved as, if it is still there. Checks the id we remember first
+     * (a playlist and a search can name the same song differently), then the plain file name.
+     */
+    fun existing(track: YtTrack, extension: String = "m4a"): Saved? {
+        YtDownloadIndex.get(context, track.videoId)?.let { remembered ->
+            findExisting(remembered)?.let { return it }
+        }
+        val name = fileName(track, extension)
+        return findExisting(name)?.also { YtDownloadIndex.record(context, track.videoId, name) }
+    }
 
     private fun findExisting(name: String): Saved? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
