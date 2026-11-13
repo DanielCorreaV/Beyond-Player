@@ -39,8 +39,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -52,6 +54,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.oxycblt.auxio.R
@@ -100,6 +104,13 @@ class YtDownloadService : Service() {
     private lateinit var notifications: NotificationManagerCompat
     private var lastNotifyAt = 0L
 
+    /** Videos fetched (or found already on the phone) in the current batch, to sync playlists. */
+    private val batchIds = ConcurrentHashMap.newKeySet<String>()
+
+    /** Text shown instead of the counters while the library and playlists are being updated. */
+    @Volatile private var phase: String? = null
+    @Volatile private var syncedLists = 0
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -145,7 +156,10 @@ class YtDownloadService : Service() {
     private fun enqueue(track: YtTrack) {
         synchronized(lock) {
             if (jobs.containsKey(track.videoId)) return
-            if (jobs.isEmpty()) _state.value = YtQueueState()
+            if (jobs.isEmpty()) {
+                _state.value = YtQueueState()
+                syncedLists = 0
+            }
             _state.update { it.copy(total = it.total + 1) }
             val job = scope.launch(start = CoroutineStart.LAZY) { runOne(track) }
             jobs[track.videoId] = job
@@ -213,6 +227,7 @@ class YtDownloadService : Service() {
                 lastError = error ?: it.lastError,
             )
         }
+        if (error == null) batchIds.add(track.videoId)
         val empty =
             synchronized(lock) {
                 jobs.remove(track.videoId)
@@ -231,15 +246,101 @@ class YtDownloadService : Service() {
         scope.coroutineContext.cancelChildren()
         synchronized(lock) { jobs.clear() }
         _state.update { it.copy(active = emptyMap(), total = it.finished) }
-        finishQueue()
+        batchIds.clear()
+        if (_state.value.done > 0) refreshLibrary()
+        wrapUp()
     }
 
+    /** The queue emptied: put the new songs in the library, then in the playlists they belong to. */
     private fun finishQueue() {
+        val ids = batchIds.toSet()
+        batchIds.clear()
+        if (ids.isEmpty()) {
+            wrapUp()
+            return
+        }
+        scope.launch {
+            try {
+                updateLibraryAndLists(ids)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                L.e(e, "YT could not update library/playlists")
+            } finally {
+                phase = null
+                wrapUp()
+            }
+        }
+    }
+
+    private fun wrapUp() {
+        // A new batch may have been queued while we were updating lists: keep going for it.
+        if (synchronized(lock) { jobs.isNotEmpty() }) return
         val s = _state.value
-        if (s.done > 0) refreshLibrary()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         if (s.total > 0) postSummary(s)
         stopSelf()
+    }
+
+    private suspend fun updateLibraryAndLists(ids: Set<String>) {
+        val repo =
+            EntryPointAccessors.fromApplication(applicationContext, YtMusicEntryPoint::class.java)
+                .musicRepository()
+        phase = "Actualizando la biblioteca…"
+        notifyProgress(force = true)
+        awaitLibraryUpdate(repo) { repo.requestIndex(true) }
+
+        // Playlists whose "missing" list contained any of these songs are the ones to refresh.
+        val links = YouTubeLinkStore.from(applicationContext).all()
+        val affected = links.filter { link -> link.missing.any { it.videoId in ids } }
+        if (affected.isEmpty()) return
+        phase = "Actualizando tus listas…"
+        notifyProgress(force = true)
+        val syncer =
+            YouTubePlaylistSyncer(
+                repo,
+                YouTubeLinkStore.from(applicationContext),
+                NewPipePlaylistSource(),
+            )
+        for (link in affected) {
+            val result =
+                runCatching {
+                    syncer.syncOne("https://music.youtube.com/playlist?list=${link.ytId}")
+                }
+            val item = result.getOrNull()
+            if (item is YouTubeImportItem.Done) syncedLists++
+            else L.e(result.exceptionOrNull(), "YT could not sync playlist ${link.ytId}: $item")
+        }
+    }
+
+    /**
+     * Run [trigger] (a re-index) and wait until the repository publishes a complete library. Adding
+     * a listener fires it once immediately with the old library, so it is ignored until armed.
+     * Everything stays on the main thread, where the repository dispatches its updates.
+     */
+    private suspend fun awaitLibraryUpdate(repo: MusicRepository, trigger: () -> Unit) {
+        withContext(Dispatchers.Main) {
+            withTimeoutOrNull(LIBRARY_WAIT_MS) {
+                val armed = AtomicBoolean(false)
+                val updated = CompletableDeferred<Unit>()
+                val listener =
+                    object : MusicRepository.UpdateListener {
+                        override fun onMusicChanges(changes: MusicRepository.Changes) {
+                            if (armed.get() && changes.deviceLibrary && !changes.partial) {
+                                updated.complete(Unit)
+                            }
+                        }
+                    }
+                repo.addUpdateListener(listener)
+                try {
+                    armed.set(true)
+                    trigger()
+                    updated.await()
+                } finally {
+                    repo.removeUpdateListener(listener)
+                }
+            }
+        }
     }
 
     private fun refreshLibrary() {
@@ -288,7 +389,7 @@ class YtDownloadService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_download_24)
             .setContentTitle("Descargando música")
-            .setContentText(text)
+            .setContentText(phase ?: text)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setOnlyAlertOnce(true)
             .setSilent(true)
@@ -296,7 +397,7 @@ class YtDownloadService : Service() {
             .setShowWhen(false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(newMainPendingIntent())
-            .setProgress(1000, (overall * 1000).toInt(), s.active.isEmpty())
+            .setProgress(1000, (overall * 1000).toInt(), s.active.isEmpty() || phase != null)
             .addAction(0, "Cancelar", cancel)
             .build()
     }
@@ -306,6 +407,7 @@ class YtDownloadService : Service() {
         val parts = mutableListOf<String>()
         if (s.done > 0) parts.add(if (s.done == 1) "1 descargada" else "${s.done} descargadas")
         if (s.skipped > 0) parts.add(if (s.skipped == 1) "1 ya estaba" else "${s.skipped} ya estaban")
+        if (syncedLists > 0) parts.add(if (syncedLists == 1) "1 lista actualizada" else "$syncedLists listas actualizadas")
         if (s.failed > 0) parts.add("${s.failed} con error")
         val text = parts.joinToString(" · ")
         val title =
@@ -342,6 +444,7 @@ class YtDownloadService : Service() {
         /** Songs downloading at the same time. */
         const val MAX_PARALLEL = 3
         private const val REFRESH_EVERY = 5
+        private const val LIBRARY_WAIT_MS = 90_000L
         private const val CHANNEL_ID = "yt_downloads"
         private const val NOTIFICATION_ID = 0xA0A2
         private const val SUMMARY_ID = 0xA0A3
