@@ -107,7 +107,7 @@ class NewPipePlaylistSource : RemotePlaylistSource {
 }
 
 /** Minimal [Downloader] on top of [HttpURLConnection]. */
-private object HttpDownloader : Downloader() {
+internal object HttpDownloader : Downloader() {
     private const val USER_AGENT =
         "Mozilla/5.0 (Windows NT 10.0; rv:128.0) Gecko/20100101 Firefox/128.0"
 

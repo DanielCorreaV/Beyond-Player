@@ -51,6 +51,7 @@ object YouTubeImportDialogs {
             .setTitle(R.string.lbl_import_youtube)
             .setView(container)
             .setPositiveButton(R.string.lbl_import) { _, _ -> onImport(input.text.toString()) }
+            .setNeutralButton("Buscar y descargar (prueba)") { _, _ -> YtDownloadDialog.show(context) }
             .setNegativeButton(R.string.lbl_cancel, null)
             .show()
     }
