@@ -69,7 +69,9 @@ constructor(
     private val listSettings: ListSettings,
     private val musicRepository: MusicRepository,
 ) : ViewModel(), MusicRepository.UpdateListener, MusicRepository.IndexingListener {
+    private val appContext = context
     private val externalPlaylistManager = ExternalPlaylistManager.from(context)
+
     private val youTubeLinks = YouTubeLinkStore.from(context)
     // Swappable: anything implementing RemotePlaylistSource can replace NewPipe.
     private val youTubeSource: RemotePlaylistSource = NewPipePlaylistSource()
@@ -123,10 +125,22 @@ constructor(
         YtLibrary.add(track)
         findYouTubeSong(track.videoId)?.let {
             onReady(it)
+            // Added before covers existed: fetch it in the background and refresh.
+            if (it.cover == null) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    if (YtLibrary.ensureCovers(appContext)) musicRepository.requestIndex(true)
+                }
+            }
             return
         }
         pendingYt = track.videoId to onReady
-        musicRepository.requestIndex(true)
+        // The cover has to be on disk before the library is rebuilt, or the song would show up
+        // without it.
+        viewModelScope.launch(Dispatchers.IO) {
+            YtLibrary.ensureCovers(appContext)
+            musicRepository.requestIndex(true)
+        }
+
     }
 
     private fun findYouTubeSong(videoId: String): Song? =

@@ -11,6 +11,10 @@
 package org.oxycblt.musikr
 
 import android.net.Uri
+import android.os.ParcelFileDescriptor
+import java.io.InputStream
+import org.oxycblt.musikr.covers.FDCover
+
 import org.oxycblt.musikr.fs.AddedMs
 import org.oxycblt.musikr.fs.Components
 import org.oxycblt.musikr.fs.File
@@ -28,7 +32,9 @@ data class RemoteSong(
     val album: String?,
     val durationMs: Long,
     val addedMs: Long,
+    val coverFile: java.io.File? = null,
 ) {
+
     /** The address the player resolves when it opens this song. */
     val uri: Uri
         get() = Uri.parse("yt://$id")
@@ -37,6 +43,26 @@ data class RemoteSong(
 /** Where the library builder asks for the remote songs. Set once by the app at startup. */
 object RemoteSongs {
     @Volatile var provider: (() -> List<RemoteSong>)? = null
+}
+
+internal class RemoteCover(override val id: String, private val file: java.io.File) : FDCover {
+    override suspend fun open(): InputStream? =
+        try {
+            file.inputStream()
+        } catch (e: Exception) {
+            null
+        }
+
+    override suspend fun fd(): ParcelFileDescriptor? =
+        try {
+            ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+        } catch (e: Exception) {
+            null
+        }
+
+    override fun equals(other: Any?) = other is RemoteCover && id == other.id && file == other.file
+
+    override fun hashCode() = 31 * id.hashCode() + file.hashCode()
 }
 
 private val REMOTE_VOLUME = Volume.ThirdParty(Uri.parse("yt://youtube"))
@@ -73,7 +99,7 @@ internal fun RemoteSong.toRawSong(): RawSong {
                 albumName = album ?: "YouTube Music",
                 artistNames = if (artist.isBlank()) emptyList() else listOf(artist),
             ),
-        cover = null,
+        cover = coverFile?.takeIf { it.isFile }?.let { RemoteCover("yt-$id", it) },
         addedMs = added,
     )
 }

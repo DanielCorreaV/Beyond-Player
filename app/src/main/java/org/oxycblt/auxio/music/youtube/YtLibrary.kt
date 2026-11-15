@@ -16,9 +16,16 @@ import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSpec
+import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
+
 import java.io.File
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+
 import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONArray
 import org.json.JSONObject
@@ -55,6 +62,7 @@ object YtLibrary {
                         album = null,
                         durationMs = if (it.track.durationSec < 0) 0 else it.track.durationSec * 1000,
                         addedMs = it.addedMs,
+                        coverFile = coverFile(app, it.track.videoId),
                     )
                 }
         }
@@ -72,7 +80,50 @@ object YtLibrary {
     fun contains(videoId: String): Boolean =
         synchronized(lock) { entries.any { it.track.videoId == videoId } }
 
+    fun coverFile(context: Context, videoId: String) =
+        File(File(context.applicationContext.filesDir, "yt_covers"), "$videoId.jpg")
+
+    /** Downloads the cover of every stored song that has none yet. Blocking. True if any arrived. */
+    fun ensureCovers(context: Context): Boolean {
+        var any = false
+        val tracks = synchronized(lock) { entries.map { it.track } }
+        for (track in tracks) {
+            val url = track.thumbnailUrl ?: continue
+            val target = coverFile(context, track.videoId)
+            if (target.isFile) continue
+            if (download(bigCover(url), target)) any = true
+        }
+        return any
+    }
+
+    private val SIZE_SUFFIX = Regex("""=w\d+-h\d+[^/?]*$""")
+
+    /** YouTube Music covers take a size in the address; ask for one big enough for the player. */
+    private fun bigCover(url: String) = SIZE_SUFFIX.replace(url, "=w544-h544-l90-rj")
+
+    private fun download(url: String, target: File): Boolean {
+        val tmp = File(target.parentFile, target.name + ".tmp")
+        return try {
+            target.parentFile?.mkdirs()
+            val conn = URL(url).openConnection() as HttpURLConnection
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 15_000
+            try {
+                if (conn.responseCode != 200) return false
+                conn.inputStream.use { input -> tmp.outputStream().use { input.copyTo(it) } }
+            } finally {
+                conn.disconnect()
+            }
+            tmp.length() > 0 && tmp.renameTo(target)
+        } catch (e: Exception) {
+            false
+        } finally {
+            tmp.delete()
+        }
+    }
+
     private fun write() {
+
         val f = file ?: return
         val array = JSONArray()
         entries.forEach {
@@ -139,10 +190,30 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
                 } catch (e: Exception) {
                     throw IOException("YouTube: could not open $id (${e.message})", e)
                 }
-        return dataSpec.withUri(Uri.parse(url))
+        return dataSpec.buildUpon().setUri(Uri.parse(url)).setKey("yt-$id").build()
     }
 
     private companion object {
         const val URL_TTL_MS = 20 * 60 * 1000L
     }
 }
+
+/** The disk cache of streamed audio: replaying a song costs no data. */
+@OptIn(UnstableApi::class)
+object YtAudioCache {
+    private const val MAX_BYTES = 512L * 1024 * 1024
+    @Volatile private var cache: SimpleCache? = null
+
+    fun get(context: Context): SimpleCache =
+        cache
+            ?: synchronized(this) {
+                cache
+                    ?: SimpleCache(
+                            File(context.applicationContext.cacheDir, "yt_audio"),
+                            LeastRecentlyUsedCacheEvictor(MAX_BYTES),
+                            StandaloneDatabaseProvider(context.applicationContext),
+                        )
+                        .also { cache = it }
+            }
+}
+

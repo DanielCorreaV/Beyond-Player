@@ -22,7 +22,11 @@ import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import org.oxycblt.auxio.music.youtube.YtAudioCache
+
 
 import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.source.MediaSource
@@ -61,7 +65,17 @@ class SystemModule {
     fun dataSourceFactory(@ApplicationContext context: Context): DataSource.Factory =
         // Library songs are content:// URIs. YouTube songs are yt:// and get their real stream
         // address resolved right when the player opens them.
-        ResolvingDataSource.Factory(DefaultDataSource.Factory(context), ytResolver)
+        ResolvingDataSource.Factory(
+            DefaultDataSource.Factory(
+                context,
+                // Only network traffic (YouTube) goes through the disk cache; local files don't.
+                CacheDataSource.Factory()
+                    .setCache(YtAudioCache.get(context))
+                    .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory())
+                    .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR),
+            ),
+            ytResolver,
+        )
 
 
     @Provides

@@ -28,6 +28,8 @@ import android.os.ParcelFileDescriptor
 import kotlinx.coroutines.runBlocking
 import org.oxycblt.auxio.BuildConfig
 import org.oxycblt.auxio.image.covers.SettingCovers
+import org.oxycblt.auxio.music.youtube.YtLibrary
+
 import org.oxycblt.musikr.covers.CoverResult
 
 class CoverProvider : ContentProvider() {
@@ -38,6 +40,14 @@ class CoverProvider : ContentProvider() {
             return null
         }
         val id = uri.lastPathSegment ?: return null
+        if (id.startsWith("yt-")) {
+            // Cover of a YouTube song: a plain file in the app's storage.
+            val file = YtLibrary.coverFile(requireNotNull(context), id.removePrefix("yt-"))
+            return if (file.isFile) {
+                ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            } else null
+        }
+
         return runBlocking {
             when (val result = SettingCovers.immutable(requireNotNull(context)).obtain(id)) {
                 is CoverResult.Hit -> result.cover.fd()
