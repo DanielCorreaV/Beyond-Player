@@ -112,6 +112,7 @@ internal object HttpDownloader : Downloader() {
         "Mozilla/5.0 (Windows NT 10.0; rv:128.0) Gecko/20100101 Firefox/128.0"
 
     override fun execute(request: Request): Response {
+        val startedAt = System.nanoTime()
         val conn = URL(request.url()).openConnection() as HttpURLConnection
         try {
             conn.requestMethod = request.httpMethod()
@@ -122,12 +123,15 @@ internal object HttpDownloader : Downloader() {
             for ((name, values) in request.headers()) {
                 conn.setRequestProperty(name, values.joinToString(", "))
             }
+            // Always ask for gzip: a search answer is ~300 KB of text that shrinks about 10x.
+            conn.setRequestProperty("Accept-Encoding", "gzip")
             request.dataToSend()?.let {
                 conn.doOutput = true
                 conn.outputStream.use { out -> out.write(it) }
             }
 
             val code = conn.responseCode
+            val headersMs = (System.nanoTime() - startedAt) / 1_000_000
             if (code == 429) {
                 throw ReCaptchaException("Rate limited / captcha requested", request.url())
             }
@@ -144,9 +148,19 @@ internal object HttpDownloader : Downloader() {
             val headers = buildMap {
                 for ((k, v) in conn.headerFields) if (k != null) put(k, v)
             }
-            return Response(code, conn.responseMessage ?: "", headers, body, conn.url.toString())
-        } finally {
+            val response =
+                Response(code, conn.responseMessage ?: "", headers, body, conn.url.toString())
+            L.d(
+                "YT http ${request.url().take(70)}: " +
+                    "${(System.nanoTime() - startedAt) / 1_000_000} ms (headers $headersMs ms), " +
+                    "${body.length} chars, enc=${conn.contentEncoding}, wire=${conn.contentLengthLong}"
+            )
+            return response
+        } catch (e: Exception) {
+            // Only drop the connection on errors: after a complete read it goes back to the pool
+            // and the next request skips the secure-connection handshake.
             conn.disconnect()
+            throw e
         }
     }
 }

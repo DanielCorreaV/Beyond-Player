@@ -50,6 +50,9 @@ interface YtSource {
     /** Search songs. Blocking: call from a background dispatcher. */
     fun search(query: String): List<YtTrack>
 
+    /** Do the one-time network setup now so the first real request is not slower. Blocking. */
+    fun warmUp() {}
+
     /** Pick the best direct audio stream, preferring m4a. Blocking. */
     fun resolveAudio(videoId: String): YtAudio
 }

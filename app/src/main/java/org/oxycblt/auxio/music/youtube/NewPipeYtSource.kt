@@ -22,6 +22,7 @@ import org.schabi.newpipe.extractor.MediaFormat
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.search.SearchInfo
+import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import org.schabi.newpipe.extractor.stream.StreamInfo
@@ -57,6 +58,13 @@ class NewPipeYtSource : YtSource {
         } catch (e: Exception) {
             throw YtException("Search failed: ${e.message}", e)
         }
+    }
+
+    override fun warmUp() {
+        ensureInitialized()
+        // Looks up (and remembers) the YouTube Music version that the first search needs.
+        runCatching { YoutubeParsingHelper.getYoutubeMusicClientVersion() }
+            .onFailure { L.w(it, "YT warm-up failed") }
     }
 
     override fun resolveAudio(videoId: String): YtAudio {
