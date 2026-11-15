@@ -27,6 +27,8 @@ import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import org.oxycblt.auxio.home.HomeSettings
 import org.oxycblt.auxio.image.ImageSettings
+import org.oxycblt.auxio.music.youtube.YtLibrary
+
 import org.oxycblt.auxio.playback.PlaybackSettings
 import org.oxycblt.auxio.ui.UISettings
 import org.oxycblt.auxio.util.CopyleftNoticeTree
@@ -61,6 +63,9 @@ class Auxio : Application() {
         playbackSettings.migrate()
         uiSettings.migrate()
         homeSettings.migrate()
+        // YouTube songs added to the library, read by the library builder.
+        YtLibrary.install(this)
+
         // Adding static shortcuts in a dynamic manner is better than declaring them
         // manually, as it will properly handle the difference between debug and release
         // Auxio instances.

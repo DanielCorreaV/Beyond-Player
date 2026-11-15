@@ -40,6 +40,9 @@ import org.oxycblt.auxio.music.youtube.YouTubeImportResult
 import org.oxycblt.auxio.music.youtube.YouTubeLink
 import org.oxycblt.auxio.music.youtube.YouTubeLinkStore
 import org.oxycblt.auxio.music.youtube.YouTubePlaylistSyncer
+import org.oxycblt.auxio.music.youtube.YtLibrary
+import org.oxycblt.auxio.music.youtube.YtTrack
+
 import org.oxycblt.auxio.music.youtube.parsePlaylistId
 import org.oxycblt.auxio.util.Event
 import org.oxycblt.auxio.util.MutableEvent
@@ -110,8 +113,28 @@ constructor(
     val youTubeImporting: StateFlow<Boolean>
         field = MutableStateFlow(false)
 
+    private var pendingYt: Pair<String, (Song) -> Unit>? = null
+
+    /**
+     * Adds a YouTube song to the library (metadata only) and hands it over once the library
+     * contains it. If it is not there yet the library is refreshed from its cache first.
+     */
+    fun addYouTubeSong(track: YtTrack, onReady: (Song) -> Unit) {
+        YtLibrary.add(track)
+        findYouTubeSong(track.videoId)?.let {
+            onReady(it)
+            return
+        }
+        pendingYt = track.videoId to onReady
+        musicRepository.requestIndex(true)
+    }
+
+    private fun findYouTubeSong(videoId: String): Song? =
+        musicRepository.library?.songs?.firstOrNull { it.uri.toString() == "yt://$videoId" }
+
     init {
         musicRepository.addUpdateListener(this)
+
         musicRepository.addIndexingListener(this)
     }
 
@@ -135,8 +158,17 @@ constructor(
                     ?.map { it.uid }
                     ?.toSet() ?: emptySet()
         }
+        if (changes.deviceLibrary && !changes.partial) {
+            pendingYt?.let { (id, onReady) ->
+                pendingYt = null
+                findYouTubeSong(id)?.let { song ->
+                    viewModelScope.launch(Dispatchers.Main) { onReady(song) }
+                }
+            }
+        }
         if (!changes.deviceLibrary || changes.partial) return
         val library = musicRepository.library ?: return
+
         statistics.value =
             Statistics(
                 library.songs.size,

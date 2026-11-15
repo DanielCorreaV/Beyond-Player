@@ -72,8 +72,26 @@ class YtResultViewHolder private constructor(private val binding: ItemSongBindin
             binding.songInfo.compoundDrawablePadding = size / 2
         }
 
-        // The "more" button has nothing to offer yet; the whole row is the action.
-        binding.songMenu.visibility = View.GONE
+        // Tap plays it by streaming; the "more" button holds the download.
+        binding.songMenu.visibility = View.VISIBLE
+        binding.songMenu.setOnClickListener { anchor ->
+            android.widget.PopupMenu(context, anchor).apply {
+                menu.add(0, 1, 0, context.getString(R.string.lbl_yt_download))
+                setOnMenuItemClickListener {
+                    YtDownloadDialog.askNotificationPermission(context)
+                    YtDownloadService.enqueue(context, track)
+                    android.widget.Toast.makeText(
+                            context,
+                            context.getString(R.string.fmt_yt_queued, track.title),
+                            android.widget.Toast.LENGTH_SHORT,
+                        )
+                        .show()
+                    true
+                }
+                show()
+            }
+        }
+
         binding.root.setOnClickListener { onClick(track) }
 
         val cover = binding.songAlbumCover

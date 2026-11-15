@@ -229,18 +229,19 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
         }
     }
 
-    /** Tapping a YouTube result queues its download (playing it comes later). */
+    /** Tapping a YouTube result adds it to the library and plays it by streaming. */
     private fun onYtResultClick(track: YtTrack) {
-        val context = requireContext()
-        YtDownloadDialog.askNotificationPermission(context)
-        YtDownloadService.enqueue(context, track)
+        val playWith = searchModel.playWith
+        val play = playbackModel
         android.widget.Toast.makeText(
-                context,
-                "En cola: ${track.title}",
+                requireContext(),
+                getString(R.string.fmt_yt_adding, track.title),
                 android.widget.Toast.LENGTH_SHORT,
             )
             .show()
+        musicModel.addYouTubeSong(track) { song -> play.play(song, playWith) }
     }
+
 
     private fun updateSearchResults(results: List<Item>) {
         val binding = requireBinding()

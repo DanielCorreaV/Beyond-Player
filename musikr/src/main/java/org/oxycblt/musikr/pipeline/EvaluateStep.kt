@@ -24,6 +24,9 @@ import org.oxycblt.musikr.BuildConfig
 import org.oxycblt.musikr.Config
 import org.oxycblt.musikr.Interpretation
 import org.oxycblt.musikr.MutableLibrary
+import org.oxycblt.musikr.RemoteSongs
+import org.oxycblt.musikr.toRawSong
+
 import org.oxycblt.musikr.graph.MusicGraph
 import org.oxycblt.musikr.model.LibraryFactory
 import org.oxycblt.musikr.playlist.db.StoredPlaylists
@@ -119,6 +122,14 @@ private class EvaluateStepImpl(
                 is RawPlaylist -> builder.add(playlistInterpreter.interpret(extracted.file))
                 is NotAudio -> {}
                 is InvalidSong -> {}
+            }
+        }
+        // Songs that live on YouTube Music: metadata only, played by streaming.
+        for (remote in RemoteSongs.provider?.invoke().orEmpty()) {
+            try {
+                builder.add(tagInterpreter.interpret(remote.toRawSong()))
+            } catch (e: Exception) {
+                android.util.Log.w("AuxioPerf", "skipping remote song ${remote.id}", e)
             }
         }
         val e1 = android.os.SystemClock.elapsedRealtime()

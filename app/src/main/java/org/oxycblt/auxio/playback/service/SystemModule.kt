@@ -21,7 +21,9 @@ package org.oxycblt.auxio.playback.service
 import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.ContentDataSource
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.ResolvingDataSource
+
 import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
@@ -36,6 +38,8 @@ import androidx.media3.extractor.text.DefaultSubtitleParserFactory
 import androidx.media3.extractor.ts.AdtsExtractor
 import androidx.media3.extractor.wav.WavExtractor
 import dagger.Module
+import org.oxycblt.auxio.music.youtube.YtStreamResolver
+
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -51,10 +55,14 @@ class SystemModule {
         extractorsFactory: ExtractorsFactory,
     ): MediaSource.Factory = ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
 
+    private val ytResolver = YtStreamResolver()
+
     @Provides
-    fun dataSourceFactory(@ApplicationContext context: Context) =
-        // We only ever open conte tURIs, so only provide those data sources.
-        DataSource.Factory { ContentDataSource(context) }
+    fun dataSourceFactory(@ApplicationContext context: Context): DataSource.Factory =
+        // Library songs are content:// URIs. YouTube songs are yt:// and get their real stream
+        // address resolved right when the player opens them.
+        ResolvingDataSource.Factory(DefaultDataSource.Factory(context), ytResolver)
+
 
     @Provides
     fun extractorsFactory() = ExtractorsFactory {
