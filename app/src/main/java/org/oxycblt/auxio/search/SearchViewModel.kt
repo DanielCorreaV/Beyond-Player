@@ -37,6 +37,16 @@ import org.oxycblt.auxio.music.MusicRepository
 import org.oxycblt.auxio.music.MusicType
 import org.oxycblt.auxio.playback.PlaySong
 import org.oxycblt.auxio.playback.PlaybackSettings
+import org.oxycblt.auxio.music.youtube.NewPipeYtSource
+import org.oxycblt.auxio.music.youtube.RemoteTrack
+import org.oxycblt.auxio.music.youtube.SongMatcher
+import org.oxycblt.auxio.music.youtube.YT_HEADER
+import org.oxycblt.auxio.music.youtube.YtResultItem
+import org.oxycblt.auxio.music.youtube.YtSource
+import org.oxycblt.auxio.music.youtube.YtTrack
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.oxycblt.musikr.Library
 import org.oxycblt.musikr.Song
 import timber.log.Timber as L
@@ -57,6 +67,10 @@ constructor(
 ) : ViewModel(), MusicRepository.UpdateListener {
     private var lastQuery: String? = null
     private var currentSearchJob: Job? = null
+    private var currentYtJob: Job? = null
+    private val ytSource: YtSource = NewPipeYtSource()
+    private var ytCache: Pair<String, List<YtTrack>>? = null
+    private var lastLocalSongs: List<Song> = emptyList()
 
     /** The results of the last [search] call, if any. */
     val searchResults: StateFlow<List<Item>>
@@ -90,6 +104,7 @@ constructor(
     fun search(query: String?) {
         // Cancel the previous background search.
         currentSearchJob?.cancel()
+        currentYtJob?.cancel()
         lastQuery = query
 
         val library = musicRepository.library
@@ -103,7 +118,11 @@ constructor(
         L.d("Searching music library for $query")
         currentSearchJob =
             viewModelScope.launch(Dispatchers.Default) {
-                searchResults.value = searchImpl(library, query).also { yield() }
+                val local = searchImpl(library, query).also { yield() }
+                val localSongs = lastLocalSongs
+                searchResults.value = local
+                // Local first; YouTube is searched after, in parallel with the user reading.
+                searchYouTube(query, local, localSongs)
             }
     }
 
@@ -130,6 +149,7 @@ constructor(
             }
 
         val results = searchEngine.search(items, query)
+        lastLocalSongs = results.songs.orEmpty().toList()
 
         return buildList {
             results.artists?.let {
@@ -181,6 +201,52 @@ constructor(
         }
     }
 
+    private fun searchYouTube(query: String, local: List<Item>, localSongs: List<Song>) {
+        val filters = searchSettings.filters
+        if (query.length < YT_MIN_CHARS || !(filters.isEmpty() || MusicType.SONGS in filters)) {
+            return
+        }
+        currentYtJob =
+            viewModelScope.launch(Dispatchers.Default) {
+                val cached = ytCache?.takeIf { it.first == query }?.second
+                val tracks =
+                    cached
+                        ?: run {
+                            // Wait for the typing to settle: every keystroke cancels this job.
+                            delay(YT_DEBOUNCE_MS)
+                            val found =
+                                runCatching { withContext(Dispatchers.IO) { ytSource.search(query) } }
+                                    .onFailure {
+                                        if (it !is CancellationException) L.e(it, "YT search failed")
+                                    }
+                                    .getOrNull() ?: return@launch
+                            ytCache = query to found
+                            found
+                        }
+                val remote = withoutLocal(tracks, localSongs)
+                if (remote.isEmpty()) return@launch
+                yield()
+                searchResults.value = buildList {
+                    addAll(local)
+                    if (local.isNotEmpty()) add(PlainDivider(YT_HEADER))
+                    add(YT_HEADER)
+                    remote.forEach { add(YtResultItem(it)) }
+                }
+            }
+    }
+
+    /** Drop the YouTube results the library already has: they are in the local section. */
+    private fun withoutLocal(tracks: List<YtTrack>, localSongs: List<Song>): List<YtTrack> {
+        if (localSongs.isEmpty()) return tracks
+        val match =
+            SongMatcher.match(
+                tracks.map { RemoteTrack(it.videoId, it.title, it.artist, it.durationSec) },
+                localSongs,
+            )
+        val have = match.pairs.mapNotNull { it.first.videoId }.toSet()
+        return tracks.filter { it.videoId !in have }
+    }
+
     /** The current filters used for search. */
     val filters: Set<MusicType>
         get() = searchSettings.filters
@@ -197,5 +263,7 @@ constructor(
 
     private companion object {
         val SORT = Sort(Sort.Mode.ByName, Sort.Direction.ASCENDING)
+        const val YT_MIN_CHARS = 3
+        const val YT_DEBOUNCE_MS = 450L
     }
 }

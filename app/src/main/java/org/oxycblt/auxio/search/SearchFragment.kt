@@ -44,6 +44,10 @@ import org.oxycblt.auxio.list.PlainDivider
 import org.oxycblt.auxio.list.PlainHeader
 import org.oxycblt.auxio.list.menu.Menu
 import org.oxycblt.auxio.music.MusicType
+import org.oxycblt.auxio.music.youtube.YtDownloadDialog
+import org.oxycblt.auxio.music.youtube.YtDownloadService
+import org.oxycblt.auxio.music.youtube.YtTrack
+import org.oxycblt.auxio.music.youtube.isYtSearchItem
 import org.oxycblt.auxio.music.MusicViewModel
 import org.oxycblt.auxio.music.PlaylistDecision
 import org.oxycblt.auxio.music.PlaylistMessage
@@ -81,7 +85,8 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
     override val listModel: ListViewModel by activityViewModels()
     override val playbackModel: PlaybackViewModel by activityViewModels()
     override val musicModel: MusicViewModel by activityViewModels()
-    private val searchAdapter = SearchAdapter(this)
+    private val searchAdapter = SearchAdapter(this, ::onYtResultClick)
+    private var lastLocalPart: List<Item> = emptyList()
     private var getContentLauncher: ActivityResultLauncher<String>? = null
     private var pendingImportTarget: Playlist? = null
     private var imm: InputMethodManager? = null
@@ -224,8 +229,26 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
         }
     }
 
+    /** Tapping a YouTube result queues its download (playing it comes later). */
+    private fun onYtResultClick(track: YtTrack) {
+        val context = requireContext()
+        YtDownloadDialog.askNotificationPermission(context)
+        YtDownloadService.enqueue(context, track)
+        android.widget.Toast.makeText(
+                context,
+                "En cola: ${track.title}",
+                android.widget.Toast.LENGTH_SHORT,
+            )
+            .show()
+    }
+
     private fun updateSearchResults(results: List<Item>) {
         val binding = requireBinding()
+        // The YouTube part arrives later than the local part: only a new local part should
+        // send the list back to the top, or it would jump while the user scrolls.
+        val localPart = results.filterNot { isYtSearchItem(it) }
+        val sameLocalPart = localPart == lastLocalPart
+        lastLocalPart = localPart
         // Don't show the RecyclerView (and it's stray overscroll effects) when there
         // are no results.
         binding.searchRecycler.isInvisible = results.isEmpty()
@@ -234,7 +257,7 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
             // the query actually changes instead of once every re-creation event, but sadly
             // that doesn't seem possible.
             L.d("Update finished, scrolling to top")
-            binding.searchRecycler.scrollToPosition(0)
+            if (!sameLocalPart) binding.searchRecycler.scrollToPosition(0)
             if (results.isEmpty()) {
                 // Expand the appbar when we no longer have results.
                 // This way the user can't softlock themselves by scrolling then

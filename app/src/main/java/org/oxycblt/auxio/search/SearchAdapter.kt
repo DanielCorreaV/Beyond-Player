@@ -33,6 +33,9 @@ import org.oxycblt.auxio.list.recycler.DividerViewHolder
 import org.oxycblt.auxio.list.recycler.GenreViewHolder
 import org.oxycblt.auxio.list.recycler.PlaylistViewHolder
 import org.oxycblt.auxio.list.recycler.SongViewHolder
+import org.oxycblt.auxio.music.youtube.YtResultItem
+import org.oxycblt.auxio.music.youtube.YtResultViewHolder
+import org.oxycblt.auxio.music.youtube.YtTrack
 import org.oxycblt.musikr.Album
 import org.oxycblt.musikr.Artist
 import org.oxycblt.musikr.Genre
@@ -46,7 +49,10 @@ import org.oxycblt.musikr.Song
  * @param listener An [SelectableListListener] to bind interactions to.
  * @author Alexander Capehart (OxygenCobalt)
  */
-class SearchAdapter(private val listener: SelectableListListener<Music>) :
+class SearchAdapter(
+    private val listener: SelectableListListener<Music>,
+    private val onYtClick: (YtTrack) -> Unit,
+) :
     SelectionIndicatorAdapter<Item, RecyclerView.ViewHolder>(DIFF_CALLBACK) {
 
     override fun getItemViewType(position: Int) =
@@ -56,6 +62,7 @@ class SearchAdapter(private val listener: SelectableListListener<Music>) :
             is Artist -> ArtistViewHolder.VIEW_TYPE
             is Genre -> GenreViewHolder.VIEW_TYPE
             is Playlist -> PlaylistViewHolder.VIEW_TYPE
+            is YtResultItem -> YtResultViewHolder.VIEW_TYPE
             is PlainDivider -> DividerViewHolder.VIEW_TYPE
             is BasicHeader -> BasicHeaderViewHolder.VIEW_TYPE
             else -> super.getItemViewType(position)
@@ -70,6 +77,7 @@ class SearchAdapter(private val listener: SelectableListListener<Music>) :
             PlaylistViewHolder.VIEW_TYPE -> PlaylistViewHolder.from(parent)
             DividerViewHolder.VIEW_TYPE -> DividerViewHolder.from(parent)
             BasicHeaderViewHolder.VIEW_TYPE -> BasicHeaderViewHolder.from(parent)
+            YtResultViewHolder.VIEW_TYPE -> YtResultViewHolder.from(parent)
             else -> error("Invalid item type $viewType")
         }
 
@@ -81,6 +89,7 @@ class SearchAdapter(private val listener: SelectableListListener<Music>) :
             is Genre -> (holder as GenreViewHolder).bind(item, listener)
             is Playlist -> (holder as PlaylistViewHolder).bind(item, listener)
             is BasicHeader -> (holder as BasicHeaderViewHolder).bind(item)
+            is YtResultItem -> (holder as YtResultViewHolder).bind(item, onYtClick)
         }
     }
 
@@ -110,6 +119,8 @@ class SearchAdapter(private val listener: SelectableListListener<Music>) :
 
                         is BasicHeader if newItem is BasicHeader ->
                             BasicHeaderViewHolder.DIFF_CALLBACK.areContentsTheSame(oldItem, newItem)
+
+                        is YtResultItem if newItem is YtResultItem -> oldItem == newItem
 
                         else -> false
                     }

@@ -472,6 +472,10 @@ constructor(context: Context, attrs: AttributeSet? = null, @AttrRes defStyleAttr
             squareishShapeAppearance,
         )
 
+    /** Bind a cover stored in a local file (YouTube results). A null file shows the placeholder. */
+    fun bindRemote(file: java.io.File?, desc: String) =
+        bindImpl({ file }, desc, R.drawable.ic_album_24, squareishShapeAppearance)
+
     private fun bindImpl(
         img: (Size) -> Any?,
         desc: String,
