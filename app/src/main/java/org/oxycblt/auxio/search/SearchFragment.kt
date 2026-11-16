@@ -51,7 +51,9 @@ import org.oxycblt.auxio.music.youtube.isYtSearchItem
 import org.oxycblt.auxio.music.MusicViewModel
 import org.oxycblt.auxio.music.PlaylistDecision
 import org.oxycblt.auxio.music.PlaylistMessage
+import org.oxycblt.auxio.playback.PlaySong
 import org.oxycblt.auxio.playback.PlaybackDecision
+
 import org.oxycblt.auxio.playback.PlaybackViewModel
 import org.oxycblt.auxio.ui.FadingToolbarOffsetListener
 import org.oxycblt.auxio.util.collect
@@ -239,7 +241,8 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
                 android.widget.Toast.LENGTH_SHORT,
             )
             .show()
-        musicModel.addYouTubeSong(track) { song -> play.play(song, playWith) }
+        // One song at a time: ByItself does not need the song to be in the library list yet.
+        musicModel.addYouTubeSong(track) { song -> play.play(song, PlaySong.ByItself) }
     }
 
 

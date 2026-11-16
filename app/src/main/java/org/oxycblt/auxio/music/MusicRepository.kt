@@ -40,6 +40,8 @@ import org.oxycblt.musikr.Interpretation
 import org.oxycblt.musikr.Library
 import org.oxycblt.musikr.Music
 import org.oxycblt.musikr.Musikr
+import org.oxycblt.musikr.RemoteSong
+
 import org.oxycblt.musikr.MutableLibrary
 import org.oxycblt.musikr.Playlist
 import org.oxycblt.musikr.Song
@@ -188,6 +190,9 @@ interface MusicRepository {
      * saved cache yet (do a normal [requestIndex] then).
      */
     suspend fun refreshFromCache(): Boolean
+
+    /** A one-song library for a remote song, built from the saved configuration in milliseconds. */
+    suspend fun quickSong(remote: RemoteSong): Song?
 
     /**
      * Load the music library. Any prior loads will be canceled.
@@ -392,6 +397,17 @@ constructor(
         L.d("Requesting index operation [cache=$withCache]")
         indexingWorker?.requestIndex(withCache)
     }
+
+    override suspend fun quickSong(remote: RemoteSong): Song? =
+        try {
+            val config = savedConfig()
+            if (config == null) null else Musikr.new(context, config).quickSong(remote)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            L.w("Could not build a quick song: $e")
+            null
+        }
 
     override suspend fun refreshFromCache(): Boolean {
         val start = android.os.SystemClock.elapsedRealtime()

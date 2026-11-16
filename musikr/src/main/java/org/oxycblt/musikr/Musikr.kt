@@ -66,6 +66,10 @@ interface Musikr {
      */
     suspend fun runCached(limit: Int? = null): LibraryResult?
 
+    /** A one-song library from a [RemoteSong], built in a few milliseconds, to play it at once. */
+    suspend fun quickSong(remote: RemoteSong): Song?
+
+
     companion object {
         /**
          * Create a new instance from the given configuration.
@@ -131,7 +135,10 @@ private class MusikrImpl(
     private val extractStep: ExtractStep,
     private val evaluateStep: EvaluateStep,
 ) : Musikr {
+    override suspend fun quickSong(remote: RemoteSong): Song? = evaluateStep.quickSong(remote)
+
     override suspend fun runCached(limit: Int?): LibraryResult? {
+
         var cached = config.storage.cache.snapshot()
         if (cached.isEmpty()) return null
         // With a limit, keep only the most recently added songs and skip playlists (they would

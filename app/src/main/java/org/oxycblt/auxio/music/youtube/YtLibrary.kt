@@ -117,10 +117,48 @@ object YtLibrary {
         for (track in tracks) {
             val url = track.thumbnailUrl ?: continue
             val target = coverFile(context, track.videoId)
-            if (target.isFile) continue
-            if (download(bigCover(url), target)) any = true
+            val full = File(target.parentFile, track.videoId + ".hq")
+            if (full.isFile) continue
+            // A small cover borrowed from the search may already be there: the full-size one
+            // replaces it in the same file, so nothing that shows it has to be rebuilt.
+            val hadCover = target.isFile
+            if (download(bigCover(url), target)) {
+                full.createNewFile()
+                if (!hadCover) any = true
+            }
+
         }
         return any
+    }
+
+    /** Uses the small cover the search row already downloaded, so a new song has one at once. */
+    fun adoptCover(context: Context, track: YtTrack) {
+        val target = coverFile(context, track.videoId)
+        if (target.isFile) return
+        val url = track.thumbnailUrl ?: return
+        val cached = YtCovers.cached(context, url) ?: return
+        try {
+            target.parentFile?.mkdirs()
+            cached.copyTo(target, overwrite = true)
+        } catch (e: Exception) {
+            // No cover for now; the full-size download will bring one.
+        }
+    }
+
+    /** The library's view of a stored song, or null when it is not stored. */
+    fun remoteSong(context: Context, videoId: String): RemoteSong? {
+        val entry = synchronized(lock) { entries.firstOrNull { it.track.videoId == videoId } }
+        return entry?.let {
+            RemoteSong(
+                id = it.track.videoId,
+                title = it.track.title,
+                artist = it.track.artist,
+                album = null,
+                durationMs = if (it.track.durationSec < 0) 0 else it.track.durationSec * 1000,
+                addedMs = it.addedMs,
+                coverFile = coverFile(context, it.track.videoId),
+            )
+        }
     }
 
     private val SIZE_SUFFIX = Regex("""=w\d+-h\d+[^/?]*$""")

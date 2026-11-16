@@ -26,6 +26,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -148,10 +151,20 @@ constructor(
         }
         pendingYt = track.videoId to onReady
         pendingYtAt = android.os.SystemClock.elapsedRealtime()
-
-        // The cover has to be on disk before the library is rebuilt, or the song would show up
-        // without it.
         viewModelScope.launch(Dispatchers.IO) {
+            // 1. Play at once: a one-song library built from what the search already knows, with
+            //    the small cover its row already downloaded.
+            YtLibrary.adoptCover(appContext, track)
+            val quick =
+                YtLibrary.remoteSong(appContext, track.videoId)?.let { musicRepository.quickSong(it) }
+            if (quick != null) {
+                pendingYt = null
+                L.d("YT tap->quick song: ${android.os.SystemClock.elapsedRealtime() - pendingYtAt} ms")
+                withContext(Dispatchers.Main) { onReady(quick) }
+                // 2. Let the music start before the heavy part.
+                delay(2500)
+            }
+            // 3. The real library (and the full-size cover); the song keeps playing meanwhile.
             YtLibrary.ensureCovers(appContext)
             refreshYouTubeLibrary()
         }

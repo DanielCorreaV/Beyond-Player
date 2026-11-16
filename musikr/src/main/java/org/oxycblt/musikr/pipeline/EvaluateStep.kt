@@ -24,7 +24,10 @@ import org.oxycblt.musikr.BuildConfig
 import org.oxycblt.musikr.Config
 import org.oxycblt.musikr.Interpretation
 import org.oxycblt.musikr.MutableLibrary
+import org.oxycblt.musikr.RemoteSong
 import org.oxycblt.musikr.RemoteSongs
+import org.oxycblt.musikr.Song
+
 import org.oxycblt.musikr.toRawSong
 
 import org.oxycblt.musikr.graph.MusicGraph
@@ -38,6 +41,10 @@ internal interface EvaluateStep {
         extractedMusic: Channel<Extracted>,
         onPartial: (suspend (MutableLibrary) -> Unit)? = null,
     ): MutableLibrary
+
+    /** A one-song library built in a few milliseconds, to play a remote song right away. */
+    suspend fun quickSong(remote: RemoteSong): Song?
+
 
     companion object {
         fun new(context: Context, config: Config, interpretation: Interpretation): EvaluateStep =
@@ -70,6 +77,15 @@ private class EvaluateStepImpl(
     private val storedPlaylists: StoredPlaylists,
     private val libraryFactory: LibraryFactory,
 ) : EvaluateStep {
+    override suspend fun quickSong(remote: RemoteSong): Song? {
+        val builder = MusicGraph.builder()
+        builder.add(tagInterpreter.interpret(remote.toRawSong()))
+        return libraryFactory
+            .create(builder.build(), storedPlaylists, playlistInterpreter)
+            .songs
+            .firstOrNull()
+    }
+
     override suspend fun evaluate(
         extractedMusic: Channel<Extracted>,
         onPartial: (suspend (MutableLibrary) -> Unit)?,
