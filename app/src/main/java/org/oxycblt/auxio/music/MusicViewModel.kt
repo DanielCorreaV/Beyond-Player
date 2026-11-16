@@ -135,7 +135,7 @@ constructor(
             // Added before covers existed: fetch it in the background and refresh.
             if (it.cover == null) {
                 viewModelScope.launch(Dispatchers.IO) {
-                    if (YtLibrary.ensureCovers(appContext)) musicRepository.requestIndex(true)
+                    if (YtLibrary.ensureCovers(appContext)) refreshYouTubeLibrary()
                 }
             }
             return
@@ -147,9 +147,14 @@ constructor(
         // without it.
         viewModelScope.launch(Dispatchers.IO) {
             YtLibrary.ensureCovers(appContext)
-            musicRepository.requestIndex(true)
+            refreshYouTubeLibrary()
         }
 
+    }
+
+    /** Rebuild from the saved cache (fast); a full scan only when there is no cache yet. */
+    private suspend fun refreshYouTubeLibrary() {
+        if (!musicRepository.refreshFromCache()) musicRepository.requestIndex(true)
     }
 
     private fun findYouTubeSong(videoId: String): Song? =

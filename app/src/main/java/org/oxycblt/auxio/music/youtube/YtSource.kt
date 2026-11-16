@@ -55,6 +55,9 @@ interface YtSource {
 
     /** Pick the best direct audio stream, preferring m4a. Blocking. */
     fun resolveAudio(videoId: String): YtAudio
+
+    /** Just the stream address, as fast as possible, for playing. Falls back to [resolveAudio]. */
+    fun resolveStream(videoId: String): YtAudio = resolveAudio(videoId)
 }
 
 /** Reads the album and year out of the description YouTube generates for official uploads. */

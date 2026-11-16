@@ -65,9 +65,15 @@ class NewPipeYtSource : YtSource {
         // Looks up (and remembers) the YouTube Music version that the first search needs.
         runCatching { YoutubeParsingHelper.getYoutubeMusicClientVersion() }
             .onFailure { L.w(it, "YT warm-up failed") }
+        runCatching { YtFastResolve.visitorData() }
+
     }
 
+    override fun resolveStream(videoId: String): YtAudio =
+        YtFastResolve.tryResolve(videoId) ?: resolveAudio(videoId)
+
     override fun resolveAudio(videoId: String): YtAudio {
+
         ensureInitialized()
         try {
             val info = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$videoId")

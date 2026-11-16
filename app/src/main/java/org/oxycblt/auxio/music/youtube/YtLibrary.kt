@@ -19,7 +19,16 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.CacheWriter
 import androidx.media3.datasource.cache.SimpleCache
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+
 
 import android.util.Log
 import java.io.File
@@ -32,7 +41,10 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutionException
+
 import org.json.JSONArray
 import org.json.JSONObject
 import org.oxycblt.musikr.RemoteSong
@@ -55,7 +67,12 @@ object YtLibrary {
             file = File(app.filesDir, "yt_library.json")
             entries = read(file!!)
         }
+        // Get YouTube's visitor id ready now so the first song you tap does not wait for it.
+        if (entries.isNotEmpty()) {
+            Thread { runCatching { YtFastResolve.visitorData() } }.start()
+        }
         RemoteSongs.provider = {
+
             val snapshot = synchronized(lock) { entries }
             snapshot
                 // A song you downloaded is a real file in the library: don't list it twice.
@@ -200,6 +217,8 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
         private const val URL_TTL_MS = 20 * 60 * 1000L
         private val source = NewPipeYtSource()
         private val urls = ConcurrentHashMap<String, Pair<String, Long>>()
+        private val inflight = ConcurrentHashMap<String, CompletableFuture<String>>()
+
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         private fun idOf(uri: Uri) = uri.toString().removePrefix("yt://")
@@ -212,9 +231,31 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
             fresh(id)?.let {
                 return it
             }
+            // One lookup per song at a time: the tap, the player and the cache filler often ask
+            // together, and each extra lookup only slows the others down.
+            val mine = CompletableFuture<String>()
+            val other = inflight.putIfAbsent(id, mine)
+            if (other != null) {
+                try {
+                    return other.get()
+                } catch (e: ExecutionException) {
+                    throw (e.cause as? Exception) ?: e
+                }
+            }
             val started = SystemClock.elapsedRealtime()
-            val url = source.resolveAudio(id).url
-            urls[id] = url to SystemClock.elapsedRealtime() + URL_TTL_MS
+            val url =
+                try {
+                    source.resolveStream(id).url.also {
+                        urls[id] = it to SystemClock.elapsedRealtime() + URL_TTL_MS
+                        mine.complete(it)
+                    }
+                } catch (e: Exception) {
+                    mine.completeExceptionally(e)
+                    throw e
+                } finally {
+                    inflight.remove(id)
+                }
+
             android.util.Log.d("YtStream", "YT stream $id resolved in ${SystemClock.elapsedRealtime() - started} ms")
             return url
         }
@@ -246,6 +287,65 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
 object YtAudioCache {
     private const val MAX_BYTES = 512L * 1024 * 1024
     @Volatile private var cache: SimpleCache? = null
+
+    private val fillScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val fillSlots = Semaphore(2)
+    private val filling = ConcurrentHashMap<String, Job>()
+    private val writers = ConcurrentHashMap<String, CacheWriter>()
+
+    /**
+     * Keep exactly these songs being saved in full, in the background; any other fill stops. With
+     * the whole song on disk, losing the connection in the middle no longer cuts it off.
+     */
+    fun keepFilled(context: Context, uris: List<Uri>) {
+        val wanted = uris.filter { it.scheme == "yt" }.map { it.toString().removePrefix("yt://") }
+        for ((id, job) in filling) {
+            if (id !in wanted) {
+                job.cancel()
+                writers[id]?.cancel()
+                filling.remove(id)
+            }
+        }
+        for (id in wanted) {
+            if (filling.containsKey(id)) continue
+            val job =
+                fillScope.launch(start = CoroutineStart.LAZY) {
+                    try {
+                        fillSlots.withPermit { fillOne(context.applicationContext, id) }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.d("YtStream", "YT cache $id not completed: ${e.message}")
+                    } finally {
+                        filling.remove(id)
+                    }
+                }
+            filling[id] = job
+            job.start()
+        }
+    }
+
+    /** Downloads what is missing of one song into the cache. Blocking. */
+    private fun fillOne(context: Context, id: String) {
+        val started = SystemClock.elapsedRealtime()
+        val url = YtStreamResolver.resolve(id)
+        val upstream =
+            CacheDataSource.Factory()
+                .setCache(get(context))
+                .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory())
+                .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                .createDataSource()
+        val spec = DataSpec.Builder().setUri(Uri.parse(url)).setKey("yt-$id").build()
+        val writer = CacheWriter(upstream, spec, null, null)
+        writers[id] = writer
+        try {
+            writer.cache()
+            Log.d("YtStream", "YT cache $id complete (${SystemClock.elapsedRealtime() - started} ms)")
+        } finally {
+            writers.remove(id)
+        }
+    }
+
 
     fun get(context: Context): SimpleCache =
         cache

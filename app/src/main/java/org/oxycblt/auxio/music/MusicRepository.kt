@@ -183,6 +183,13 @@ interface MusicRepository {
     fun requestIndex(withCache: Boolean)
 
     /**
+     * Rebuild the library from the saved cache only, without scanning the files: much faster than
+     * [requestIndex]. Used when only the YouTube songs changed. Returns false when there is no
+     * saved cache yet (do a normal [requestIndex] then).
+     */
+    suspend fun refreshFromCache(): Boolean
+
+    /**
      * Load the music library. Any prior loads will be canceled.
      *
      * @param worker The [IndexingWorker] to perform the work with.
@@ -385,6 +392,26 @@ constructor(
         L.d("Requesting index operation [cache=$withCache]")
         indexingWorker?.requestIndex(withCache)
     }
+
+    override suspend fun refreshFromCache(): Boolean {
+        val start = android.os.SystemClock.elapsedRealtime()
+        return try {
+            val config = savedConfig() ?: return false
+            val result = Musikr.new(context, config).runCached(null) ?: return false
+            emitLibrary(result.library, false)
+            android.util.Log.i(
+                "AuxioPerf",
+                "refresh from cache: ${android.os.SystemClock.elapsedRealtime() - start}ms",
+            )
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            L.w("Could not refresh from the saved library: $e")
+            false
+        }
+    }
+
 
     override suspend fun index(worker: IndexingWorker, withCache: Boolean) {
         L.d("Begin index [cache=$withCache]")

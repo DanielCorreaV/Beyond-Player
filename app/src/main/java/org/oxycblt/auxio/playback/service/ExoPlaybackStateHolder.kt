@@ -28,6 +28,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import org.oxycblt.auxio.music.youtube.StreamLoss
+import org.oxycblt.auxio.music.youtube.YtAudioCache
+
 import org.oxycblt.auxio.music.youtube.YtStreamResolver
 
 import androidx.media3.common.PlaybackParameters
@@ -651,9 +653,14 @@ class ExoPlaybackStateHolder(
     }
 
     private fun prefetchNextStream() {
-        val next = player.nextMediaItemIndex
-        if (next < 0) return
-        player.getMediaItemAt(next).localConfiguration?.uri?.let { YtStreamResolver.prefetch(it) }
+        // The current and the next YouTube songs: stream address ready, and saved in full.
+        val uris = buildList {
+            player.currentMediaItem?.localConfiguration?.uri?.let { add(it) }
+            val next = player.nextMediaItemIndex
+            if (next >= 0) player.getMediaItemAt(next).localConfiguration?.uri?.let { add(it) }
+        }
+        uris.forEach { YtStreamResolver.prefetch(it) }
+        YtAudioCache.keepFilled(context, uris)
     }
 
     private var retriedStream: android.net.Uri? = null
