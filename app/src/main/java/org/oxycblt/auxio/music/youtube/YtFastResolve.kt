@@ -24,12 +24,14 @@ import timber.log.Timber as L
 
 /**
  * The quick way to get the stream address of a song for playing it: two small requests instead of
- * the ten that a full NewPipe lookup makes. It borrows the client description, user agent and
- * helper functions from NewPipe, so NewPipe updates keep it current. When it fails the caller falls
- * back to the full lookup.
+ * the ten that a full NewPipe lookup makes. It asks YouTube as the visionOS app, the client that
+ * answers with direct audio addresses, borrowing the client description, user agent and helper
+ * functions from NewPipe so NewPipe updates keep it current. When it fails the caller falls back to
+ * the full lookup.
  */
 internal object YtFastResolve {
-    private const val BASE = "https://youtubei.googleapis.com/youtubei/v1/"
+    private const val BASE_WWW = "https://www.youtube.com/youtubei/v1/"
+    private const val BASE_GAPIS = "https://youtubei.googleapis.com/youtubei/v1/"
     private const val VISITOR_TTL_MS = 6 * 60 * 60 * 1000L
     private const val PAUSE_MS = 10 * 60 * 1000L
     private const val MAX_FAILURES = 3
@@ -67,7 +69,7 @@ internal object YtFastResolve {
         visitor?.takeIf { it.second > now }?.let {
             return it.first
         }
-        val response = post(BASE + "visitor_id?prettyPrint=false", requestBody(null))
+        val response = post(BASE_WWW + "visitor_id?prettyPrint=false", requestBody(null))
         val data = JSONObject(response).getJSONObject("responseContext").getString("visitorData")
         visitor = data to SystemClock.elapsedRealtime() + VISITOR_TTL_MS
         return data
@@ -75,41 +77,42 @@ internal object YtFastResolve {
 
     private fun resolve(videoId: String): YtAudio {
         val cpn = YoutubeParsingHelper.generateContentPlaybackNonce()
-        val body = requestBody(visitorData())
-        body.put(
-            "playerRequest",
-            JSONObject()
+        val body =
+            requestBody(visitorData())
                 .put("videoId", videoId)
                 .put("cpn", cpn)
                 .put("contentCheckOk", true)
-                .put("racyCheckOk", true),
-        )
-        body.put("disablePlayerResponse", false)
+                .put("racyCheckOk", true)
         val url =
-            BASE +
-                "reel/reel_item_watch?prettyPrint=false&t=" +
+            BASE_GAPIS +
+                "player?prettyPrint=false&t=" +
                 YoutubeParsingHelper.generateTParameter() +
                 "&id=" +
-                videoId +
-                "&\$fields=playerResponse"
-        val player = JSONObject(post(url, body)).getJSONObject("playerResponse")
-        val status = player.optJSONObject("playabilityStatus")?.optString("status")
-        if (status != null && status.isNotEmpty() && !status.equals("ok", ignoreCase = true)) {
-            throw YtException("Not playable ($status): $videoId")
+                videoId
+        val player = JSONObject(post(url, body))
+        val status = player.optJSONObject("playabilityStatus")?.optString("status").orEmpty()
+        if (status.isNotEmpty() && !status.equals("ok", ignoreCase = true)) {
+            throw YtException("Not playable (status=$status): $videoId")
         }
-        val formats: JSONArray = player.getJSONObject("streamingData").getJSONArray("adaptiveFormats")
+        val streamingData =
+            player.optJSONObject("streamingData")
+                ?: throw YtException("No streamingData (status=$status) for $videoId")
+        val formats: JSONArray = streamingData.optJSONArray("adaptiveFormats") ?: JSONArray()
+        val all = (0 until formats.length()).map { formats.getJSONObject(it) }
         val audio =
-            (0 until formats.length())
-                .map { formats.getJSONObject(it) }
-                .filter {
-                    it.optString("mimeType").startsWith("audio/") && it.optString("url").isNotEmpty()
-                }
+            all.filter {
+                it.optString("mimeType").startsWith("audio/") && it.optString("url").isNotEmpty()
+            }
         val best =
             audio
                 .filter { it.optString("mimeType").startsWith("audio/mp4") }
                 .maxByOrNull { it.optInt("bitrate") }
                 ?: audio.maxByOrNull { it.optInt("bitrate") }
-                ?: throw YtException("No direct audio stream for $videoId")
+                ?: throw YtException(
+                    "No direct audio stream for $videoId (status=$status, formats=${all.size}, " +
+                        "audio=${all.count { it.optString("mimeType").startsWith("audio/") }}, " +
+                        "withUrl=${all.count { it.has("url") }})"
+                )
         val streamUrl = best.getString("url")
         // Addresses that need the "n" parameter decoded are throttled: leave those to NewPipe.
         if (Regex("[?&]n=").containsMatchIn(streamUrl)) {
@@ -124,9 +127,9 @@ internal object YtFastResolve {
         )
     }
 
-    /** The "who is asking" part of the request, copied from what NewPipe sends as the Android app. */
+    /** The "who is asking" part of the request, copied from what NewPipe sends as the visionOS app. */
     private fun requestBody(visitorData: String?): JSONObject {
-        val info = InnertubeClientRequestInfo.ofAndroidClient()
+        val info = InnertubeClientRequestInfo.ofVisionOsClient()
         val client =
             JSONObject()
                 .put("clientName", info.clientInfo.clientName)
@@ -134,6 +137,8 @@ internal object YtFastResolve {
         info.clientInfo.clientScreen?.let { client.put("clientScreen", it) }
         info.deviceInfo.platform?.let { client.put("platform", it) }
         visitorData?.let { client.put("visitorData", it) }
+        info.deviceInfo.deviceMake?.let { client.put("deviceMake", it) }
+        info.deviceInfo.deviceModel?.let { client.put("deviceModel", it) }
         info.deviceInfo.osName?.let { client.put("osName", it) }
         info.deviceInfo.osVersion?.let { client.put("osVersion", it) }
         if (info.deviceInfo.androidSdkVersion > 0) {
@@ -165,7 +170,7 @@ internal object YtFastResolve {
             conn.doOutput = true
             conn.setRequestProperty(
                 "User-Agent",
-                YoutubeParsingHelper.getAndroidUserAgent(Localization.DEFAULT),
+                YoutubeParsingHelper.getVisionOsUserAgent(Localization.DEFAULT),
             )
             conn.setRequestProperty("X-Goog-Api-Format-Version", "2")
             conn.setRequestProperty("Content-Type", "application/json")

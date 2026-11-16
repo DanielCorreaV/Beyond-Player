@@ -26,6 +26,8 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import org.oxycblt.auxio.music.youtube.YtAudioCache
+import org.oxycblt.auxio.music.youtube.YtNetLog
+
 
 
 import androidx.media3.datasource.DataSource
@@ -71,7 +73,7 @@ class SystemModule {
                 // Only network traffic (YouTube) goes through the disk cache; local files don't.
                 CacheDataSource.Factory()
                     .setCache(YtAudioCache.get(context))
-                    .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory())
+                    .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory().setTransferListener(YtNetLog))
                     .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR),
             ),
             ytResolver,

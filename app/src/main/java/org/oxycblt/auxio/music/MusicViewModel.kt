@@ -128,7 +128,13 @@ constructor(
     fun addYouTubeSong(track: YtTrack, onReady: (Song) -> Unit) {
         YtLibrary.add(track)
         // Ask YouTube for the stream address right now, while the library refreshes.
-        YtStreamResolver.prefetch(Uri.parse("yt://${track.videoId}"))
+        // A song that is new to the library has a wait ahead (the rebuild): use it to save the
+        // first seconds too.
+        YtStreamResolver.prefetch(
+            Uri.parse("yt://${track.videoId}"),
+            head = findYouTubeSong(track.videoId) == null,
+        )
+
 
         findYouTubeSong(track.videoId)?.let {
             onReady(it)

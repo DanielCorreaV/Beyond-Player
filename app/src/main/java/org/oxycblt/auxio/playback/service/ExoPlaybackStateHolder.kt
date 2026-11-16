@@ -603,7 +603,20 @@ class ExoPlaybackStateHolder(
 
     override fun onPlaybackStateChanged(playbackState: Int) {
         super.onPlaybackStateChanged(playbackState)
-        if (playbackState == Player.STATE_READY) retriedStream = null
+        if (playbackState == Player.STATE_READY) {
+            retriedStream = null
+            if (transitionAtMs != 0L) {
+                if (player.currentMediaItem?.localConfiguration?.uri?.scheme == "yt") {
+                    android.util.Log.d(
+                        "YtStream",
+                        "YT play: ready ${android.os.SystemClock.elapsedRealtime() - transitionAtMs} ms after the song was selected",
+                    )
+                }
+                transitionAtMs = 0L
+            }
+            fillStreams()
+        }
+
 
 
         if (playbackState == Player.STATE_ENDED && player.repeatMode == Player.REPEAT_MODE_OFF) {
@@ -617,7 +630,9 @@ class ExoPlaybackStateHolder(
         super.onMediaItemTransition(mediaItem, reason)
         // A new song: drop any lost-connection countdown and get the next YouTube song ready.
         StreamLoss.clear()
+        transitionAtMs = android.os.SystemClock.elapsedRealtime()
         prefetchNextStream()
+
 
 
                 crossfade.onTransition()
@@ -652,16 +667,25 @@ class ExoPlaybackStateHolder(
         }
     }
 
-    private fun prefetchNextStream() {
-        // The current and the next YouTube songs: stream address ready, and saved in full.
-        val uris = buildList {
-            player.currentMediaItem?.localConfiguration?.uri?.let { add(it) }
-            val next = player.nextMediaItemIndex
-            if (next >= 0) player.getMediaItemAt(next).localConfiguration?.uri?.let { add(it) }
-        }
-        uris.forEach { YtStreamResolver.prefetch(it) }
-        YtAudioCache.keepFilled(context, uris)
+    private fun streamUris(): List<android.net.Uri> = buildList {
+        // The current and the next songs of the queue.
+        player.currentMediaItem?.localConfiguration?.uri?.let { add(it) }
+        val next = player.nextMediaItemIndex
+        if (next >= 0) player.getMediaItemAt(next).localConfiguration?.uri?.let { add(it) }
     }
+
+    private fun prefetchNextStream() {
+        // Stream address ready early for the current and the next YouTube songs.
+        // Index 1 is the next song: its first seconds are saved too.
+        streamUris().forEachIndexed { i, uri -> YtStreamResolver.prefetch(uri, head = i == 1) }
+    }
+
+    /** Called once the song is playing, so saving it in full never slows down its own start. */
+    private fun fillStreams() {
+        YtAudioCache.keepFilled(context, streamUris())
+    }
+
+    private var transitionAtMs = 0L
 
     private var retriedStream: android.net.Uri? = null
 

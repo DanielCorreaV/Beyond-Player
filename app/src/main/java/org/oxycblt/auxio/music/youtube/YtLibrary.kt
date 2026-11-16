@@ -21,7 +21,11 @@ import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheWriter
+import androidx.media3.datasource.cache.ContentMetadata
+
 import androidx.media3.datasource.cache.SimpleCache
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
@@ -203,6 +207,14 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
     override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
         if (dataSpec.uri.scheme != "yt") return dataSpec
         val id = dataSpec.uri.toString().removePrefix("yt://")
+        android.util.Log.d("YtStream", "YT open $id: position=${dataSpec.position} length=${dataSpec.length}")
+        // The whole song is already on disk: no lookup needed (instant, and works offline).
+        if (YtAudioCache.isFullyCached(id, dataSpec.position)) {
+            android.util.Log.d("YtStream", "YT open $id: from the disk cache")
+            return dataSpec.buildUpon().setKey("yt-$id").build()
+        }
+
+
         val url =
             try {
                 resolve(id)
@@ -261,13 +273,17 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
         }
 
         /** Resolve a yt:// song in the background so that playing it later starts at once. */
-        fun prefetch(uri: Uri) {
+        fun prefetch(uri: Uri, head: Boolean = false) {
             if (uri.scheme != "yt") return
             val id = idOf(uri)
-            if (fresh(id) != null) return
+            if (YtAudioCache.isFullyCached(id, 0)) return
+            if (fresh(id) != null && !head) return
             scope.launch {
                 try {
-                    resolve(id)
+                    val url = resolve(id)
+                    // The first seconds go to the disk cache too, so starting the song later needs
+                    // no network round trip.
+                    if (head) YtAudioCache.fillHead(id, url)
                 } catch (e: Exception) {
                     // The player will try again, and report the problem, when it opens the song.
                 }
@@ -282,6 +298,37 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
     }
 }
 
+/** Timing of the player's own downloads (log only): how long connecting and the first bytes take. */
+@OptIn(UnstableApi::class)
+object YtNetLog : TransferListener {
+    @Volatile private var initAt = 0L
+    @Volatile private var firstDone = true
+
+    override fun onTransferInitializing(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+        if (!isNetwork) return
+        initAt = SystemClock.elapsedRealtime()
+        firstDone = false
+    }
+
+    override fun onTransferStart(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+        if (!isNetwork) return
+        Log.d("YtStream", "YT net: connected in ${SystemClock.elapsedRealtime() - initAt} ms")
+    }
+
+    override fun onBytesTransferred(
+        source: DataSource,
+        dataSpec: DataSpec,
+        isNetwork: Boolean,
+        bytesTransferred: Int,
+    ) {
+        if (!isNetwork || firstDone) return
+        firstDone = true
+        Log.d("YtStream", "YT net: first bytes after ${SystemClock.elapsedRealtime() - initAt} ms")
+    }
+
+    override fun onTransferEnd(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {}
+}
+
 /** The disk cache of streamed audio: replaying a song costs no data. */
 @OptIn(UnstableApi::class)
 object YtAudioCache {
@@ -292,6 +339,44 @@ object YtAudioCache {
     private val fillSlots = Semaphore(2)
     private val filling = ConcurrentHashMap<String, Job>()
     private val writers = ConcurrentHashMap<String, CacheWriter>()
+
+    private const val HEAD_BYTES = 256L * 1024
+
+    /** True when the whole song is on disk from [position] on, so nothing needs the network. */
+    fun isFullyCached(id: String, position: Long): Boolean {
+        val c = cache ?: return false
+        val key = "yt-$id"
+        val length = ContentMetadata.getContentLength(c.getContentMetadata(key))
+        return length > 0 && position < length && c.isCached(key, position, length - position)
+    }
+
+    /** Saves the first seconds of a song into the cache, so starting it later needs no network. */
+    fun fillHead(id: String, url: String) {
+        val c = cache ?: return
+        val key = "yt-$id"
+        if (c.isCached(key, 0, HEAD_BYTES)) return
+        val started = SystemClock.elapsedRealtime()
+        val upstream =
+            CacheDataSource.Factory()
+                .setCache(c)
+                .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory())
+                .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                .createDataSource()
+        val spec =
+            DataSpec.Builder()
+                .setUri(Uri.parse(url))
+                .setKey(key)
+                .setPosition(0)
+                .setLength(HEAD_BYTES)
+                .build()
+        try {
+            CacheWriter(upstream, spec, null, null).cache()
+            Log.d("YtStream", "YT head $id saved (${SystemClock.elapsedRealtime() - started} ms)")
+        } catch (e: Exception) {
+            Log.d("YtStream", "YT head $id not saved: ${e.message}")
+        }
+    }
+
 
     /**
      * Keep exactly these songs being saved in full, in the background; any other fill stops. With
