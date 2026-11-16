@@ -18,6 +18,9 @@
  
 package org.oxycblt.auxio.home
 
+import org.oxycblt.auxio.music.youtube.showStreamingCloud
+
+
 import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
@@ -59,6 +62,8 @@ class NeonRecentAdapter(private val onClick: (Song) -> Unit) :
         holder.cover.bind(song)
         holder.title.text = song.name.resolve(context)
         holder.subtitle.text = song.artists.resolveNames(context)
+        holder.subtitle.showStreamingCloud(song)
+
         holder.itemView.setOnClickListener { onClick(song) }
     }
 

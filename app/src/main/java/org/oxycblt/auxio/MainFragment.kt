@@ -67,6 +67,9 @@ import org.oxycblt.auxio.ui.UISettings
 import org.oxycblt.auxio.ui.ViewBindingFragment
 import org.oxycblt.auxio.util.collect
 import org.oxycblt.auxio.util.collectImmediately
+import com.google.android.material.snackbar.Snackbar
+import org.oxycblt.auxio.music.youtube.StreamLoss
+
 import org.oxycblt.auxio.util.context
 import org.oxycblt.auxio.util.coordinatorLayoutBehavior
 import org.oxycblt.auxio.util.getAttrColorCompat
@@ -236,6 +239,8 @@ class MainFragment :
         collectImmediately(musicModel.indexingState, ::updateIndexerState)
         collectImmediately(musicModel.youTubeImporting, ::updateYouTubeImporting)
         collectImmediately(musicModel.youTubeProgress, ::updateYouTubeProgress)
+        collectImmediately(StreamLoss.countdown, ::handleStreamLoss)
+
         collect(musicModel.youTubeImportResult.flow, ::handleYouTubeResult)
         collectImmediately(listModel.selected, selectionBackCallback::invalidateEnabled)
         collectImmediately(playbackModel.song, ::updateSong)
@@ -460,7 +465,29 @@ class MainFragment :
         binding.root.findViewById<AppBarLayout>(R.id.home_appbar)?.setExpanded(true, true)
     }
 
+    private var streamLossBar: Snackbar? = null
+
+    /** Connection lost while streaming: count down to the next song, with a way to stay put. */
+    private fun handleStreamLoss(left: Int?) {
+        if (left == null) {
+            streamLossBar?.dismiss()
+            streamLossBar = null
+            return
+        }
+        val text = getString(R.string.fmt_yt_connection_lost, left)
+        val bar =
+            streamLossBar
+                ?: Snackbar.make(requireBinding().root, text, Snackbar.LENGTH_INDEFINITE)
+                    .setAction(R.string.lbl_yt_cancel) { StreamLoss.cancel() }
+                    .also {
+                        streamLossBar = it
+                        it.show()
+                    }
+        bar.setText(text)
+    }
+
     private fun updateYouTubeImporting(importing: Boolean) {
+
         if (importing) {
             if (youTubeProgressDialog == null) {
                 youTubeProgressDialog = YouTubeImportDialogs.showProgressDialog(requireContext())

@@ -27,6 +27,9 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
+import org.oxycblt.auxio.music.youtube.StreamLoss
+import org.oxycblt.auxio.music.youtube.YtStreamResolver
+
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.audio.AudioProcessor
@@ -287,7 +290,12 @@ class ExoPlaybackStateHolder(
     }
 
     override fun playing(playing: Boolean) {
+        // After a lost connection the player sits idle: pressing play tries the stream again.
+        if (playing && player.playbackState == Player.STATE_IDLE && player.mediaItemCount > 0) {
+            player.prepare()
+        }
         player.playWhenReady = playing
+
     }
 
     override fun boost(on: Boolean) {
@@ -593,6 +601,8 @@ class ExoPlaybackStateHolder(
 
     override fun onPlaybackStateChanged(playbackState: Int) {
         super.onPlaybackStateChanged(playbackState)
+        if (playbackState == Player.STATE_READY) retriedStream = null
+
 
         if (playbackState == Player.STATE_ENDED && player.repeatMode == Player.REPEAT_MODE_OFF) {
             goto(0)
@@ -603,6 +613,10 @@ class ExoPlaybackStateHolder(
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         super.onMediaItemTransition(mediaItem, reason)
+        // A new song: drop any lost-connection countdown and get the next YouTube song ready.
+        StreamLoss.clear()
+        prefetchNextStream()
+
 
                 crossfade.onTransition()
         bundle.dynamics.onSongChanged()
@@ -636,11 +650,45 @@ class ExoPlaybackStateHolder(
         }
     }
 
+    private fun prefetchNextStream() {
+        val next = player.nextMediaItemIndex
+        if (next < 0) return
+        player.getMediaItemAt(next).localConfiguration?.uri?.let { YtStreamResolver.prefetch(it) }
+    }
+
+    private var retriedStream: android.net.Uri? = null
+
     override fun onPlayerError(error: PlaybackException) {
-        // TODO: Replace with no skipping and a notification instead
-        // If there's any issue, just go to the next song.
         L.e("Player error occurred")
         L.e(error.stackTraceToString())
+        val uri = player.currentMediaItem?.localConfiguration?.uri
+        if (uri != null && uri.scheme == "yt") {
+            // The stream address of a YouTube song expires: after a long pause, get a new one once.
+            if (
+                error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS &&
+                    retriedStream != uri
+            ) {
+                retriedStream = uri
+                YtStreamResolver.invalidate(uri)
+                player.prepare()
+                return
+            }
+            // Connection lost: warn and count down instead of skipping silently. If the song was
+            // paused anyway there is nothing to skip; pressing play tries again.
+            if (player.playWhenReady) {
+                StreamLoss.start(
+                    timerScope,
+                    3,
+                    onTimeout = {
+                        player.prepare()
+                        playbackManager.next()
+                    },
+                    onCancel = { player.playWhenReady = false },
+                )
+            }
+            return
+        }
+        // If there's any issue with a local song, just go to the next one.
         player.prepare()
         playbackManager.next()
     }

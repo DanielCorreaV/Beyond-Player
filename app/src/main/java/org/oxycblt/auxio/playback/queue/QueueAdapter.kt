@@ -18,6 +18,9 @@
  
 package org.oxycblt.auxio.playback.queue
 
+import org.oxycblt.auxio.music.youtube.showStreamingCloud
+
+
 import android.annotation.SuppressLint
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
@@ -160,6 +163,8 @@ class QueueSongViewHolder private constructor(private val binding: ItemQueueSong
         binding.songAlbumCover.bind(song)
         binding.songName.text = song.name.resolve(binding.context)
         binding.songInfo.text = song.artists.resolveNames(binding.context)
+        binding.songInfo.showStreamingCloud(song)
+
         // Not swiping this ViewHolder if it's being re-bound, ensure that the background is
         // not visible. See QueueDragCallback for why this is done.
         binding.background.isInvisible = true

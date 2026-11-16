@@ -41,6 +41,20 @@ import org.oxycblt.auxio.databinding.ItemSongBinding
 import org.oxycblt.auxio.list.BasicHeader
 import org.oxycblt.auxio.list.PlainDivider
 
+/** Marks a row of a streamed song (not on the phone) with the small cloud before the text. */
+fun android.widget.TextView.showStreamingCloud(song: org.oxycblt.musikr.Song) {
+    if (song.uri.scheme != "yt") {
+        setCompoundDrawablesRelative(null, null, null, null)
+        return
+    }
+    AppCompatResources.getDrawable(context, R.drawable.ic_yt_cloud_24)?.mutate()?.let {
+        val size = (14 * resources.displayMetrics.density).toInt()
+        it.setBounds(0, 0, size, size)
+        setCompoundDrawablesRelative(it, null, null, null)
+        compoundDrawablePadding = size / 2
+    }
+}
+
 /** The header that opens the YouTube Music part of the search results. */
 val YT_HEADER = BasicHeader(R.string.lbl_youtube_music)
 

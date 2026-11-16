@@ -18,6 +18,9 @@
  
 package org.oxycblt.auxio.detail.list
 
+import org.oxycblt.auxio.music.youtube.showStreamingCloud
+
+
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import org.oxycblt.auxio.IntegerTable
@@ -159,6 +162,8 @@ private class ArtistSongViewHolder private constructor(private val binding: Item
         binding.songAlbumCover.bind(song)
         binding.songName.text = song.name.resolve(binding.context)
         binding.songInfo.text = song.album.name.resolve(binding.context)
+        binding.songInfo.showStreamingCloud(song)
+
     }
 
     override fun updatePlayingIndicator(isActive: Boolean, isPlaying: Boolean) {

@@ -21,7 +21,13 @@ import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 
+import android.util.Log
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -175,26 +181,63 @@ object YtLibrary {
  */
 @OptIn(UnstableApi::class)
 class YtStreamResolver : ResolvingDataSource.Resolver {
-    private val source = NewPipeYtSource()
-    private val urls = ConcurrentHashMap<String, Pair<String, Long>>()
+    
 
     override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
         if (dataSpec.uri.scheme != "yt") return dataSpec
         val id = dataSpec.uri.toString().removePrefix("yt://")
-        val now = SystemClock.elapsedRealtime()
-        val cached = urls[id]?.takeIf { it.second > now }?.first
         val url =
-            cached
-                ?: try {
-                    source.resolveAudio(id).url.also { urls[id] = it to now + URL_TTL_MS }
-                } catch (e: Exception) {
-                    throw IOException("YouTube: could not open $id (${e.message})", e)
-                }
+            try {
+                resolve(id)
+            } catch (e: Exception) {
+                throw IOException("YouTube: could not open $id (${e.message})", e)
+            }
+
         return dataSpec.buildUpon().setUri(Uri.parse(url)).setKey("yt-$id").build()
     }
 
-    private companion object {
-        const val URL_TTL_MS = 20 * 60 * 1000L
+    companion object {
+        private const val URL_TTL_MS = 20 * 60 * 1000L
+        private val source = NewPipeYtSource()
+        private val urls = ConcurrentHashMap<String, Pair<String, Long>>()
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        private fun idOf(uri: Uri) = uri.toString().removePrefix("yt://")
+
+        private fun fresh(id: String) =
+            urls[id]?.takeIf { it.second > SystemClock.elapsedRealtime() }?.first
+
+        /** The real stream address of a song, from memory when it was resolved recently. */
+        fun resolve(id: String): String {
+            fresh(id)?.let {
+                return it
+            }
+            val started = SystemClock.elapsedRealtime()
+            val url = source.resolveAudio(id).url
+            urls[id] = url to SystemClock.elapsedRealtime() + URL_TTL_MS
+            android.util.Log.d("YtStream", "YT stream $id resolved in ${SystemClock.elapsedRealtime() - started} ms")
+            return url
+        }
+
+        /** Resolve a yt:// song in the background so that playing it later starts at once. */
+        fun prefetch(uri: Uri) {
+            if (uri.scheme != "yt") return
+            val id = idOf(uri)
+            if (fresh(id) != null) return
+            scope.launch {
+                try {
+                    resolve(id)
+                } catch (e: Exception) {
+                    // The player will try again, and report the problem, when it opens the song.
+                }
+            }
+        }
+
+        /** Forget a stream address that stopped working (expired). */
+        fun invalidate(uri: Uri) {
+            urls.remove(idOf(uri))
+        }
+
     }
 }
 

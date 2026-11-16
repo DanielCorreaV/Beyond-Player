@@ -5,4 +5,6 @@
     <string name="lbl_yt_download">Descargar</string>
     <string name="fmt_yt_queued">En cola: %1$s</string>
     <string name="fmt_yt_adding">Añadiendo a tu biblioteca: %1$s</string>
+    <string name="fmt_yt_connection_lost">Se perdió la conexión. Pasando a la siguiente en %1$d s</string>
+    <string name="lbl_yt_cancel">Cancelar</string>
 </resources>

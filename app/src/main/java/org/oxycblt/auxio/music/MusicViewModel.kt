@@ -41,6 +41,8 @@ import org.oxycblt.auxio.music.youtube.YouTubeLink
 import org.oxycblt.auxio.music.youtube.YouTubeLinkStore
 import org.oxycblt.auxio.music.youtube.YouTubePlaylistSyncer
 import org.oxycblt.auxio.music.youtube.YtLibrary
+import org.oxycblt.auxio.music.youtube.YtStreamResolver
+
 import org.oxycblt.auxio.music.youtube.YtTrack
 
 import org.oxycblt.auxio.music.youtube.parsePlaylistId
@@ -116,6 +118,8 @@ constructor(
         field = MutableStateFlow(false)
 
     private var pendingYt: Pair<String, (Song) -> Unit>? = null
+    private var pendingYtAt = 0L
+
 
     /**
      * Adds a YouTube song to the library (metadata only) and hands it over once the library
@@ -123,6 +127,9 @@ constructor(
      */
     fun addYouTubeSong(track: YtTrack, onReady: (Song) -> Unit) {
         YtLibrary.add(track)
+        // Ask YouTube for the stream address right now, while the library refreshes.
+        YtStreamResolver.prefetch(Uri.parse("yt://${track.videoId}"))
+
         findYouTubeSong(track.videoId)?.let {
             onReady(it)
             // Added before covers existed: fetch it in the background and refresh.
@@ -134,6 +141,8 @@ constructor(
             return
         }
         pendingYt = track.videoId to onReady
+        pendingYtAt = android.os.SystemClock.elapsedRealtime()
+
         // The cover has to be on disk before the library is rebuilt, or the song would show up
         // without it.
         viewModelScope.launch(Dispatchers.IO) {
@@ -175,6 +184,8 @@ constructor(
         if (changes.deviceLibrary && !changes.partial) {
             pendingYt?.let { (id, onReady) ->
                 pendingYt = null
+                L.d("YT tap->library: ${android.os.SystemClock.elapsedRealtime() - pendingYtAt} ms")
+
                 findYouTubeSong(id)?.let { song ->
                     viewModelScope.launch(Dispatchers.Main) { onReady(song) }
                 }
