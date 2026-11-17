@@ -293,6 +293,35 @@ class MainFragment :
         binding.homeNewPlaylistFab.setOnActionSelectedListener(null)
     }
 
+    /**
+     * The window does not resize for the keyboard, so it would cover the mini player. Lift the
+     * collapsed mini player by the keyboard height (above the navigation bar, which the sheet
+     * already reserves room for).
+     */
+    private fun liftAboveKeyboard(binding: FragmentMainBinding) {
+        val sheet = binding.playbackSheet
+        val behavior = sheet.coordinatorLayoutBehavior as? PlaybackBottomSheetBehavior
+        var lift = 0
+        if (behavior != null && behavior.state == BackportBottomSheetBehavior.STATE_COLLAPSED) {
+            val decor = requireActivity().window.decorView
+            val root = ViewCompat.getRootWindowInsets(decor)
+            val ime = root?.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime())?.bottom ?: 0
+            val nav =
+                root?.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())?.bottom
+                    ?: 0
+            lift = ime - nav
+            if (ime == 0) {
+                // No keyboard reported: check how much of the screen is not visible (old Android).
+                val frame = android.graphics.Rect()
+                decor.getWindowVisibleDisplayFrame(frame)
+                lift = decor.height - frame.bottom - nav
+                if (lift < 120 * decor.resources.displayMetrics.density) lift = 0
+            }
+            lift = max(lift, 0)
+        }
+        if (sheet.translationY != -lift.toFloat()) sheet.translationY = -lift.toFloat()
+    }
+
     override fun onPreDraw(): Boolean {
         // This is where I shove literally all the UI logic that won't behave any callback
         // or "normal" method I've tried. Surely running this on every frame will actually cause
@@ -302,6 +331,7 @@ class MainFragment :
         // listener functionality. Just update all transitions before every draw. Should
         // probably be cheap enough.
         val binding = requireBinding()
+        liftAboveKeyboard(binding)
         val playbackSheetBehavior =
             binding.playbackSheet.coordinatorLayoutBehavior as PlaybackBottomSheetBehavior
         val queueSheetBehavior =

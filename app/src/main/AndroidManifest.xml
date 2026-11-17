@@ -55,7 +55,7 @@
             android:launchMode="singleTask"
             android:allowCrossUidActivitySwitchFromBelow="false"
             android:roundIcon="@mipmap/ic_launcher"
-            android:windowSoftInputMode="adjustNothing">
+            android:windowSoftInputMode="adjustResize">
 
             <intent-filter>
                 <!--

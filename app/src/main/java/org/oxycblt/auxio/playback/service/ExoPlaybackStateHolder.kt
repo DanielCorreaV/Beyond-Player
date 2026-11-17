@@ -1057,6 +1057,13 @@ class ExoPlaybackStateHolder(
             val exoPlayer =
                 ExoPlayer.Builder(context, audioRenderer)
                     .setMediaSourceFactory(mediaSourceFactory)
+                    // Start with half a second buffered (default 2.5 s) so songs begin sooner.
+                    .setLoadControl(
+                        androidx.media3.exoplayer.DefaultLoadControl.Builder()
+                            .setBufferDurationsMs(50_000, 50_000, 500, 1_500)
+                            .build()
+                    )
+
                     // Enable automatic WakeLock support
                     .setWakeMode(C.WAKE_MODE_LOCAL)
                     // Signal that we are a music player.
