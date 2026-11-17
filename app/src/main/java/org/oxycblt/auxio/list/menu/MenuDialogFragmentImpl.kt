@@ -85,6 +85,24 @@ class SongMenuDialogFragment : MenuDialogFragment<Menu.ForSong>() {
             R.id.action_album_details -> detailModel.showAlbum(menu.song.album)
             R.id.action_share -> requireContext().share(menu.song)
             R.id.action_detail -> detailModel.showSong(menu.song)
+            R.id.action_yt_download -> {
+                val ctx = requireContext()
+                org.oxycblt.auxio.music.youtube.YtLibrary
+                    .trackOf(menu.song.uri.toString().removePrefix("yt://"))
+                    ?.let { track ->
+                        org.oxycblt.auxio.music.youtube.YtDownloadDialog
+                            .askNotificationPermission(ctx)
+                        org.oxycblt.auxio.music.youtube.YtDownloadService.enqueue(ctx, track)
+                        android.widget.Toast
+                            .makeText(
+                                ctx,
+                                ctx.getString(R.string.fmt_yt_queued, track.title),
+                                android.widget.Toast.LENGTH_SHORT,
+                            )
+                            .show()
+                    }
+            }
+
             else -> error("Unexpected menu item selected $item")
         }
     }

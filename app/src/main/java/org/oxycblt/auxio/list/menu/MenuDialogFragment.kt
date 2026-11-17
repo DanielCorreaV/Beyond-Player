@@ -117,6 +117,18 @@ abstract class MenuDialogFragment<M : Menu> :
         // depend on the AndroidX Toolbar internal API and hope for the best.
         @SuppressLint("RestrictedApi") val builder = MenuBuilder(requireContext())
         SupportMenuInflater(requireContext()).inflate(casted.res, builder)
+        // Streaming songs can be downloaded from their menu too.
+        if (casted is Menu.ForSong && casted.song.uri.scheme == "yt") {
+            builder
+                .add(
+                    0,
+                    org.oxycblt.auxio.R.id.action_yt_download,
+                    0,
+                    org.oxycblt.auxio.R.string.lbl_yt_download,
+                )
+                .setIcon(org.oxycblt.auxio.R.drawable.ic_download_24)
+        }
+
 
         // Disable any menu options as specified by the impl
         val disabledIds = getDisabledItemIds(casted)

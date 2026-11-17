@@ -18,6 +18,9 @@
  
 package org.oxycblt.auxio.playback
 
+import org.oxycblt.auxio.music.youtube.showStreamingCloud
+
+
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
 import android.os.Bundle
@@ -135,6 +138,8 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
         val binding = requireBinding()
         binding.playbackCover.bind(song)
         binding.playbackSong.text = song.name.resolve(context)
+        binding.playbackSong.showStreamingCloud(song)
+
         binding.playbackInfo.text = song.artists.resolveNames(context)
         binding.playbackProgressBar.max = song.durationMs.msToDs().toInt()
     }

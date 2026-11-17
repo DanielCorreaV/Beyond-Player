@@ -66,6 +66,8 @@ class NewPipeYtSource : YtSource {
         runCatching { YoutubeParsingHelper.getYoutubeMusicClientVersion() }
             .onFailure { L.w(it, "YT warm-up failed") }
         runCatching { YtFastResolve.visitorData() }
+        runCatching { YtFastResolve.warmConnection() }
+
 
     }
 

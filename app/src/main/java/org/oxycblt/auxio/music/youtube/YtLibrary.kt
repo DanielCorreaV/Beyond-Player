@@ -73,7 +73,11 @@ object YtLibrary {
         }
         // Get YouTube's visitor id ready now so the first song you tap does not wait for it.
         if (entries.isNotEmpty()) {
-            Thread { runCatching { YtFastResolve.visitorData() } }.start()
+            Thread {
+                    runCatching { YtFastResolve.visitorData() }
+                    runCatching { YtFastResolve.warmConnection() }
+                }
+                .start()
         }
         RemoteSongs.provider = {
 
@@ -103,6 +107,10 @@ object YtLibrary {
             write()
             true
         }
+
+    /** The stored track of a streaming song, or null. */
+    fun trackOf(videoId: String): YtTrack? =
+        synchronized(lock) { entries.firstOrNull { it.track.videoId == videoId }?.track }
 
     fun contains(videoId: String): Boolean =
         synchronized(lock) { entries.any { it.track.videoId == videoId } }
@@ -260,7 +268,22 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
                 throw IOException("YouTube: could not open $id (${e.message})", e)
             }
 
+        // Look the media server up now (and log how long it takes): the player needs it right after.
+        val host = Uri.parse(url).host
+        if (host != null) {
+            val dnsStarted = SystemClock.elapsedRealtime()
+            try {
+                java.net.InetAddress.getByName(host)
+            } catch (e: Exception) {
+                // The player will report it.
+            }
+            android.util.Log.d(
+                "YtStream",
+                "YT dns $host: ${SystemClock.elapsedRealtime() - dnsStarted} ms",
+            )
+        }
         return dataSpec.buildUpon().setUri(Uri.parse(url)).setKey("yt-$id").build()
+
     }
 
     companion object {

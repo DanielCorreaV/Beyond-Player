@@ -18,6 +18,9 @@
  
 package org.oxycblt.auxio.playback
 
+import org.oxycblt.auxio.music.youtube.showStreamingCloud
+
+
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.os.Build
@@ -442,6 +445,8 @@ class PlaybackPanelFragment :
         val context = requireContext()
         L.d("Updating song display: $song")
         binding.playbackSong.text = song.name.resolve(context)
+        binding.playbackSong.showStreamingCloud(song)
+
         binding.playbackArtist.text = song.artists.resolveNames(context)
         binding.playbackAlbum?.text = song.album.name.resolve(context)
         walkman?.let {

@@ -63,6 +63,24 @@ internal object YtFastResolve {
         }
     }
 
+    /**
+     * Opens (and keeps) the secure connection to the player server, so the first lookup skips the
+     * handshake. Blocking; errors are ignored.
+     */
+    fun warmConnection() {
+        try {
+            val conn = URL(BASE_GAPIS).openConnection() as HttpURLConnection
+            conn.requestMethod = "HEAD"
+            conn.connectTimeout = 5_000
+            conn.readTimeout = 5_000
+            conn.responseCode
+            // Closing the stream (not disconnecting) lets the connection go back to the pool.
+            (conn.errorStream ?: conn.inputStream)?.close()
+        } catch (e: Exception) {
+            // Nothing to warm; the real request will connect by itself.
+        }
+    }
+
     /** The visitor id YouTube wants in every request; remembered for hours. Blocking. */
     fun visitorData(): String {
         val now = SystemClock.elapsedRealtime()

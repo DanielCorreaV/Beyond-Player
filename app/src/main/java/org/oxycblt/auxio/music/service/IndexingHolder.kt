@@ -180,14 +180,20 @@ private constructor(
         // to a listener as it is bad practice for a shared object to attach to
         // the listener system of another.
         playbackManager.toSavedState()?.let { savedState ->
-            playbackManager.applySavedState(
-                savedState.copy(
-                    parent =
-                        savedState.parent?.let { musicRepository.find(it.uid) as? MusicParent? },
-                    heap = savedState.heap.map { song -> song?.let { library.findSong(it.uid) } },
-                ),
-                true,
-            )
+            val parent = savedState.parent?.let { musicRepository.find(it.uid) as? MusicParent? }
+            val found = savedState.heap.map { song -> song?.let { library.findSong(it.uid) } }
+            // A streaming song that is not in the new library (it was just downloaded) still plays
+            // from its old address: keep it instead of dropping it from the queue.
+            val heap =
+                savedState.heap.mapIndexed { i, old ->
+                    found[i] ?: old?.takeIf { it.uri.scheme == "yt" }
+                }
+            val queueBroken = heap.indices.any { savedState.heap[it] != null && heap[it] == null }
+            val parentBroken = savedState.parent != null && parent == null
+            // Re-applying the state rebuilds the player queue, which restarts the song that is
+            // playing. Only do it when something in the queue really became invalid.
+            if (!queueBroken && !parentBroken) return@let
+            playbackManager.applySavedState(savedState.copy(parent = parent, heap = heap), true)
         }
     }
 
