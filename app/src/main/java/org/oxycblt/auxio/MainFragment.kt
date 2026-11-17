@@ -62,7 +62,9 @@ import org.oxycblt.auxio.playback.OpenPanel
 import org.oxycblt.auxio.playback.PlaybackBottomSheetBehavior
 import org.oxycblt.auxio.playback.PlaybackViewModel
 import org.oxycblt.auxio.playback.queue.QueueBottomSheetBehavior
+import org.oxycblt.auxio.ui.BottomSheetContentBehavior
 import org.oxycblt.auxio.ui.DialogAwareNavigationListener
+
 import org.oxycblt.auxio.ui.UISettings
 import org.oxycblt.auxio.ui.ViewBindingFragment
 import org.oxycblt.auxio.util.collect
@@ -302,7 +304,7 @@ class MainFragment :
         val sheet = binding.playbackSheet
         val behavior = sheet.coordinatorLayoutBehavior as? PlaybackBottomSheetBehavior
         var lift = 0
-        if (behavior != null && behavior.state == BackportBottomSheetBehavior.STATE_COLLAPSED) {
+        run {
             val decor = requireActivity().window.decorView
             val root = ViewCompat.getRootWindowInsets(decor)
             val ime = root?.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime())?.bottom ?: 0
@@ -319,7 +321,13 @@ class MainFragment :
             }
             lift = max(lift, 0)
         }
-        if (sheet.translationY != -lift.toFloat()) sheet.translationY = -lift.toFloat()
+        // The lists leave room for the keyboard; the mini player only rises while it is collapsed.
+        BottomSheetContentBehavior.setKeyboardLift(lift)
+        val collapsed =
+            behavior != null && behavior.state == BackportBottomSheetBehavior.STATE_COLLAPSED
+        val shift = if (collapsed) lift.toFloat() else 0f
+        if (sheet.translationY != -shift) sheet.translationY = -shift
+
     }
 
     override fun onPreDraw(): Boolean {

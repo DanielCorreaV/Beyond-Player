@@ -42,6 +42,19 @@ class BottomSheetContentBehavior<V : View>(context: Context, attributeSet: Attri
     private var lastInsets: WindowInsets? = null
     private var lastConsumed = -1
     private var setup = false
+    private var childView: View? = null
+
+    /** Extra room at the bottom for the keyboard; only the main content uses it. */
+    private fun lift(child: View) = if (child is EatInsetsFrameLayout) keyboardLift else 0
+
+    /** Re-apply the insets to the content now (the keyboard moved). */
+    private fun refresh() {
+        val child = childView ?: return
+        lastConsumed = -1
+        val insets = lastInsets
+        if (insets != null) child.dispatchApplyWindowInsets(insets) else child.requestApplyInsets()
+    }
+
 
     override fun layoutDependsOn(parent: CoordinatorLayout, child: V, dependency: View): Boolean {
         if (dependency.coordinatorLayoutBehavior is BackportBottomSheetBehavior) {
@@ -54,7 +67,10 @@ class BottomSheetContentBehavior<V : View>(context: Context, attributeSet: Attri
 
     override fun onLayoutChild(parent: CoordinatorLayout, child: V, layoutDirection: Int): Boolean {
         super.onLayoutChild(parent, child, layoutDirection)
+        childView = child
+        live.add(this)
         layoutContent(child)
+
 
         if (!setup) {
             child.setOnApplyWindowInsetsListener { _, insets ->
@@ -72,7 +88,8 @@ class BottomSheetContentBehavior<V : View>(context: Context, attributeSet: Attri
                     bars.left,
                     bars.top,
                     bars.right,
-                    consumed.coerceAtLeast(bars.bottom),
+                    (consumed + lift(child)).coerceAtLeast(bars.bottom),
+
                 )
             }
 
@@ -95,8 +112,10 @@ class BottomSheetContentBehavior<V : View>(context: Context, attributeSet: Attri
             return false
         }
 
-        if (consumed != lastConsumed) {
-            lastConsumed = consumed
+        val key = consumed + lift(child)
+        if (key != lastConsumed) {
+            lastConsumed = key
+
 
             if (lastInsets != null) {
                 child.dispatchApplyWindowInsets(lastInsets)
@@ -134,6 +153,21 @@ class BottomSheetContentBehavior<V : View>(context: Context, attributeSet: Attri
 
     private fun layoutContent(child: View) {
         child.layout(0, 0, child.measuredWidth, child.measuredHeight)
+    }
+
+    companion object {
+        private var keyboardLift = 0
+        private val live =
+            java.util.Collections.newSetFromMap(
+                java.util.WeakHashMap<BottomSheetContentBehavior<*>, Boolean>()
+            )
+
+        /** Tell every content view how tall the keyboard is (0 when it is closed). */
+        fun setKeyboardLift(px: Int) {
+            if (px == keyboardLift) return
+            keyboardLift = px
+            live.toList().forEach { it.refresh() }
+        }
     }
 
     private fun BackportBottomSheetBehavior<*>.calculateConsumedByBar(): Int {
