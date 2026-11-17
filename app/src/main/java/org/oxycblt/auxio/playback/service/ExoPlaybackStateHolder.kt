@@ -626,12 +626,27 @@ class ExoPlaybackStateHolder(
         }
     }
 
+    private fun promoteQueuedYtSong(song: Song) {
+        val id = song.uri.toString().removePrefix("yt://")
+        if (!org.oxycblt.auxio.music.youtube.YtLibrary.promote(id)) return
+        restoreScope.launch {
+            // Let the song start first: the cover download and the rebuild can wait a moment.
+            kotlinx.coroutines.delay(3000)
+            org.oxycblt.auxio.music.youtube.YtLibrary.ensureCovers(context)
+            if (!musicRepository.refreshFromCache()) musicRepository.requestIndex(true)
+        }
+    }
+
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+
         super.onMediaItemTransition(mediaItem, reason)
         // A new song: drop any lost-connection countdown and get the next YouTube song ready.
         StreamLoss.clear()
         transitionAtMs = android.os.SystemClock.elapsedRealtime()
         prefetchNextStream()
+        // A streaming song that was only queued joins the library once it plays.
+        mediaItem?.song?.takeIf { it.uri.scheme == "yt" }?.let { promoteQueuedYtSong(it) }
+
 
 
 

@@ -242,8 +242,27 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
             )
             .show()
         // One song at a time: ByItself does not need the song to be in the library list yet.
-        musicModel.addYouTubeSong(track) { song -> play.play(song, PlaySong.ByItself) }
+        val following = followingYtTracks(track)
+        musicModel.addYouTubeSong(track) { song ->
+            play.play(song, PlaySong.ByItself)
+            // The results after this one go to the queue, so the music keeps going.
+            if (following.isNotEmpty()) {
+                musicModel.queueYouTubeSongs(following) { next -> play.addToQueue(next) }
+            }
+        }
     }
+
+    /** The YouTube results shown after [track], in order (at most 9). */
+    private fun followingYtTracks(track: YtTrack): List<YtTrack> {
+        val all =
+            searchModel.searchResults.value
+                .filterIsInstance<org.oxycblt.auxio.music.youtube.YtResultItem>()
+                .map { it.track }
+        val index = all.indexOfFirst { it.videoId == track.videoId }
+        if (index < 0) return emptyList()
+        return all.drop(index + 1).take(9)
+    }
+
 
 
     private fun updateSearchResults(results: List<Item>) {

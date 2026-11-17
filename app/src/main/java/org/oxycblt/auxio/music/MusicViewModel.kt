@@ -129,6 +129,8 @@ constructor(
      * contains it. If it is not there yet the library is refreshed from its cache first.
      */
     fun addYouTubeSong(track: YtTrack, onReady: (Song) -> Unit) {
+        queueJob?.cancel()
+
         YtLibrary.add(track)
         // Ask YouTube for the stream address right now, while the library refreshes.
         // The song starts at once, so no pre-save of its first seconds: it would compete with
@@ -169,7 +171,33 @@ constructor(
 
     }
 
+    private var queueJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * Builds songs for [tracks] (without adding them to the library) and hands them over one by one,
+     * in order. Used to queue the search results that follow the tapped one.
+     */
+    fun queueYouTubeSongs(tracks: List<YtTrack>, onEach: (Song) -> Unit) {
+        queueJob?.cancel()
+        queueJob =
+            viewModelScope.launch(Dispatchers.IO) {
+                for (track in tracks) {
+                    val song =
+                        findYouTubeSong(track.videoId)
+                            ?: run {
+                                YtLibrary.stage(track)
+                                YtLibrary.adoptCover(appContext, track)
+                                YtLibrary.stagedRemoteSong(appContext, track.videoId)
+                                    ?.let { musicRepository.quickSong(it) }
+                            }
+                            ?: continue
+                    withContext(Dispatchers.Main) { onEach(song) }
+                }
+            }
+    }
+
     /** Takes a streaming song out of the library; whatever is playing keeps playing. */
+
     fun removeYouTubeSong(videoId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             YtLibrary.remove(appContext, videoId)

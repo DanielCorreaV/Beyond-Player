@@ -129,7 +129,36 @@ object YtLibrary {
             true
         }
 
+    private val staged = java.util.concurrent.ConcurrentHashMap<String, YtTrack>()
+
+    /** Holds a track in memory (not in the library) until it plays. */
+    fun stage(track: YtTrack) {
+        if (!contains(track.videoId)) staged[track.videoId] = track
+    }
+
+    /** A staged track as a song to queue, or null. */
+    fun stagedRemoteSong(context: Context, videoId: String): RemoteSong? =
+        staged[videoId]?.let {
+            RemoteSong(
+                id = it.videoId,
+                title = it.title,
+                artist = it.artist,
+                album = null,
+                durationMs = if (it.durationSec < 0) 0 else it.durationSec * 1000,
+                addedMs = System.currentTimeMillis(),
+                coverFile = coverFile(context, it.videoId),
+            )
+        }
+
+    /** A staged track that is now playing joins the library. True if it was staged. */
+    fun promote(videoId: String): Boolean {
+        val track = staged.remove(videoId) ?: return false
+        add(track)
+        return true
+    }
+
     /** The stored track of a streaming song, or null. */
+
     fun trackOf(videoId: String): YtTrack? =
         synchronized(lock) { entries.firstOrNull { it.track.videoId == videoId }?.track }
 
