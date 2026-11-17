@@ -563,8 +563,26 @@ class ExoPlaybackStateHolder(
 
     // --- PLAYER OVERRIDES ---
 
+    private var countJob: kotlinx.coroutines.Job? = null
+
+    /** Counts a play once the song has been playing for 30 s in a row (or half of a short one). */
+    private fun scheduleCount() {
+        countJob?.cancel()
+        countJob = null
+        if (!player.isPlaying) return
+        val song = player.currentMediaItem?.song ?: return
+        val wait = minOf(30_000L, song.durationMs / 2).coerceAtLeast(5_000L)
+        countJob =
+            timerScope.launch {
+                kotlinx.coroutines.delay(wait)
+                org.oxycblt.auxio.music.PlayStats.record(song.uid.toString())
+            }
+    }
+
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         super.onIsPlayingChanged(isPlaying)
+        scheduleCount()
+
         updateCrossfade()
     }
 
@@ -654,6 +672,8 @@ class ExoPlaybackStateHolder(
         // A new song: drop any lost-connection countdown and get the next YouTube song ready.
         StreamLoss.clear()
         updateStreamBuffering()
+        scheduleCount()
+
         transitionAtMs = android.os.SystemClock.elapsedRealtime()
 
         prefetchNextStream()

@@ -61,9 +61,12 @@ val YT_HEADER = BasicHeader(R.string.lbl_youtube_music)
 /** A YouTube Music song in the search results. Not in the library: tapping it queues a download. */
 data class YtResultItem(val track: YtTrack)
 
+/** The line under the YouTube header while its results are loading (or when the search failed). */
+data class YtStatusItem(val failed: Boolean)
+
 /** True for everything that belongs to the YouTube part of the results (header, divider, rows). */
 fun isYtSearchItem(item: Any): Boolean =
-    item is YtResultItem || item == YT_HEADER || (item is PlainDivider && item.anchor == YT_HEADER)
+    item is YtResultItem || item is YtStatusItem || item == YT_HEADER || (item is PlainDivider && item.anchor == YT_HEADER)
 
 /**
  * A row for a [YtResultItem]. It reuses the song row layout so it follows every style (Classic,
@@ -130,6 +133,72 @@ class YtResultViewHolder private constructor(private val binding: ItemSongBindin
             YtResultViewHolder(
                 ItemSongBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             )
+    }
+}
+
+
+/** The row for a [YtStatusItem]: a small spinner and a line of text, built in code. */
+class YtStatusViewHolder private constructor(
+    root: android.widget.LinearLayout,
+    private val spinner: com.google.android.material.progressindicator.CircularProgressIndicator,
+    private val text: android.widget.TextView,
+) : RecyclerView.ViewHolder(root) {
+    fun bind(item: YtStatusItem) {
+        spinner.visibility = if (item.failed) View.GONE else View.VISIBLE
+        text.setText(
+            if (item.failed) R.string.lbl_yt_search_failed else R.string.lbl_yt_searching
+        )
+    }
+
+    companion object {
+        const val VIEW_TYPE = 0xA0F1
+
+        fun from(parent: ViewGroup): YtStatusViewHolder {
+            val context = parent.context
+            val d = context.resources.displayMetrics.density
+            val spinner =
+                com.google.android.material.progressindicator.CircularProgressIndicator(context)
+                    .apply {
+                        isIndeterminate = true
+                        indicatorSize = (20 * d).toInt()
+                        trackThickness = (2 * d).toInt()
+                    }
+            val text =
+                android.widget.TextView(context).apply {
+                    setTextAppearance(
+                        com.google.android.material.R.style.TextAppearance_Material3_BodyMedium
+                    )
+                    setTextColor(
+                        com.google.android.material.color.MaterialColors.getColor(
+                            this,
+                            com.google.android.material.R.attr.colorOnSurfaceVariant,
+                        )
+                    )
+                }
+            val root =
+                android.widget.LinearLayout(context).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    val h = (16 * d).toInt()
+                    val v = (14 * d).toInt()
+                    setPadding(h, v, h, v)
+                    layoutParams =
+                        RecyclerView.LayoutParams(
+                            RecyclerView.LayoutParams.MATCH_PARENT,
+                            RecyclerView.LayoutParams.WRAP_CONTENT,
+                        )
+                    addView(spinner)
+                    addView(
+                        text,
+                        android.widget.LinearLayout.LayoutParams(
+                                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                            )
+                            .apply { marginStart = (12 * d).toInt() },
+                    )
+                }
+            return YtStatusViewHolder(root, spinner, text)
+        }
     }
 }
 

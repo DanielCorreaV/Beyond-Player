@@ -65,6 +65,8 @@ class Auxio : Application() {
         homeSettings.migrate()
         // YouTube songs added to the library, read by the library builder.
         YtLibrary.install(this)
+        org.oxycblt.auxio.music.PlayStats.install(this)
+
 
         // Adding static shortcuts in a dynamic manner is better than declaring them
         // manually, as it will properly handle the difference between debug and release

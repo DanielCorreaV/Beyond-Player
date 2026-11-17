@@ -127,11 +127,27 @@ class AuxioService :
         ) ?: 4
     }
 
+    /**
+     * Moves the service to the foreground. Android 12+ refuses that when the app is in the
+     * background (ForegroundServiceStartNotAllowedException): then the work simply goes on without
+     * a notification instead of crashing. Returns whether it worked.
+     */
+    private fun tryStartForeground(code: Int, notification: android.app.Notification): Boolean =
+        try {
+            startForeground(code, notification)
+            true
+        } catch (e: IllegalStateException) {
+            Timber.w("Not allowed to start the foreground service now: $e")
+            false
+        }
+
     override fun updateForeground(change: ForegroundListener.Change) {
+
         val mediaNotification = playbackFragment.notification
         if (mediaNotification != null) {
             if (change == ForegroundListener.Change.MEDIA_SESSION) {
-                startForeground(mediaNotification.code, mediaNotification.build())
+                tryStartForeground(mediaNotification.code, mediaNotification.build())
+
             }
             // Nothing changed, but don't show anything music related since we can always
             // index during playback.
@@ -139,8 +155,8 @@ class AuxioService :
         } else {
             musicFragment.createNotification {
                 if (it != null) {
-                    startForeground(it.code, it.build())
-                    isForeground = true
+                    isForeground = tryStartForeground(it.code, it.build())
+
                 } else {
                     ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
                     isForeground = false

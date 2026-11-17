@@ -146,7 +146,11 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
                 searchModel.search(text?.toString()?.trim())
             }
 
+            // Nothing typed yet: show the suggestions right away.
+            searchModel.search(text?.toString()?.trim())
+
             if (!launchedKeyboard) {
+
                 // Auto-open the keyboard when this view is shown
                 L.d("Keyboard is not shown yet")
                 showKeyboard(this)

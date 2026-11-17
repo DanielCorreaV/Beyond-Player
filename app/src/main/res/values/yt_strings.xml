@@ -11,4 +11,8 @@
     <string name="fmt_yt_removed">Quitada: %1$s</string>
     <string name="set_yt_search">Buscar en YouTube Music</string>
     <string name="set_yt_search_desc">Muestra resultados de YouTube Music en el buscador. Apagado, solo se busca en tu biblioteca.</string>
+    <string name="lbl_yt_searching">Buscando en YouTube Music…</string>
+    <string name="lbl_yt_search_failed">No se pudo buscar en YouTube Music. Revisa tu conexión.</string>
+    <string name="lbl_most_played">Lo más escuchado</string>
+    <string name="lbl_recently_added">Agregadas recientemente</string>
 </resources>

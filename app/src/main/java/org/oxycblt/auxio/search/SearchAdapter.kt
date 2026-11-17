@@ -35,6 +35,9 @@ import org.oxycblt.auxio.list.recycler.PlaylistViewHolder
 import org.oxycblt.auxio.list.recycler.SongViewHolder
 import org.oxycblt.auxio.music.youtube.YtResultItem
 import org.oxycblt.auxio.music.youtube.YtResultViewHolder
+import org.oxycblt.auxio.music.youtube.YtStatusItem
+import org.oxycblt.auxio.music.youtube.YtStatusViewHolder
+
 import org.oxycblt.auxio.music.youtube.YtTrack
 import org.oxycblt.musikr.Album
 import org.oxycblt.musikr.Artist
@@ -63,6 +66,8 @@ class SearchAdapter(
             is Genre -> GenreViewHolder.VIEW_TYPE
             is Playlist -> PlaylistViewHolder.VIEW_TYPE
             is YtResultItem -> YtResultViewHolder.VIEW_TYPE
+            is YtStatusItem -> YtStatusViewHolder.VIEW_TYPE
+
             is PlainDivider -> DividerViewHolder.VIEW_TYPE
             is BasicHeader -> BasicHeaderViewHolder.VIEW_TYPE
             else -> super.getItemViewType(position)
@@ -78,6 +83,8 @@ class SearchAdapter(
             DividerViewHolder.VIEW_TYPE -> DividerViewHolder.from(parent)
             BasicHeaderViewHolder.VIEW_TYPE -> BasicHeaderViewHolder.from(parent)
             YtResultViewHolder.VIEW_TYPE -> YtResultViewHolder.from(parent)
+            YtStatusViewHolder.VIEW_TYPE -> YtStatusViewHolder.from(parent)
+
             else -> error("Invalid item type $viewType")
         }
 
@@ -90,6 +97,8 @@ class SearchAdapter(
             is Playlist -> (holder as PlaylistViewHolder).bind(item, listener)
             is BasicHeader -> (holder as BasicHeaderViewHolder).bind(item)
             is YtResultItem -> (holder as YtResultViewHolder).bind(item, onYtClick)
+            is YtStatusItem -> (holder as YtStatusViewHolder).bind(item)
+
         }
     }
 
@@ -121,6 +130,9 @@ class SearchAdapter(
                             BasicHeaderViewHolder.DIFF_CALLBACK.areContentsTheSame(oldItem, newItem)
 
                         is YtResultItem if newItem is YtResultItem -> oldItem == newItem
+
+                        is YtStatusItem if newItem is YtStatusItem -> oldItem == newItem
+
 
                         else -> false
                     }

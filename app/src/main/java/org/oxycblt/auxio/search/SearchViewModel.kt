@@ -46,6 +46,8 @@ import org.oxycblt.auxio.music.youtube.RemoteTrack
 import org.oxycblt.auxio.music.youtube.SongMatcher
 import org.oxycblt.auxio.music.youtube.YT_HEADER
 import org.oxycblt.auxio.music.youtube.YtResultItem
+import org.oxycblt.auxio.music.youtube.YtStatusItem
+
 import org.oxycblt.auxio.music.youtube.YtSource
 import org.oxycblt.auxio.music.youtube.YtTrack
 import kotlinx.coroutines.CancellationException
@@ -72,6 +74,9 @@ constructor(
     private var lastQuery: String? = null
     private var currentSearchJob: Job? = null
     private var currentYtJob: Job? = null
+    /** The query whose YouTube search failed (no connection...), so the screen can say so. */
+    private var ytFailed: String? = null
+
     private val ytSource: YtSource = NewPipeYtSource()
     private var ytCache: Pair<String, List<YtTrack>>? = null
     private var lastLocalSongs: List<Song> = emptyList()
@@ -133,6 +138,11 @@ constructor(
         lastQuery = query
 
         val library = musicRepository.library
+        if (query.isNullOrEmpty() && library != null && suggestionsAllowed()) {
+            searchResults.value = suggestions(library.songs)
+            return
+        }
+
         if (query.isNullOrEmpty() || library == null) {
             L.d("Cannot search for the current query, aborting")
             searchResults.value = listOf()
@@ -226,7 +236,27 @@ constructor(
         }
     }
 
+    /** Suggestions show with the "Songs" filter or with none. */
+    private fun suggestionsAllowed(): Boolean {
+        val filters = searchSettings.filters
+        return filters.isEmpty() || MusicType.SONGS in filters
+    }
+
+    /** What the empty search shows: the most played songs, or the newest while there are none. */
+    private fun suggestions(songs: Iterable<Song>): List<Item> {
+        val byUid = songs.associateBy { it.uid.toString() }
+        val played =
+            org.oxycblt.auxio.music.PlayStats.top(SUGGESTION_COUNT).mapNotNull { byUid[it] }
+        if (played.isNotEmpty()) {
+            return listOf<Item>(BasicHeader(R.string.lbl_most_played)) + played
+        }
+        val recent = songs.sortedByDescending { it.addedMs }.take(SUGGESTION_COUNT)
+        if (recent.isEmpty()) return emptyList()
+        return listOf<Item>(BasicHeader(R.string.lbl_recently_added)) + recent
+    }
+
     private fun youTubeEnabled(query: String): Boolean {
+
         val filters = searchSettings.filters
         return YtLibrary.searchEnabled() &&
             query.length >= YT_MIN_CHARS &&
@@ -250,7 +280,16 @@ constructor(
         if (currentLocalQuery != query || !youTubeEnabled(query)) return
         val tracks = ytResults[query] ?: ytCache?.let { relevantTo(query, it) }.orEmpty()
         val shown = withoutLocal(tracks, currentSongs)
-        searchResults.value = if (shown.isEmpty()) currentLocal else withYouTube(currentLocal, shown)
+        val loading = !ytResults.containsKey(query) && ytFailed != query
+        searchResults.value =
+            when {
+                shown.isNotEmpty() -> withYouTube(currentLocal, shown)
+                loading -> withYouTube(currentLocal, emptyList(), YtStatusItem(failed = false))
+                ytFailed == query ->
+                    withYouTube(currentLocal, emptyList(), YtStatusItem(failed = true))
+                else -> currentLocal
+            }
+
     }
 
     /** Results of an older search that still match [query]: every typed word is in title/artist. */
@@ -292,7 +331,15 @@ constructor(
                             }
                         }
                         .onFailure { if (it !is CancellationException) L.e(it, "YT search failed") }
-                        .getOrNull() ?: return@collect
+                        .getOrNull()
+                if (found == null) {
+                    if (ytWanted.value == query) {
+                        ytFailed = query
+                        publishYouTube()
+                    }
+                    return@collect
+                }
+
                 ytResults[query] = found
                 ytCache = query to found
                 publishYouTube()
@@ -300,11 +347,18 @@ constructor(
         }
     }
 
-    private fun withYouTube(local: List<Item>, remote: List<YtTrack>): List<Item> = buildList {
+    private fun withYouTube(
+        local: List<Item>,
+        remote: List<YtTrack>,
+        status: YtStatusItem? = null,
+    ): List<Item> = buildList {
+
         addAll(local)
         if (local.isNotEmpty()) add(PlainDivider(YT_HEADER))
         add(YT_HEADER)
+        status?.let { add(it) }
         remote.forEach { add(YtResultItem(it)) }
+
     }
 
     /** Drop the YouTube results the library already has: they are in the local section. */
@@ -336,6 +390,8 @@ constructor(
     private companion object {
         val SORT = Sort(Sort.Mode.ByName, Sort.Direction.ASCENDING)
         const val YT_MIN_CHARS = 3
+        const val SUGGESTION_COUNT = 15
+
         const val YT_DEBOUNCE_MS = 250L
         const val YT_SETTLE_MS = 120L
     }
