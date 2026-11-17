@@ -111,6 +111,11 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
         // -- VIEWMODEL SETUP ---
         collectImmediately(playbackModel.song, ::updateSong)
         collectImmediately(playbackModel.isPlaying, ::updatePlaying)
+        collectImmediately(
+            org.oxycblt.auxio.music.youtube.StreamBuffering.loading,
+            ::updateLoading,
+        )
+
         collectImmediately(playbackModel.positionDs, ::updatePosition)
         collectImmediately(
             playbackModel.currentBarAction,
@@ -144,7 +149,14 @@ class PlaybackBarFragment : ViewBindingFragment<FragmentPlaybackBarBinding>() {
         binding.playbackProgressBar.max = song.durationMs.msToDs().toInt()
     }
 
+    /** The thin line of the mini player runs while a streaming song waits for its first audio. */
+    private fun updateLoading(loading: Boolean) {
+        val bar = requireBinding().playbackProgressBar
+        if (bar.isIndeterminate != loading) bar.isIndeterminate = loading
+    }
+
     private fun updatePlaying(isPlaying: Boolean) {
+
         requireBinding().playbackPlayPause.isChecked = isPlaying
     }
 

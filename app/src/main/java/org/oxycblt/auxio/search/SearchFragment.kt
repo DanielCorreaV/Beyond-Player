@@ -233,14 +233,8 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
 
     /** Tapping a YouTube result adds it to the library and plays it by streaming. */
     private fun onYtResultClick(track: YtTrack) {
-        val playWith = searchModel.playWith
         val play = playbackModel
-        android.widget.Toast.makeText(
-                requireContext(),
-                getString(R.string.fmt_yt_adding, track.title),
-                android.widget.Toast.LENGTH_SHORT,
-            )
-            .show()
+
         // One song at a time: ByItself does not need the song to be in the library list yet.
         val following = followingYtTracks(track)
         musicModel.addYouTubeSong(track) { song ->

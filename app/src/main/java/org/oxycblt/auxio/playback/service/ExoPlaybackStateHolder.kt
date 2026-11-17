@@ -570,6 +570,8 @@ class ExoPlaybackStateHolder(
 
     override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
         super.onPlayWhenReadyChanged(playWhenReady, reason)
+        updateStreamBuffering()
+
         updateCrossfade()
 
         if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM) {
@@ -601,8 +603,17 @@ class ExoPlaybackStateHolder(
         equalizer.attach(audioSessionId)
     }
 
+    private fun updateStreamBuffering() {
+        val streaming = player.currentMediaItem?.localConfiguration?.uri?.scheme == "yt"
+        org.oxycblt.auxio.music.youtube.StreamBuffering.set(
+            streaming && player.playWhenReady && player.playbackState == Player.STATE_BUFFERING
+        )
+    }
+
     override fun onPlaybackStateChanged(playbackState: Int) {
         super.onPlaybackStateChanged(playbackState)
+        updateStreamBuffering()
+
         if (playbackState == Player.STATE_READY) {
             retriedStream = null
             if (transitionAtMs != 0L) {
@@ -642,7 +653,9 @@ class ExoPlaybackStateHolder(
         super.onMediaItemTransition(mediaItem, reason)
         // A new song: drop any lost-connection countdown and get the next YouTube song ready.
         StreamLoss.clear()
+        updateStreamBuffering()
         transitionAtMs = android.os.SystemClock.elapsedRealtime()
+
         prefetchNextStream()
         // A streaming song that was only queued joins the library once it plays.
         mediaItem?.song?.takeIf { it.uri.scheme == "yt" }?.let { promoteQueuedYtSong(it) }
