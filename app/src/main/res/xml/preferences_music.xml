@@ -44,4 +44,13 @@
             app:title="@string/set_square_covers" />
 
     </PreferenceCategory>
+    <PreferenceCategory app:title="@string/lbl_youtube_music">
+
+        <SwitchPreferenceCompat
+            app:defaultValue="true"
+            app:key="yt_search_enabled"
+            app:summary="@string/set_yt_search_desc"
+            app:title="@string/set_yt_search" />
+
+    </PreferenceCategory>
 </PreferenceScreen>

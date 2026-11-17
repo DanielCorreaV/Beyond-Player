@@ -169,7 +169,16 @@ constructor(
 
     }
 
+    /** Takes a streaming song out of the library; whatever is playing keeps playing. */
+    fun removeYouTubeSong(videoId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            YtLibrary.remove(appContext, videoId)
+            refreshYouTubeLibrary()
+        }
+    }
+
     /** Rebuild from the saved cache (fast); a full scan only when there is no cache yet. */
+
     private suspend fun refreshYouTubeLibrary() {
         if (!musicRepository.refreshFromCache()) musicRepository.requestIndex(true)
     }

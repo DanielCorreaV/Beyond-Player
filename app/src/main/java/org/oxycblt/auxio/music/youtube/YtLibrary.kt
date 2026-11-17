@@ -65,8 +65,29 @@ object YtLibrary {
 
     private data class Entry(val track: YtTrack, val addedMs: Long)
 
+    @Volatile private var appContext: Context? = null
+
+    /** The "Buscar en YouTube Music" switch of the settings (on by default). */
+    fun searchEnabled(): Boolean {
+        val context = appContext ?: return true
+        return androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
+            .getBoolean("yt_search_enabled", true)
+    }
+
+    /** Takes a streaming song out of the YouTube list and deletes its cover. */
+    fun remove(context: Context, videoId: String) {
+        synchronized(lock) {
+            if (entries.none { it.track.videoId == videoId }) return
+            entries = entries.filterNot { it.track.videoId == videoId }
+            write()
+        }
+        runCatching { coverFile(context, videoId).delete() }
+    }
+
     fun install(context: Context) {
         val app = context.applicationContext
+        appContext = app
+
         synchronized(lock) {
             file = File(app.filesDir, "yt_library.json")
             entries = read(file!!)

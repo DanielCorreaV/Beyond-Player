@@ -7,4 +7,8 @@
     <string name="fmt_yt_adding">Añadiendo a tu biblioteca: %1$s</string>
     <string name="fmt_yt_connection_lost">Se perdió la conexión. Pasando a la siguiente en %1$d s</string>
     <string name="lbl_yt_cancel">Cancelar</string>
+    <string name="lbl_yt_remove">Quitar de la biblioteca</string>
+    <string name="fmt_yt_removed">Quitada: %1$s</string>
+    <string name="set_yt_search">Buscar en YouTube Music</string>
+    <string name="set_yt_search_desc">Muestra resultados de YouTube Music en el buscador. Apagado, solo se busca en tu biblioteca.</string>
 </resources>

@@ -40,6 +40,8 @@ import org.oxycblt.auxio.music.MusicType
 import org.oxycblt.auxio.playback.PlaySong
 import org.oxycblt.auxio.playback.PlaybackSettings
 import org.oxycblt.auxio.music.youtube.NewPipeYtSource
+import org.oxycblt.auxio.music.youtube.YtLibrary
+
 import org.oxycblt.auxio.music.youtube.RemoteTrack
 import org.oxycblt.auxio.music.youtube.SongMatcher
 import org.oxycblt.auxio.music.youtube.YT_HEADER
@@ -226,7 +228,10 @@ constructor(
 
     private fun youTubeEnabled(query: String): Boolean {
         val filters = searchSettings.filters
-        return query.length >= YT_MIN_CHARS && (filters.isEmpty() || MusicType.SONGS in filters)
+        return YtLibrary.searchEnabled() &&
+            query.length >= YT_MIN_CHARS &&
+            (filters.isEmpty() || MusicType.SONGS in filters)
+
     }
 
     /** Called with every new local result: show what YouTube results are known, ask for the rest. */

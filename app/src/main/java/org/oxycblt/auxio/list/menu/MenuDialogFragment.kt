@@ -127,6 +127,15 @@ abstract class MenuDialogFragment<M : Menu> :
                     org.oxycblt.auxio.R.string.lbl_yt_download,
                 )
                 .setIcon(org.oxycblt.auxio.R.drawable.ic_download_24)
+            builder
+                .add(
+                    0,
+                    org.oxycblt.auxio.R.id.action_yt_remove,
+                    0,
+                    org.oxycblt.auxio.R.string.lbl_yt_remove,
+                )
+                .setIcon(org.oxycblt.auxio.R.drawable.ic_delete_24)
+
         }
 
 
