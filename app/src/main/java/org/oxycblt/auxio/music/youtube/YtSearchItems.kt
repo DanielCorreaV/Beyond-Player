@@ -61,12 +61,106 @@ val YT_HEADER = BasicHeader(R.string.lbl_youtube_music)
 /** A YouTube Music song in the search results. Not in the library: tapping it queues a download. */
 data class YtResultItem(val track: YtTrack)
 
+/** A related search shown while typing; tapping it fills the search box. */
+data class YtSuggestionItem(val text: String)
+
+/** The row for a [YtSuggestionItem]: a search icon and the suggested text, built in code. */
+class YtSuggestionViewHolder private constructor(
+    root: android.widget.LinearLayout,
+    private val label: android.widget.TextView,
+    private val fill: android.widget.ImageView,
+) : RecyclerView.ViewHolder(root) {
+    fun bind(item: YtSuggestionItem, onClick: (String) -> Unit, onFill: (String) -> Unit) {
+        label.text = item.text
+        itemView.setOnClickListener { onClick(item.text) }
+        fill.setOnClickListener { onFill(item.text) }
+    }
+
+    companion object {
+        const val VIEW_TYPE = 0xA0F2
+
+        fun from(parent: ViewGroup): YtSuggestionViewHolder {
+            val context = parent.context
+            val d = context.resources.displayMetrics.density
+            val icon =
+                android.widget.ImageView(context).apply {
+                    setImageDrawable(AppCompatResources.getDrawable(context, R.drawable.ic_search_24))
+                }
+            val label =
+                android.widget.TextView(context).apply {
+                    setTextAppearance(
+                        com.google.android.material.R.style.TextAppearance_Material3_BodyLarge
+                    )
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                }
+            // The arrow at the end (pointing up-left): puts the text in the box without searching.
+            val fill =
+                android.widget.ImageView(context).apply {
+                    setImageDrawable(AppCompatResources.getDrawable(context, R.drawable.ic_back_24))
+                    rotation = 45f
+                    val pad = (10 * d).toInt()
+                    setPadding(pad, pad, pad, pad)
+                    contentDescription = context.getString(R.string.lbl_yt_use_suggestion)
+                    val ripple = android.util.TypedValue()
+                    if (context.theme.resolveAttribute(
+                            android.R.attr.selectableItemBackgroundBorderless,
+                            ripple,
+                            true,
+                        )
+                    ) {
+                        setBackgroundResource(ripple.resourceId)
+                    }
+                }
+            val root =
+                android.widget.LinearLayout(context).apply {
+                    orientation = android.widget.LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    minimumHeight = (48 * d).toInt()
+                    val h = (16 * d).toInt()
+                    setPadding(h, 0, h, 0)
+                    val ripple = android.util.TypedValue()
+                    if (context.theme.resolveAttribute(
+                            android.R.attr.selectableItemBackground,
+                            ripple,
+                            true,
+                        )
+                    ) {
+                        setBackgroundResource(ripple.resourceId)
+                    }
+                    layoutParams =
+                        RecyclerView.LayoutParams(
+                            RecyclerView.LayoutParams.MATCH_PARENT,
+                            RecyclerView.LayoutParams.WRAP_CONTENT,
+                        )
+                    addView(icon)
+                    addView(
+                        label,
+                        android.widget.LinearLayout.LayoutParams(
+                                0,
+                                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                                1f,
+                            )
+                            .apply { marginStart = (16 * d).toInt() },
+                    )
+                }
+            root.addView(
+                fill,
+                android.widget.LinearLayout.LayoutParams((44 * d).toInt(), (44 * d).toInt()),
+            )
+            return YtSuggestionViewHolder(root, label, fill)
+
+        }
+    }
+}
+
 /** The line under the YouTube header while its results are loading (or when the search failed). */
+
 data class YtStatusItem(val failed: Boolean)
 
 /** True for everything that belongs to the YouTube part of the results (header, divider, rows). */
 fun isYtSearchItem(item: Any): Boolean =
-    item is YtResultItem || item is YtStatusItem || item == YT_HEADER || (item is PlainDivider && item.anchor == YT_HEADER)
+    item is YtResultItem || item is YtStatusItem || item is YtSuggestionItem || item == YT_HEADER || (item is PlainDivider && item.anchor == YT_HEADER)
 
 /**
  * A row for a [YtResultItem]. It reuses the song row layout so it follows every style (Classic,

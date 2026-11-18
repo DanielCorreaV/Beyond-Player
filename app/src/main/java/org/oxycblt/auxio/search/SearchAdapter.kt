@@ -37,6 +37,9 @@ import org.oxycblt.auxio.music.youtube.YtResultItem
 import org.oxycblt.auxio.music.youtube.YtResultViewHolder
 import org.oxycblt.auxio.music.youtube.YtStatusItem
 import org.oxycblt.auxio.music.youtube.YtStatusViewHolder
+import org.oxycblt.auxio.music.youtube.YtSuggestionItem
+import org.oxycblt.auxio.music.youtube.YtSuggestionViewHolder
+
 
 import org.oxycblt.auxio.music.youtube.YtTrack
 import org.oxycblt.musikr.Album
@@ -55,6 +58,8 @@ import org.oxycblt.musikr.Song
 class SearchAdapter(
     private val listener: SelectableListListener<Music>,
     private val onYtClick: (YtTrack) -> Unit,
+    private val onSuggestionClick: (String) -> Unit,
+    private val onSuggestionFill: (String) -> Unit,
 ) :
     SelectionIndicatorAdapter<Item, RecyclerView.ViewHolder>(DIFF_CALLBACK) {
 
@@ -67,6 +72,8 @@ class SearchAdapter(
             is Playlist -> PlaylistViewHolder.VIEW_TYPE
             is YtResultItem -> YtResultViewHolder.VIEW_TYPE
             is YtStatusItem -> YtStatusViewHolder.VIEW_TYPE
+            is YtSuggestionItem -> YtSuggestionViewHolder.VIEW_TYPE
+
 
             is PlainDivider -> DividerViewHolder.VIEW_TYPE
             is BasicHeader -> BasicHeaderViewHolder.VIEW_TYPE
@@ -84,6 +91,8 @@ class SearchAdapter(
             BasicHeaderViewHolder.VIEW_TYPE -> BasicHeaderViewHolder.from(parent)
             YtResultViewHolder.VIEW_TYPE -> YtResultViewHolder.from(parent)
             YtStatusViewHolder.VIEW_TYPE -> YtStatusViewHolder.from(parent)
+            YtSuggestionViewHolder.VIEW_TYPE -> YtSuggestionViewHolder.from(parent)
+
 
             else -> error("Invalid item type $viewType")
         }
@@ -98,6 +107,10 @@ class SearchAdapter(
             is BasicHeader -> (holder as BasicHeaderViewHolder).bind(item)
             is YtResultItem -> (holder as YtResultViewHolder).bind(item, onYtClick)
             is YtStatusItem -> (holder as YtStatusViewHolder).bind(item)
+            is YtSuggestionItem ->
+                (holder as YtSuggestionViewHolder).bind(item, onSuggestionClick, onSuggestionFill)
+
+
 
         }
     }
@@ -132,6 +145,9 @@ class SearchAdapter(
                         is YtResultItem if newItem is YtResultItem -> oldItem == newItem
 
                         is YtStatusItem if newItem is YtStatusItem -> oldItem == newItem
+
+                        is YtSuggestionItem if newItem is YtSuggestionItem -> oldItem == newItem
+
 
 
                         else -> false

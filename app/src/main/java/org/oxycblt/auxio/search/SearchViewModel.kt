@@ -47,6 +47,9 @@ import org.oxycblt.auxio.music.youtube.SongMatcher
 import org.oxycblt.auxio.music.youtube.YT_HEADER
 import org.oxycblt.auxio.music.youtube.YtResultItem
 import org.oxycblt.auxio.music.youtube.YtStatusItem
+import org.oxycblt.auxio.music.youtube.YtSuggest
+import org.oxycblt.auxio.music.youtube.YtSuggestionItem
+
 
 import org.oxycblt.auxio.music.youtube.YtSource
 import org.oxycblt.auxio.music.youtube.YtTrack
@@ -76,6 +79,14 @@ constructor(
     private var currentYtJob: Job? = null
     /** The query whose YouTube search failed (no connection...), so the screen can say so. */
     private var ytFailed: String? = null
+    private val ytInFlight = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    /** The results without the suggestion rows; those are put on top when published. */
+    private var baseResults: List<Item> = emptyList()
+    private var suggestTexts: List<String> = emptyList()
+    private var suggestQuery: String? = null
+    private val suggestWanted = MutableStateFlow<String?>(null)
+
+
 
     private val ytSource: YtSource = NewPipeYtSource()
     private var ytCache: Pair<String, List<YtTrack>>? = null
@@ -105,6 +116,8 @@ constructor(
         musicRepository.addUpdateListener(this)
         warmUpYouTube()
         startYouTubeWorker()
+        startSuggestWorker()
+
     }
 
     /** Do YouTube's one-time setup now, in the background, so the first search is not slower. */
@@ -136,6 +149,10 @@ constructor(
         currentSearchJob?.cancel()
         currentYtJob?.cancel()
         lastQuery = query
+        if (!query.isNullOrEmpty() && query.length >= 2 && YtLibrary.searchEnabled()) {
+            suggestWanted.value = query
+        }
+
 
         val library = musicRepository.library
         if (query.isNullOrEmpty() && library != null && suggestionsAllowed()) {
@@ -155,7 +172,8 @@ constructor(
             viewModelScope.launch(Dispatchers.Default) {
                 val local = searchImpl(library, query).also { yield() }
                 val localSongs = lastLocalSongs
-                searchResults.value = local
+                publish(local)
+
                 // Local first; YouTube is searched after, in parallel with the user reading.
                 searchYouTube(query, local, localSongs)
             }
@@ -187,56 +205,127 @@ constructor(
         lastLocalSongs = results.songs.orEmpty().toList()
 
         return buildList {
-            results.artists?.let {
-                L.d("Adding ${it.size} artists to search results")
-                val header = BasicHeader(R.string.lbl_artists)
+            fun <T : org.oxycblt.musikr.Music> section(header: BasicHeader, items: Collection<T>?) {
+                if (items.isNullOrEmpty()) return
+                L.d("Adding ${items.size} items to search results")
+                if (isNotEmpty()) add(PlainDivider(header))
                 add(header)
-                addAll(SORT.artists(it))
+                addAll(byRelevance(items, query))
             }
-            results.albums?.let {
-                L.d("Adding ${it.size} albums to search results")
-                val header = BasicHeader(R.string.lbl_albums)
-                if (isNotEmpty()) {
-                    add(PlainDivider(header))
-                }
+            section(BasicHeader(R.string.lbl_songs), results.songs)
+            section(BasicHeader(R.string.lbl_artists), results.artists)
+            section(BasicHeader(R.string.lbl_albums), results.albums)
+            section(BasicHeader(R.string.lbl_playlists), results.playlists)
+            section(BasicHeader(R.string.lbl_genres), results.genres)
+        }
+    }
 
-                add(header)
-                addAll(SORT.albums(it))
-            }
-            results.playlists?.let {
-                L.d("Adding ${it.size} playlists to search results")
-                val header = BasicHeader(R.string.lbl_playlists)
-                if (isNotEmpty()) {
-                    add(PlainDivider(header))
-                }
+    /** Publishes [base] with the related searches (if any) on top. */
+    private fun publish(base: List<Item>) {
+        baseResults = base
+        searchResults.value = withSuggestions(base)
+    }
 
-                add(header)
-                addAll(SORT.playlists(it))
-            }
-            results.genres?.let {
-                L.d("Adding ${it.size} genres to search results")
-                val header = BasicHeader(R.string.lbl_genres)
-                if (isNotEmpty()) {
-                    add(PlainDivider(header))
-                }
+    private fun withSuggestions(base: List<Item>): List<Item> {
+        val q = lastQuery
+        if (q.isNullOrEmpty() || q.length < 2) return base
+        // New suggestions still loading: keep the old ones that still fit what is typed.
+        val shown =
+            if (suggestQuery == q) suggestTexts else suggestTexts.filter { it.startsWith(q, true) }
+        val rows = relatedSearches(q, shown)
+        if (rows.isEmpty()) return base
 
-                add(header)
-                addAll(SORT.genres(it))
-            }
-            results.songs?.let {
-                L.d("Adding ${it.size} songs to search results")
-                val header = BasicHeader(R.string.lbl_songs)
-                if (isNotEmpty()) {
-                    add(PlainDivider(header))
-                }
+        return rows.map { YtSuggestionItem(it) } + base
+    }
 
-                add(header)
-                addAll(SORT.songs(it))
+    /**
+     * Up to 5 related searches for [q]: YouTube's autocomplete first, then names from your library
+     * and the artists/titles of the YouTube results found for [q]. No repeats, never [q] itself.
+     */
+    private fun relatedSearches(q: String, autocomplete: List<String>): List<String> {
+        val nq = normalize(q)
+        val out = LinkedHashMap<String, String>()
+        fun add(text: String) {
+            val n = normalize(text)
+            if (n.isNotBlank() && n != nq && n !in out && out.size < 6) out[n] = text.trim()
+        }
+        fun fits(text: String): Boolean {
+            val n = normalize(text)
+            return n.startsWith(nq) || n.contains(" $nq")
+        }
+        autocomplete.take(3).forEach(::add)
+        // From your own library: artists first, then songs and albums.
+        val local =
+            currentLocal
+                .filterIsInstance<org.oxycblt.musikr.Music>()
+                .mapNotNull { (it.name as? org.oxycblt.musikr.tag.Name.Known)?.raw }
+                .filter(::fits)
+        local.take(2).forEach(::add)
+        // From the YouTube results already found for this text.
+        val tracks = ytResults[q] ?: ytCache?.let { relevantTo(q, it) }.orEmpty()
+        tracks.map { it.artist }.filter { it.isNotBlank() && normalize(it).contains(nq) }
+            .distinct().take(2).forEach(::add)
+        tracks.map { it.title }.filter(::fits).take(2).forEach(::add)
+        autocomplete.drop(3).forEach(::add)
+        return out.values.take(5)
+    }
+
+    /** Looks up related searches one at a time; only the newest text matters. */
+
+    private fun startSuggestWorker() {
+        viewModelScope.launch(Dispatchers.Default) {
+            suggestWanted.filterNotNull().collect { query ->
+                delay(100)
+                if (suggestWanted.value != query) return@collect
+                val found = withContext(Dispatchers.IO) { YtSuggest.suggest(query) }
+                if (lastQuery == query) {
+                    suggestTexts = found
+                    suggestQuery = query
+                    searchResults.value = withSuggestions(baseResults)
+                }
             }
         }
     }
 
+    /** How well [music]'s name fits the typed text: 0 exact, 1 starts with, 2 a word starts with... */
+
+    private fun nameRank(name: String, q: String): Int =
+        when {
+            name == q -> 0
+            name.startsWith(q) -> 1
+            name.contains(" $q") || name.contains("($q") || name.contains("-$q") -> 2
+            name.contains(q) -> 3
+            else -> 4
+        }
+
+    /**
+     * Orders results by how well the name fits what was typed (exact, starts with, a word starts
+     * with, contains, other matches such as the artist), then by plays, then A-Z.
+     */
+    private fun <T : org.oxycblt.musikr.Music> byRelevance(items: Collection<T>, query: String): List<T> {
+        val q = normalize(query)
+        class Scored(val item: T, val rank: Int, val plays: Int, val name: String)
+        return items
+            .map { item ->
+                val name =
+                    normalize(
+                        (item.name as? org.oxycblt.musikr.tag.Name.Known)?.raw.orEmpty()
+                    )
+                Scored(
+                    item,
+                    nameRank(name, q),
+                    org.oxycblt.auxio.music.PlayStats.count(item.uid.toString()),
+                    name,
+                )
+            }
+            .sortedWith(
+                compareBy<Scored> { it.rank }.thenByDescending { it.plays }.thenBy { it.name }
+            )
+            .map { it.item }
+    }
+
     /** Suggestions show with the "Songs" filter or with none. */
+
     private fun suggestionsAllowed(): Boolean {
         val filters = searchSettings.filters
         return filters.isEmpty() || MusicType.SONGS in filters
@@ -281,14 +370,17 @@ constructor(
         val tracks = ytResults[query] ?: ytCache?.let { relevantTo(query, it) }.orEmpty()
         val shown = withoutLocal(tracks, currentSongs)
         val loading = !ytResults.containsKey(query) && ytFailed != query
-        searchResults.value =
+        publish(
             when {
+
                 shown.isNotEmpty() -> withYouTube(currentLocal, shown)
                 loading -> withYouTube(currentLocal, emptyList(), YtStatusItem(failed = false))
                 ytFailed == query ->
                     withYouTube(currentLocal, emptyList(), YtStatusItem(failed = true))
                 else -> currentLocal
             }
+        )
+
 
     }
 
@@ -320,9 +412,13 @@ constructor(
                     publishYouTube()
                     return@collect
                 }
+                if (!ytInFlight.add(query)) return@collect
+                launch {
+                  try {
                 val found =
                     runCatching {
                             withContext(Dispatchers.IO) {
+
                                 val t0 = System.nanoTime()
                                 ytSource.search(query).also {
                                     val ms = (System.nanoTime() - t0) / 1_000_000
@@ -337,12 +433,16 @@ constructor(
                         ytFailed = query
                         publishYouTube()
                     }
-                    return@collect
+                    return@launch
+                }
+                ytResults[query] = found
+                if (ytWanted.value == query || ytCache == null) ytCache = query to found
+                publishYouTube()
+                  } finally {
+                      ytInFlight.remove(query)
+                  }
                 }
 
-                ytResults[query] = found
-                ytCache = query to found
-                publishYouTube()
             }
         }
     }

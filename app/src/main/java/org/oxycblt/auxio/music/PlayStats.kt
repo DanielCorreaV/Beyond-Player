@@ -61,7 +61,11 @@ object PlayStats {
         writer.execute { runCatching { f.writeText(snapshot) } }
     }
 
+    /** How many plays this song has (0 if none). */
+    fun count(uid: String): Int = synchronized(lock) { entries[uid]?.count ?: 0 }
+
     /** The uid texts of the most played songs, most played first (ties: the latest played first). */
+
     fun top(limit: Int): List<String> =
         synchronized(lock) {
             entries.entries

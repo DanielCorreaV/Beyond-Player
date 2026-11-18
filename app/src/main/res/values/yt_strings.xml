@@ -15,4 +15,5 @@
     <string name="lbl_yt_search_failed">No se pudo buscar en YouTube Music. Revisa tu conexión.</string>
     <string name="lbl_most_played">Lo más escuchado</string>
     <string name="lbl_recently_added">Agregadas recientemente</string>
+    <string name="lbl_yt_use_suggestion">Usar esta sugerencia</string>
 </resources>

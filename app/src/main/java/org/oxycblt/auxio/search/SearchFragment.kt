@@ -87,7 +87,8 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
     override val listModel: ListViewModel by activityViewModels()
     override val playbackModel: PlaybackViewModel by activityViewModels()
     override val musicModel: MusicViewModel by activityViewModels()
-    private val searchAdapter = SearchAdapter(this, ::onYtResultClick)
+    private val searchAdapter = SearchAdapter(this, ::onYtResultClick, ::onSuggestionClick, ::onSuggestionFill)
+
     private var lastLocalPart: List<Item> = emptyList()
     private var getContentLauncher: ActivityResultLauncher<String>? = null
     private var pendingImportTarget: Playlist? = null
@@ -149,6 +150,41 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
             // Nothing typed yet: show the suggestions right away.
             searchModel.search(text?.toString()?.trim())
 
+            // A clear button (x) at the end of the box, only while there is text.
+            val clearIcon =
+                androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                    context,
+                    R.drawable.ic_close_24,
+                )
+            fun refreshClear() {
+                setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    null,
+                    null,
+                    if (text.isNullOrEmpty()) null else clearIcon,
+                    null,
+                )
+            }
+            addTextChangedListener { refreshClear() }
+            refreshClear()
+            setOnTouchListener { view, event ->
+                val endIcon = compoundDrawablesRelative[2]
+                if (event.action == android.view.MotionEvent.ACTION_UP && endIcon != null) {
+                    val slop = 12 * resources.displayMetrics.density
+                    val w = endIcon.intrinsicWidth
+                    val rtl = layoutDirection == View.LAYOUT_DIRECTION_RTL
+                    val hit =
+                        if (rtl) event.x <= paddingEnd + w + slop
+                        else event.x >= width - paddingEnd - w - slop
+                    if (hit) {
+                        text?.clear()
+                        view.performClick()
+                        return@setOnTouchListener true
+                    }
+                }
+                false
+            }
+
+
             if (!launchedKeyboard) {
 
                 // Auto-open the keyboard when this view is shown
@@ -183,12 +219,33 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
 
         binding.searchRecycler.apply {
             adapter = searchAdapter
+            // Scrolling the results puts the keyboard away.
+            addOnScrollListener(
+                object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+                    override fun onScrollStateChanged(
+                        recyclerView: androidx.recyclerview.widget.RecyclerView,
+                        newState: Int,
+                    ) {
+                        if (
+                            newState ==
+                                androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_DRAGGING
+                        ) {
+                            hideKeyboard()
+                        }
+                    }
+                }
+            )
+
             (layoutManager as GridLayoutManager).setFullWidthLookup {
                 val item =
                     searchModel.searchResults.value.getOrElse(it) {
                         return@setFullWidthLookup false
                     }
-                item is PlainDivider || item is PlainHeader
+                item is PlainDivider ||
+                    item is PlainHeader ||
+                    item is org.oxycblt.auxio.music.youtube.YtStatusItem ||
+                    item is org.oxycblt.auxio.music.youtube.YtSuggestionItem
+
             }
         }
 
@@ -216,6 +273,8 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
     }
 
     override fun onRealClick(item: Music) {
+        hideKeyboard()
+
         when (item) {
             is Song -> playbackModel.play(item, searchModel.playWith)
             is Album -> detailModel.showAlbum(item)
@@ -235,8 +294,27 @@ class SearchFragment : ListFragment<Music, FragmentSearchBinding>() {
         }
     }
 
+    /** The arrow of a suggestion: puts it in the box and lets you keep typing (keyboard stays). */
+    private fun onSuggestionFill(text: String) {
+        val edit = requireBinding().searchEditText
+        edit.setText(text)
+        edit.setSelection(text.length)
+    }
+
+    /** Tapping a suggestion fills the search box with it and shows its results. */
+
+    private fun onSuggestionClick(text: String) {
+        val edit = requireBinding().searchEditText
+        edit.setText(text)
+        edit.setSelection(text.length)
+        hideKeyboard()
+    }
+
     /** Tapping a YouTube result adds it to the library and plays it by streaming. */
+
     private fun onYtResultClick(track: YtTrack) {
+        hideKeyboard()
+
         val play = playbackModel
 
         // One song at a time: ByItself does not need the song to be in the library list yet.
