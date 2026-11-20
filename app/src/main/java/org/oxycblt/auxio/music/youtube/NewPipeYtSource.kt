@@ -105,6 +105,7 @@ class NewPipeYtSource : YtSource {
                 album = album,
                 year = year,
                 thumbnailUrl = info.thumbnails.maxByOrNull { it.height }?.url,
+                durationSec = info.duration,
             )
         } catch (e: YtException) {
             throw e

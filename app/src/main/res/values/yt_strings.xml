@@ -16,4 +16,8 @@
     <string name="lbl_most_played">Lo más escuchado</string>
     <string name="lbl_recently_added">Agregadas recientemente</string>
     <string name="lbl_yt_use_suggestion">Usar esta sugerencia</string>
+    <string name="lbl_explore">Explorar</string>
+    <string name="lbl_yt_explore_failed">No se pudo cargar Explorar. Revisa tu conexión.</string>
+    <string name="lbl_yt_retry">Reintentar</string>
+    <string name="lbl_yt_soon">Abrir álbumes, listas y artistas llega en la siguiente actualización</string>
 </resources>

@@ -159,7 +159,14 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             registerOnPageChangeCallback(
                 object : ViewPager2.OnPageChangeCallback() {
                     override fun onPageSelected(position: Int) {
-                        homeModel.synchronizeTabPosition(position)
+                        if (position >= homeModel.currentTabTypes.size) {
+                            // The Explore page is not a music tab: only its scroll view matters.
+                            requireBinding().homeAppbar.liftOnScrollTargetViewId =
+                                R.id.home_explore_recycler
+                        } else {
+                            homeModel.synchronizeTabPosition(position)
+                            updateCurrentTab(homeModel.currentTabType.value)
+                        }
                     }
                 }
             )
@@ -489,7 +496,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             HomePagerAdapter(homeModel.currentTabTypes, childFragmentManager, viewLifecycleOwner)
 
         val toolbarParams = binding.homeHeader.layoutParams as AppBarLayout.LayoutParams
-        if (homeModel.currentTabTypes.size == 1) {
+        if (homeModel.currentTabTypes.size + 1 == 1) {
             // A single tab makes the tab layout redundant, hide it and disable the collapsing
             // behavior.
             L.d("Single tab shown, disabling TabLayout")
@@ -498,6 +505,12 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             toolbarParams.scrollFlags = 0
         } else {
             binding.homeTabs.isVisible = true
+            binding.homeTabs.tabMode =
+                if (homeModel.currentTabTypes.size + 1 > 4) {
+                    com.google.android.material.tabs.TabLayout.MODE_SCROLLABLE
+                } else {
+                    com.google.android.material.tabs.TabLayout.MODE_FIXED
+                }
             toolbarParams.scrollFlags =
                 if (uiSettings.style == AppStyle.CLASSIC) {
                     AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
@@ -520,7 +533,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         TabLayoutMediator(
                 binding.homeTabs,
                 binding.homePager,
-                NamedTabStrategy(homeModel.currentTabTypes),
+                NamedTabStrategy(homeModel.currentTabTypes, getString(R.string.lbl_explore)),
             )
             .attach()
     }
@@ -751,10 +764,11 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         fragmentManager: FragmentManager,
         lifecycleOwner: LifecycleOwner,
     ) : FragmentStateAdapter(fragmentManager, lifecycleOwner.lifecycle) {
-        override fun getItemCount() = tabs.size
+        override fun getItemCount() = tabs.size + 1
 
         override fun createFragment(position: Int): Fragment =
-            when (tabs[position]) {
+            if (position >= tabs.size) ExploreFragment()
+            else when (tabs[position]) {
                 MusicType.SONGS -> SongListFragment()
                 MusicType.ALBUMS -> AlbumListFragment()
                 MusicType.ARTISTS -> ArtistListFragment()

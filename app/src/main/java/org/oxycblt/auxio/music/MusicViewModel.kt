@@ -129,6 +129,21 @@ constructor(
      * contains it. If it is not there yet the library is refreshed from its cache first.
      */
     fun addYouTubeSong(track: YtTrack, onReady: (Song) -> Unit) {
+        if (track.durationSec >= 0) {
+            addYouTubeSongNow(track, onReady)
+            return
+        }
+        // No length yet (Explore cards have none): ask for it first, it comes with the stream lookup.
+        queueJob?.cancel()
+        viewModelScope.launch(Dispatchers.IO) {
+            val seconds = YtStreamResolver.durationOf(track.videoId).coerceAtLeast(0)
+            withContext(Dispatchers.Main) {
+                addYouTubeSongNow(track.copy(durationSec = seconds), onReady)
+            }
+        }
+    }
+
+    private fun addYouTubeSongNow(track: YtTrack, onReady: (Song) -> Unit) {
         queueJob?.cancel()
 
         YtLibrary.add(track)
@@ -181,7 +196,14 @@ constructor(
         queueJob?.cancel()
         queueJob =
             viewModelScope.launch(Dispatchers.IO) {
-                for (track in tracks) {
+                for (original in tracks) {
+                    val track =
+                        if (original.durationSec >= 0) original
+                        else
+                            original.copy(
+                                durationSec =
+                                    YtStreamResolver.durationOf(original.videoId).coerceAtLeast(0)
+                            )
                     val song =
                         findYouTubeSong(track.videoId)
                             ?: run {

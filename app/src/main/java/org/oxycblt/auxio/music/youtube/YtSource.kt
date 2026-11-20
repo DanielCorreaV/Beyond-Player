@@ -36,6 +36,8 @@ data class YtAudio(
     /** Album and year when YouTube knows them (only for auto-generated "Topic" uploads). */
     val album: String? = null,
     val year: Int? = null,
+    /** Length in seconds when the lookup knew it, else -1. */
+    val durationSec: Long = -1,
     /** Biggest thumbnail of the video, used for the cover when the search gave none. */
     val thumbnailUrl: String? = null,
 )

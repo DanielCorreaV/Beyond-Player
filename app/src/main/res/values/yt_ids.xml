@@ -2,4 +2,5 @@
 <resources>
     <item name="action_yt_download" type="id" />
     <item name="action_yt_remove" type="id" />
+    <item name="home_explore_recycler" type="id" />
 </resources>

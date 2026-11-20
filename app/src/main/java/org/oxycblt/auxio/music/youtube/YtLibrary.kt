@@ -341,6 +341,7 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
         private val source = NewPipeYtSource()
         private val urls = ConcurrentHashMap<String, Pair<String, Long>>()
         private val inflight = ConcurrentHashMap<String, CompletableFuture<String>>()
+        private val durations = ConcurrentHashMap<String, Long>()
 
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -368,7 +369,10 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
             val started = SystemClock.elapsedRealtime()
             val url =
                 try {
-                    source.resolveStream(id).url.also {
+                    source.resolveStream(id).let { audio ->
+                        if (audio.durationSec > 0) durations[id] = audio.durationSec
+                        audio.url
+                    }.also {
                         urls[id] = it to SystemClock.elapsedRealtime() + URL_TTL_MS
                         mine.complete(it)
                     }
@@ -398,6 +402,17 @@ class YtStreamResolver : ResolvingDataSource.Resolver {
                 } catch (e: Exception) {
                     // The player will try again, and report the problem, when it opens the song.
                 }
+            }
+        }
+
+        /** Length of the song in seconds, from the same lookup as its stream. -1 if unknown. Blocking. */
+        fun durationOf(id: String): Long {
+            durations[id]?.let { return it }
+            return try {
+                resolve(id)
+                durations[id] ?: -1L
+            } catch (e: Exception) {
+                -1L
             }
         }
 

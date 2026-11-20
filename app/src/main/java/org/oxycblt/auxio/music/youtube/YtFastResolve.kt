@@ -142,6 +142,9 @@ internal object YtFastResolve {
             mimeType = mime,
             extension = if (mime.contains("webm")) "webm" else "m4a",
             bitrate = best.optInt("bitrate") / 1000,
+            durationSec =
+                player.optJSONObject("videoDetails")?.optString("lengthSeconds")?.toLongOrNull()
+                    ?: -1L,
         )
     }
 
