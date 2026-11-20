@@ -23,6 +23,8 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.graphics.ColorUtils
+import androidx.core.view.updatePadding
+import org.oxycblt.auxio.util.systemBarInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -76,7 +78,13 @@ class ExploreFragment : Fragment() {
             id = R.id.home_explore_recycler
             layoutManager = LinearLayoutManager(context)
             clipToPadding = false
-            setPadding(0, (8 * d).toInt(), 0, (24 * d).toInt())
+            // The same bottom space as the other lists, so the mini player never covers the end.
+            val space = (88 * d).toInt()
+            setPadding(0, (8 * d).toInt(), 0, space)
+            setOnApplyWindowInsetsListener { v, insets ->
+                v.updatePadding(bottom = space + insets.systemBarInsetsCompat.bottom)
+                insets
+            }
             itemAnimator = null
             this.adapter = adapter
         }
