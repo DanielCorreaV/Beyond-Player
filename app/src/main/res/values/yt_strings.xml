@@ -20,4 +20,7 @@
     <string name="lbl_yt_explore_failed">No se pudo cargar Explorar. Revisa tu conexión.</string>
     <string name="lbl_yt_retry">Reintentar</string>
     <string name="lbl_yt_soon">Abrir álbumes, listas y artistas llega en la siguiente actualización</string>
+    <string name="lbl_yt_play">Reproducir</string>
+    <string name="lbl_yt_download_all">Descargar todo</string>
+    <string name="fmt_yt_download_all">En la cola de descarga: %d canciones</string>
 </resources>

@@ -67,8 +67,14 @@ object YtExplore {
     private const val TTL_MS = 30 * 60 * 1000L
     private const val MAX_ITEMS = 20
     private const val MAX_CHIPS = 60
+    private const val DETAIL_ITEMS = 300
     private val SHELVES =
-        setOf("musicCarouselShelfRenderer", "musicShelfRenderer", "gridRenderer")
+        setOf(
+            "musicCarouselShelfRenderer",
+            "musicShelfRenderer",
+            "musicPlaylistShelfRenderer",
+            "gridRenderer",
+        )
     private val SEPARATORS = setOf("•", "·", "&", ",", "-", "–")
     private val TYPE_WORDS =
         setOf(
@@ -97,7 +103,13 @@ object YtExplore {
 
     // ---- request ----
 
-    private fun post(browseId: String): String {
+    private fun post(browseId: String, params: String? = null): String {
+        val body = JSONObject().put("browseId", browseId)
+        if (params != null) body.put("params", params)
+        return postJson("browse", body)
+    }
+
+    private fun postJson(endpoint: String, fields: JSONObject): String {
         val locale = Locale.getDefault()
         val version = "1." + SimpleDateFormat("yyyyMMdd", Locale.US).format(Date()) + ".01.00"
         val client =
@@ -106,12 +118,9 @@ object YtExplore {
                 .put("clientVersion", version)
                 .put("hl", locale.language.ifEmpty { "en" })
                 .put("gl", locale.country.ifEmpty { "US" })
-        val body =
-            JSONObject()
-                .put("context", JSONObject().put("client", client).put("user", JSONObject()))
-                .put("browseId", browseId)
+        val body = fields.put("context", JSONObject().put("client", client).put("user", JSONObject()))
         val conn =
-            URL("https://music.youtube.com/youtubei/v1/browse?prettyPrint=false").openConnection()
+            URL("https://music.youtube.com/youtubei/v1/$endpoint?prettyPrint=false").openConnection()
                 as HttpURLConnection
         try {
             conn.requestMethod = "POST"
@@ -128,7 +137,7 @@ object YtExplore {
             )
             conn.outputStream.use { it.write(body.toString().toByteArray()) }
             val code = conn.responseCode
-            if (code != 200) throw IOException("HTTP $code for $browseId")
+            if (code != 200) throw IOException("HTTP $code for $endpoint")
             return conn.inputStream.bufferedReader().use { it.readText() }
         } catch (e: Exception) {
             conn.disconnect()
@@ -139,13 +148,15 @@ object YtExplore {
     // ---- reading the answer ----
 
     /** All shelves of an answer, in page order. */
-    fun parse(text: String): List<ExploreSection> {
+    fun parse(text: String): List<ExploreSection> = parse(JSONObject(text), MAX_ITEMS)
+
+    private fun parse(root: JSONObject, maxItems: Int): List<ExploreSection> {
         val out = mutableListOf<ExploreSection>()
-        collect(JSONObject(text), out)
+        collect(root, out, maxItems)
         return out
     }
 
-    private fun collect(node: Any?, out: MutableList<ExploreSection>) {
+    private fun collect(node: Any?, out: MutableList<ExploreSection>, maxItems: Int) {
         when (node) {
             is JSONObject -> {
                 val keys = node.keys()
@@ -153,17 +164,17 @@ object YtExplore {
                     val key = keys.next()
                     val value = node.opt(key)
                     if (key in SHELVES && value is JSONObject) {
-                        shelf(value)?.let { out.add(it) }
+                        shelf(value, maxItems)?.let { out.add(it) }
                     } else {
-                        collect(value, out)
+                        collect(value, out, maxItems)
                     }
                 }
             }
-            is JSONArray -> for (i in 0 until node.length()) collect(node.opt(i), out)
+            is JSONArray -> for (i in 0 until node.length()) collect(node.opt(i), out, maxItems)
         }
     }
 
-    private fun shelf(obj: JSONObject): ExploreSection? {
+    private fun shelf(obj: JSONObject, maxItems: Int): ExploreSection? {
         val title = text(findObject(obj.optJSONObject("header"), "title"))
         val contents = obj.optJSONArray("contents") ?: obj.optJSONArray("items") ?: return null
         val items = mutableListOf<ExploreItem>()
@@ -173,7 +184,7 @@ object YtExplore {
         }
         if (items.isEmpty()) return null
         val chips = items.all { it.kind == ExploreKind.MOOD }
-        return ExploreSection(title, items.take(if (chips) MAX_CHIPS else MAX_ITEMS), chips)
+        return ExploreSection(title, items.take(if (chips) MAX_CHIPS else maxItems), chips)
     }
 
     private fun item(entry: JSONObject): ExploreItem? {
@@ -295,6 +306,129 @@ object YtExplore {
             params = endpoint.optString("params").ifEmpty { null },
             color = r.optJSONObject("solid")?.optLong("leftStripeColor", 0L)?.toInt() ?: 0,
         )
+    }
+
+
+    // ---- detail pages: albums, playlists, artists, mixes, moods ----
+
+    /** What opens when a card that is not a song is tapped. */
+    data class ExploreDetail(
+        val title: String,
+        val artist: String,
+        val thumbnail: String?,
+        /** The songs to play (empty for a mood page). */
+        val tracks: List<YtTrack>,
+        /** More shelves to show (artist and mood pages). */
+        val sections: List<ExploreSection>,
+    )
+
+    private val detailCache = ConcurrentHashMap<String, Pair<Long, ExploreDetail>>()
+
+    /** Blocking. Throws when the request fails or nothing readable came back. */
+    fun detail(item: ExploreItem, dumpDir: File?): ExploreDetail {
+        val key = listOf(item.kind, item.browseId, item.params, item.playlistId).joinToString("|")
+        val now = System.currentTimeMillis()
+        detailCache[key]?.takeIf { now - it.first < TTL_MS }?.let { return it.second }
+        val result =
+            when {
+                item.browseId != null -> fromBrowse(item, dumpDir)
+                item.playlistId != null ->
+                    fromRadio(item, dumpDir).takeIf { it.tracks.isNotEmpty() }
+                        ?: fromBrowse(item.copy(browseId = "VL" + item.playlistId), dumpDir)
+                else -> throw IOException("Nothing to open")
+            }
+        if (result.tracks.isEmpty() && result.sections.isEmpty()) {
+            throw IOException("Nothing readable in ${item.title}")
+        }
+        detailCache[key] = now to result
+        return result
+    }
+
+    private fun dump(dir: File?, name: String, text: String) {
+        if (dir == null) return
+        runCatching {
+            dir.mkdirs()
+            File(dir, name.replace(Regex("[^A-Za-z0-9_-]"), "_") + ".json").writeText(text)
+        }
+    }
+
+    private fun fromBrowse(item: ExploreItem, dumpDir: File?): ExploreDetail {
+        var id = item.browseId ?: throw IOException("No page")
+        if (item.kind == ExploreKind.PLAYLIST && !id.startsWith("VL") && !id.startsWith("FE")) {
+            id = "VL$id"
+        }
+        val text = post(id, item.params)
+        dump(dumpDir, "detail_$id", text)
+        return browseDetail(item, text)
+    }
+
+    internal fun browseDetail(item: ExploreItem, text: String): ExploreDetail {
+        val root = JSONObject(text)
+        val sections = parse(root, DETAIL_ITEMS)
+        val header = root.optJSONObject("header")
+        val artist =
+            pickArtist(runs(findObject(header, "straplineTextOne")))
+                .ifEmpty { pickArtist(runs(findObject(header, "subtitle"))) }
+                .ifEmpty { if (item.kind == ExploreKind.ARTIST) item.title else item.artist }
+        val cover = thumb(header) ?: item.thumbnail
+        val songs = sections.firstOrNull { s -> s.items.any { it.kind == ExploreKind.SONG } }
+        val tracks =
+            songs?.items.orEmpty().filter { it.kind == ExploreKind.SONG }.mapNotNull {
+                it.copy(artist = it.artist.ifBlank { artist }, thumbnail = it.thumbnail ?: cover)
+                    .toTrack()
+            }
+        val shown =
+            if (item.kind == ExploreKind.ARTIST || item.kind == ExploreKind.MOOD) sections
+            else emptyList()
+        return ExploreDetail(
+            title = text(findObject(header, "title")).ifEmpty { item.title },
+            artist = artist,
+            thumbnail = cover,
+            tracks = tracks,
+            sections = shown,
+        )
+    }
+
+    /** A mix or radio: the songs YouTube lines up for it, from the "next" service. */
+    private fun fromRadio(item: ExploreItem, dumpDir: File?): ExploreDetail {
+        val id = item.playlistId ?: throw IOException("No mix")
+        val body = JSONObject().put("playlistId", id).put("isAudioOnly", true)
+        if (item.params != null) body.put("params", item.params)
+        val text = postJson("next", body)
+        dump(dumpDir, "detail_next_$id", text)
+        return radioDetail(item, text)
+    }
+
+    internal fun radioDetail(item: ExploreItem, text: String): ExploreDetail {
+        val found = mutableListOf<JSONObject>()
+        gather(JSONObject(text), "playlistPanelVideoRenderer", found)
+        val tracks =
+            found.mapNotNull { r ->
+                val video = r.optString("videoId")
+                if (video.isEmpty()) return@mapNotNull null
+                YtTrack(
+                    video,
+                    text(r.optJSONObject("title")),
+                    pickArtist(runs(r.optJSONObject("longBylineText"))),
+                    parseDuration(text(r.optJSONObject("lengthText"))),
+                    thumb(r.optJSONObject("thumbnail")) ?: item.thumbnail,
+                )
+            }.distinctBy { it.videoId }
+        return ExploreDetail(item.title, item.artist, item.thumbnail, tracks, emptyList())
+    }
+
+    private fun gather(node: Any?, key: String, out: MutableList<JSONObject>) {
+        when (node) {
+            is JSONObject -> {
+                val keys = node.keys()
+                while (keys.hasNext()) {
+                    val k = keys.next()
+                    val v = node.opt(k)
+                    if (k == key && v is JSONObject) out.add(v) else gather(v, key, out)
+                }
+            }
+            is JSONArray -> for (i in 0 until node.length()) gather(node.opt(i), key, out)
+        }
     }
 
     // ---- small helpers ----

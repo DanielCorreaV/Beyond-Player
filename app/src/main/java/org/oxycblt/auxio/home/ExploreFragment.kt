@@ -142,7 +142,7 @@ class ExploreFragment : Fragment() {
     private fun onItemClick(item: ExploreItem, siblings: List<ExploreItem>) {
         val track = item.toTrack()
         if (item.kind != ExploreKind.SONG || track == null) {
-            requireContext().showToast(R.string.lbl_yt_soon)
+            YtCollectionSheet.open(childFragmentManager, item)
             return
         }
         val following =
@@ -160,7 +160,7 @@ class ExploreFragment : Fragment() {
     }
 }
 
-private sealed interface ExploreRow {
+internal sealed interface ExploreRow {
     data class Shelf(val key: String, val section: ExploreSection) : ExploreRow
 
     object Loading : ExploreRow
@@ -168,7 +168,7 @@ private sealed interface ExploreRow {
     object Failed : ExploreRow
 }
 
-private class ExploreRowAdapter(
+internal class ExploreRowAdapter(
     private val onItem: (ExploreItem, List<ExploreItem>) -> Unit,
     private val onRetry: () -> Unit,
 ) : ListAdapter<ExploreRow, RecyclerView.ViewHolder>(DIFF) {
@@ -316,7 +316,7 @@ private class ExploreRowAdapter(
     }
 }
 
-private class ExploreCardAdapter(private val onItem: (ExploreItem, List<ExploreItem>) -> Unit) :
+internal class ExploreCardAdapter(private val onItem: (ExploreItem, List<ExploreItem>) -> Unit) :
     RecyclerView.Adapter<ExploreCardAdapter.Holder>() {
     var items: List<ExploreItem> = emptyList()
 
