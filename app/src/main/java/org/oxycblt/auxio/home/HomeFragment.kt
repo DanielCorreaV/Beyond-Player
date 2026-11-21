@@ -23,6 +23,7 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
+import android.view.View
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.MenuCompat
@@ -186,6 +187,32 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         }
 
         binding.homeNowPlay.setOnClickListener { playbackModel.togglePlaying() }
+
+        // Swiping the tab bar up or down (see tabPivot) opens/closes the top section.
+        // A little room under the last row of the top section.
+        binding.homeHeaderBody.setPadding(
+            binding.homeHeaderBody.paddingLeft,
+            binding.homeHeaderBody.paddingTop,
+            binding.homeHeaderBody.paddingRight,
+            (16 * resources.displayMetrics.density).toInt(),
+        )
+
+        // Tapping the tab you are already on opens/closes the top section at once.
+        var headerCollapsed = false
+        binding.homeAppbar.addOnOffsetChangedListener { bar, offset ->
+            headerCollapsed = bar.totalScrollRange > 0 && offset <= -bar.totalScrollRange + 2
+        }
+        binding.homeTabs.addOnTabSelectedListener(
+            object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+
+                override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+
+                override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+                    binding.homeAppbar.setExpanded(headerCollapsed, true)
+                }
+            }
+        )
         binding.homeNowContinue.setOnClickListener { playbackModel.togglePlaying() }
 
         // Further initialization must be done in the function that also handles
@@ -491,6 +518,49 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         }
     }
 
+    /** Vertical swipes on the tab bar: down shows the top section, up hides it. */
+    private fun tabPivot(binding: FragmentHomeBinding): View.OnTouchListener {
+        val slop = android.view.ViewConfiguration.get(requireContext()).scaledTouchSlop
+        return object : View.OnTouchListener {
+            private var downX = 0f
+            private var downY = 0f
+            private var done = false
+
+            override fun onTouch(v: View, e: android.view.MotionEvent): Boolean {
+                when (e.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        downX = e.rawX
+                        downY = e.rawY
+                        done = false
+                    }
+                    android.view.MotionEvent.ACTION_MOVE -> {
+                        if (done) return true
+                        val dx = e.rawX - downX
+                        val dy = e.rawY - downY
+                        if (
+                            kotlin.math.abs(dy) > slop * 2 &&
+                                kotlin.math.abs(dy) > kotlin.math.abs(dx) * 1.5f
+                        ) {
+                            done = true
+                            v.isPressed = false
+                            v.cancelLongPress()
+                            binding.homeAppbar.setExpanded(dy > 0, true)
+                            return true
+                        }
+                    }
+                    android.view.MotionEvent.ACTION_UP,
+                    android.view.MotionEvent.ACTION_CANCEL -> {
+                        if (done) {
+                            done = false
+                            return true
+                        }
+                    }
+                }
+                return false
+            }
+        }
+    }
+
     private fun setupPager(binding: FragmentHomeBinding) {
         binding.homePager.adapter =
             HomePagerAdapter(homeModel.currentTabTypes, childFragmentManager, viewLifecycleOwner)
@@ -515,13 +585,8 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
                 } else {
                     // Sticky toolbar: only the now playing card scrolls away.
                     AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
-                        (if (
-                            uiSettings.style == AppStyle.NEON ||
-                                uiSettings.style == AppStyle.VINYL ||
-                                uiSettings.style == AppStyle.POP
-                        )
-                            0
-                        else AppBarLayout.LayoutParams.SCROLL_FLAG_ENTER_ALWAYS) or
+                        // No "enter always" and no snap: the list never reveals the top section by itself, and
+                        // the section can rest half-open (to bring its last row above the mini player).
                         AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
                 }
         }
@@ -536,6 +601,12 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         // The Explore tab is only an icon: keep it narrow.
         binding.homeTabs.getTabAt(0)?.view?.minimumWidth =
             (48 * resources.displayMetrics.density).toInt()
+        // Vertical swipes on the tab bar (on the tabs and on the gaps between them).
+        val pivot = tabPivot(binding)
+        binding.homeTabs.setOnTouchListener(pivot)
+        for (i in 0 until binding.homeTabs.tabCount) {
+            binding.homeTabs.getTabAt(i)?.view?.setOnTouchListener(pivot)
+        }
     }
 
     private fun updateCurrentTab(tabType: MusicType) {
