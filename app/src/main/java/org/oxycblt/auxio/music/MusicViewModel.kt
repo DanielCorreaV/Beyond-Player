@@ -218,6 +218,33 @@ constructor(
             }
     }
 
+    /**
+     * Queues for download only the songs of [tracks] that are not on the phone yet (matched like the
+     * playlist import does, against local files and downloaded songs, never against streamed ones).
+     * [onDone] gets how many were already there and how many were queued, on the main thread.
+     */
+    fun downloadMissing(tracks: List<YtTrack>, onDone: (have: Int, queued: Int) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val local = musicRepository.library?.songs.orEmpty().filter { it.uri.scheme != "yt" }
+            val remote =
+                tracks.map {
+                    org.oxycblt.auxio.music.youtube.RemoteTrack(
+                        it.videoId,
+                        it.title,
+                        it.artist,
+                        it.durationSec,
+                    )
+                }
+            val match = org.oxycblt.auxio.music.youtube.SongMatcher.match(remote, local)
+            val missingIds = match.missing.mapNotNull { it.videoId }.toSet()
+            val missing = tracks.filter { it.videoId in missingIds }
+            if (missing.isNotEmpty()) {
+                org.oxycblt.auxio.music.youtube.YtDownloadService.enqueueAll(appContext, missing)
+            }
+            withContext(Dispatchers.Main) { onDone(tracks.size - missing.size, missing.size) }
+        }
+    }
+
     /** Takes a streaming song out of the library; whatever is playing keeps playing. */
 
     fun removeYouTubeSong(videoId: String) {

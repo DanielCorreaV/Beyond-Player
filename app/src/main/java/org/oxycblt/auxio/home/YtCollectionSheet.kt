@@ -256,6 +256,10 @@ class YtCollectionSheet : BackportBottomSheetDialogFragment() {
         val has = d.tracks.isNotEmpty()
         playButton?.visibility = if (has) View.VISIBLE else View.GONE
         downloadButton?.visibility = if (has) View.VISIBLE else View.GONE
+        downloadButton?.setText(
+            if (importableListId() != null) R.string.lbl_yt_save_list
+            else R.string.lbl_yt_download_missing
+        )
         if (d.sections.isNotEmpty()) {
             rows.submitList(
                 d.sections.mapIndexed { n, s -> ExploreRow.Shelf("$n:${s.title}", s) }
@@ -280,16 +284,33 @@ class YtCollectionSheet : BackportBottomSheetDialogFragment() {
         dismissAllowingStateLoss()
     }
 
+    /** The YouTube id of this list when it can be imported like a pasted link, else null. */
+    private fun importableListId(): String? {
+        if (item.kind != ExploreKind.PLAYLIST) return null
+        val raw = item.browseId ?: item.playlistId ?: return null
+        val id = if (raw.startsWith("VL")) raw.substring(2) else raw
+        // Automatic mixes and radios are not real lists, they cannot be read as one.
+        if (id.startsWith("FE") || (id.startsWith("RD") && !id.startsWith("RDCLAK"))) return null
+        return id
+    }
+
     private fun downloadAll() {
         val tracks = detail?.tracks ?: return
-        val context = requireContext()
-        YtDownloadService.enqueueAll(context, tracks)
-        Toast.makeText(
-                context,
-                getString(R.string.fmt_yt_download_all, tracks.size),
-                Toast.LENGTH_SHORT,
-            )
-            .show()
+        val context = requireContext().applicationContext
+        val listId = importableListId()
+        if (listId != null) {
+            // Same as importing the link: builds the list from the songs already on the phone and
+            // the summary offers to download only the missing ones.
+            musicModel.importFromYouTube("https://music.youtube.com/playlist?list=$listId")
+            dismissAllowingStateLoss()
+            return
+        }
+        musicModel.downloadMissing(tracks) { have, queued ->
+            val message =
+                if (queued == 0) context.getString(R.string.lbl_yt_have_all)
+                else context.getString(R.string.fmt_yt_missing_result, have, queued)
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
     }
 
     /** A card of one of the shelves (artist and mood pages). */
