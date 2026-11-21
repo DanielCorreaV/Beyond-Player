@@ -73,7 +73,7 @@ class ExploreFragment : Fragment() {
     ): View {
         val context = requireContext()
         val d = resources.displayMetrics.density
-        val adapter = ExploreRowAdapter(::onItemClick, ::load, ::onAccountTap)
+        val adapter = ExploreRowAdapter(::onItemClick, ::load)
         rows = adapter
         return RecyclerView(context).apply {
             id = R.id.home_explore_recycler
@@ -106,31 +106,14 @@ class ExploreFragment : Fragment() {
         rows = null
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        // Signing in or out reloads the page: the home shelves change with the account.
-        viewLifecycleOwner.lifecycleScope.launch {
-            var first = true
-            YtSession.loggedIn.collect {
-                if (first) first = false else if (started) load()
-            }
-        }
-    }
-
-    private fun onAccountTap() {
-        if (YtSession.isLoggedIn) {
-            YtSession.logout(requireContext())
-        } else {
-            YtLoginSheet().show(childFragmentManager, "yt_login")
-        }
-    }
+    // Explore is public: the account lives in its own tab.
 
     private fun load() {
         YtSession.restore(requireContext())
-        val groups = ExploreGroup.values()
+        val groups = ExploreGroup.values().filter { it != ExploreGroup.MIXES }
         val slots = arrayOfNulls<List<ExploreSection>>(groups.size)
         var pending = groups.size
-        rows?.submitList(listOf(ExploreRow.Account(YtSession.isLoggedIn), ExploreRow.Loading))
+        rows?.submitList(listOf(ExploreRow.Loading))
         val dump = File(requireContext().cacheDir, "yt_explore")
         groups.forEachIndexed { index, group ->
             viewLifecycleOwner.lifecycleScope.launch {
@@ -150,7 +133,6 @@ class ExploreFragment : Fragment() {
                         slots[i].orEmpty().mapIndexed { n, s -> ExploreRow.Shelf("$i:$n:${s.title}", s) }
                     }
                 rows?.submitList(
-                    listOf<ExploreRow>(ExploreRow.Account(YtSession.isLoggedIn)) +
                     when {
                         pending > 0 -> shelves + ExploreRow.Loading
                         shelves.isEmpty() -> listOf(ExploreRow.Failed)

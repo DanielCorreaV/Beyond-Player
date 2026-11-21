@@ -33,4 +33,14 @@
     <string name="lbl_yt_download_missing">Descargar faltantes</string>
     <string name="lbl_yt_have_all">Ya tienes todas estas canciones</string>
     <string name="fmt_yt_missing_result">Ya tenías %1$d; en la cola de descarga: %2$d</string>
+    <string name="lbl_yt_account">Cuenta</string>
+    <string name="lbl_yt_acc_title_in">Tu YouTube Music</string>
+    <string name="lbl_yt_acc_text_in">Sesión iniciada. Tus mixes, me gusta, listas e historial están aquí.</string>
+    <string name="lbl_yt_acc_title_out">Tu cuenta de YouTube Music</string>
+    <string name="lbl_yt_acc_text_out">Inicia sesión para ver tus mixes, tus me gusta, tus listas y tu historial.</string>
+    <string name="lbl_yt_chip_foryou">Para ti</string>
+    <string name="lbl_yt_chip_liked">Me gusta</string>
+    <string name="lbl_yt_chip_lists">Listas</string>
+    <string name="lbl_yt_chip_history">Historial</string>
+    <string name="lbl_yt_empty">Aquí no hay nada todavía</string>
 </resources>

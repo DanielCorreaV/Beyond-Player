@@ -107,6 +107,18 @@ object YtExplore {
         return sections
     }
 
+    /** One account page (home, library, history) as shelves. Empty list when it has none. */
+    fun page(browseId: String, dumpDir: File?, maxItems: Int): List<ExploreSection> {
+        val text = post(browseId)
+        if (dumpDir != null) {
+            runCatching {
+                dumpDir.mkdirs()
+                File(dumpDir, "page_" + browseId.lowercase() + ".json").writeText(text)
+            }
+        }
+        return parse(JSONObject(text), maxItems)
+    }
+
     // ---- request ----
 
     private fun post(browseId: String, params: String? = null): String {

@@ -372,7 +372,7 @@ class YtCollectionSheet : BackportBottomSheetDialogFragment() {
 }
 
 /** The song list of an album, playlist or mix: cover, title, artist and length per row. */
-private class TrackAdapter(
+internal class TrackAdapter(
     private val tracks: List<YtTrack>,
     private val fallbackCover: String?,
     private val onTap: (Int) -> Unit,

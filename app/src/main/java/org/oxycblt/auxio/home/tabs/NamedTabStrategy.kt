@@ -25,14 +25,19 @@ import org.oxycblt.auxio.music.MusicType
 class NamedTabStrategy(
     private val homeTabs: List<MusicType>,
     private val extraTitle: String? = null,
+    private val accountTitle: String? = null,
 ) : TabConfigurationStrategy {
     override fun onConfigureTab(tab: TabLayout.Tab, position: Int) {
         if (position == 0) {
             // The Explore tab: just a compass.
             tab.setIcon(org.oxycblt.auxio.R.drawable.ic_explore_24)
             tab.contentDescription = extraTitle
+        } else if (position == 1) {
+            // The account tab: just a person.
+            tab.setIcon(org.oxycblt.auxio.R.drawable.ic_account_24)
+            tab.contentDescription = accountTitle
         } else {
-            tab.setText(homeTabs[position - 1].nameRes)
+            tab.setText(homeTabs[position - 2].nameRes)
         }
     }
 }

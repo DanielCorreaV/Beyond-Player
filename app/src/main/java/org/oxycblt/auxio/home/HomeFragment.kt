@@ -160,12 +160,13 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             registerOnPageChangeCallback(
                 object : ViewPager2.OnPageChangeCallback() {
                     override fun onPageSelected(position: Int) {
-                        if (position == 0) {
-                            // The Explore page is not a music tab: only its scroll view matters.
+                        if (position < 2) {
+                            // Explore and Account are not music tabs: only their scroll view matters.
                             requireBinding().homeAppbar.liftOnScrollTargetViewId =
-                                R.id.home_explore_recycler
+                                if (position == 0) R.id.home_explore_recycler
+                                else R.id.home_account_recycler
                         } else {
-                            homeModel.synchronizeTabPosition(position - 1)
+                            homeModel.synchronizeTabPosition(position - 2)
                             updateCurrentTab(homeModel.currentTabType.value)
                         }
                     }
@@ -564,8 +565,8 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
     private fun setupPager(binding: FragmentHomeBinding) {
         binding.homePager.adapter =
             HomePagerAdapter(homeModel.currentTabTypes, childFragmentManager, viewLifecycleOwner)
-        // Page 0 is Explore: the app opens on the first music tab, right after it.
-        binding.homePager.setCurrentItem(1, false)
+        // Pages 0 and 1 are Explore and Account: the app opens on the first music tab after them.
+        binding.homePager.setCurrentItem(2, false)
 
         val toolbarParams = binding.homeHeader.layoutParams as AppBarLayout.LayoutParams
         if (homeModel.currentTabTypes.size + 1 == 1) {
@@ -595,12 +596,18 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         TabLayoutMediator(
                 binding.homeTabs,
                 binding.homePager,
-                NamedTabStrategy(homeModel.currentTabTypes, getString(R.string.lbl_explore)),
+                NamedTabStrategy(
+                    homeModel.currentTabTypes,
+                    getString(R.string.lbl_explore),
+                    getString(R.string.lbl_yt_account),
+                ),
             )
             .attach()
         // The Explore tab is only an icon: keep it narrow.
-        binding.homeTabs.getTabAt(0)?.view?.minimumWidth =
-            (48 * resources.displayMetrics.density).toInt()
+        for (fixed in 0..1) {
+            binding.homeTabs.getTabAt(fixed)?.view?.minimumWidth =
+                (48 * resources.displayMetrics.density).toInt()
+        }
         // Vertical swipes on the tab bar (on the tabs and on the gaps between them).
         val pivot = tabPivot(binding)
         binding.homeTabs.setOnTouchListener(pivot)
@@ -629,8 +636,8 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         if (recreate == null) return
         val binding = requireBinding()
         L.d("Recreating ViewPager")
-        // Move back to position zero, as there must be a tab there.
-        binding.homePager.currentItem = 1
+        // Move back to the first music tab, after the two fixed ones.
+        binding.homePager.currentItem = 2
         // Make sure tabs are set up to also follow the new ViewPager configuration.
         setupPager(binding)
         homeModel.recreateTabs.consume()
@@ -835,11 +842,12 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         fragmentManager: FragmentManager,
         lifecycleOwner: LifecycleOwner,
     ) : FragmentStateAdapter(fragmentManager, lifecycleOwner.lifecycle) {
-        override fun getItemCount() = tabs.size + 1
+        override fun getItemCount() = tabs.size + 2
 
         override fun createFragment(position: Int): Fragment =
             if (position == 0) ExploreFragment()
-            else when (tabs[position - 1]) {
+            else if (position == 1) AccountFragment()
+            else when (tabs[position - 2]) {
                 MusicType.SONGS -> SongListFragment()
                 MusicType.ALBUMS -> AlbumListFragment()
                 MusicType.ARTISTS -> ArtistListFragment()
