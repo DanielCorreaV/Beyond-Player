@@ -84,6 +84,12 @@ object YtExplore {
 
     private val cache = ConcurrentHashMap<String, Pair<Long, List<ExploreSection>>>()
 
+    /** Forget what was loaded (when the account changes, the pages are not the same). */
+    fun clearCache() {
+        cache.clear()
+        detailCache.clear()
+    }
+
     /** Blocking. Throws when the request fails or nothing readable came back. */
     fun load(group: ExploreGroup, dumpDir: File?): List<ExploreSection> {
         val now = System.currentTimeMillis()
@@ -118,6 +124,7 @@ object YtExplore {
                 .put("clientVersion", version)
                 .put("hl", locale.language.ifEmpty { "en" })
                 .put("gl", locale.country.ifEmpty { "US" })
+        YtSession.visitorData()?.let { client.put("visitorData", it) }
         val body = fields.put("context", JSONObject().put("client", client).put("user", JSONObject()))
         val conn =
             URL("https://music.youtube.com/youtubei/v1/$endpoint?prettyPrint=false").openConnection()
@@ -131,12 +138,15 @@ object YtExplore {
             conn.setRequestProperty("Origin", "https://music.youtube.com")
             conn.setRequestProperty("Referer", "https://music.youtube.com/")
             conn.setRequestProperty("Cookie", "SOCS=CAI")
+            // Signed in: the cookies and the signature of the account replace the plain cookie.
+            YtSession.authHeaders()?.forEach { (name, value) -> conn.setRequestProperty(name, value) }
             conn.setRequestProperty(
                 "User-Agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0",
             )
             conn.outputStream.use { it.write(body.toString().toByteArray()) }
             val code = conn.responseCode
+            if (code == 401) YtSession.onAuthRejected()
             if (code != 200) throw IOException("HTTP $code for $endpoint")
             return conn.inputStream.bufferedReader().use { it.readText() }
         } catch (e: Exception) {

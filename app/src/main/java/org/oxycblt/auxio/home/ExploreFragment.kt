@@ -48,6 +48,7 @@ import org.oxycblt.auxio.music.youtube.ExploreItem
 import org.oxycblt.auxio.music.youtube.ExploreKind
 import org.oxycblt.auxio.music.youtube.ExploreSection
 import org.oxycblt.auxio.music.youtube.YtCovers
+import org.oxycblt.auxio.music.youtube.YtSession
 import org.oxycblt.auxio.playback.PlaySong
 import org.oxycblt.auxio.playback.PlaybackViewModel
 import org.oxycblt.auxio.util.showToast
@@ -72,7 +73,7 @@ class ExploreFragment : Fragment() {
     ): View {
         val context = requireContext()
         val d = resources.displayMetrics.density
-        val adapter = ExploreRowAdapter(::onItemClick, ::load)
+        val adapter = ExploreRowAdapter(::onItemClick, ::load, ::onAccountTap)
         rows = adapter
         return RecyclerView(context).apply {
             id = R.id.home_explore_recycler
@@ -105,11 +106,31 @@ class ExploreFragment : Fragment() {
         rows = null
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Signing in or out reloads the page: the home shelves change with the account.
+        viewLifecycleOwner.lifecycleScope.launch {
+            var first = true
+            YtSession.loggedIn.collect {
+                if (first) first = false else if (started) load()
+            }
+        }
+    }
+
+    private fun onAccountTap() {
+        if (YtSession.isLoggedIn) {
+            YtSession.logout(requireContext())
+        } else {
+            YtLoginSheet().show(childFragmentManager, "yt_login")
+        }
+    }
+
     private fun load() {
+        YtSession.restore(requireContext())
         val groups = ExploreGroup.values()
         val slots = arrayOfNulls<List<ExploreSection>>(groups.size)
         var pending = groups.size
-        rows?.submitList(listOf(ExploreRow.Loading))
+        rows?.submitList(listOf(ExploreRow.Account(YtSession.isLoggedIn), ExploreRow.Loading))
         val dump = File(requireContext().cacheDir, "yt_explore")
         groups.forEachIndexed { index, group ->
             viewLifecycleOwner.lifecycleScope.launch {
@@ -129,6 +150,7 @@ class ExploreFragment : Fragment() {
                         slots[i].orEmpty().mapIndexed { n, s -> ExploreRow.Shelf("$i:$n:${s.title}", s) }
                     }
                 rows?.submitList(
+                    listOf<ExploreRow>(ExploreRow.Account(YtSession.isLoggedIn)) +
                     when {
                         pending > 0 -> shelves + ExploreRow.Loading
                         shelves.isEmpty() -> listOf(ExploreRow.Failed)
@@ -166,11 +188,15 @@ internal sealed interface ExploreRow {
     object Loading : ExploreRow
 
     object Failed : ExploreRow
+
+    /** The card at the top: sign in, or the signed-in state with sign out. */
+    data class Account(val loggedIn: Boolean) : ExploreRow
 }
 
 internal class ExploreRowAdapter(
     private val onItem: (ExploreItem, List<ExploreItem>) -> Unit,
     private val onRetry: () -> Unit,
+    private val onAccount: () -> Unit = {},
 ) : ListAdapter<ExploreRow, RecyclerView.ViewHolder>(DIFF) {
     private val pool = RecyclerView.RecycledViewPool()
 
@@ -179,6 +205,7 @@ internal class ExploreRowAdapter(
             is ExploreRow.Shelf -> 0
             ExploreRow.Loading -> 1
             ExploreRow.Failed -> 2
+            is ExploreRow.Account -> 3
         }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -240,6 +267,28 @@ internal class ExploreRowAdapter(
                     }
                 object : RecyclerView.ViewHolder(root) {}
             }
+            3 -> {
+                val label =
+                    TextView(context).apply {
+                        setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+                    }
+                val button =
+                    MaterialButton(context).apply { setOnClickListener { onAccount() } }
+                val root =
+                    LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        val p = (16 * d).toInt()
+                        setPadding(p, p, p, p)
+                        layoutParams =
+                            RecyclerView.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                            )
+                        addView(label)
+                        addView(button)
+                    }
+                AccountHolder(root, label, button)
+            }
             else -> {
                 val label =
                     TextView(context).apply {
@@ -273,6 +322,18 @@ internal class ExploreRowAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val row = getItem(position)
         if (holder is ShelfHolder && row is ExploreRow.Shelf) holder.bind(row.section)
+        if (holder is AccountHolder && row is ExploreRow.Account) holder.bind(row.loggedIn)
+    }
+
+    private class AccountHolder(
+        root: View,
+        private val label: TextView,
+        private val button: MaterialButton,
+    ) : RecyclerView.ViewHolder(root) {
+        fun bind(loggedIn: Boolean) {
+            label.setText(if (loggedIn) R.string.lbl_yt_logged_in else R.string.lbl_yt_login_hint)
+            button.setText(if (loggedIn) R.string.lbl_yt_logout else R.string.lbl_yt_login)
+        }
     }
 
     private class ShelfHolder(

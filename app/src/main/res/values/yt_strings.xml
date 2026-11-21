@@ -23,4 +23,10 @@
     <string name="lbl_yt_play">Reproducir</string>
     <string name="lbl_yt_download_all">Descargar todo</string>
     <string name="fmt_yt_download_all">En la cola de descarga: %d canciones</string>
+    <string name="lbl_yt_login_title">Iniciar sesión en YouTube Music</string>
+    <string name="lbl_yt_login_hint">Inicia sesión en YouTube Music para ver tus mixes y recomendaciones de verdad.</string>
+    <string name="lbl_yt_login">Iniciar sesión</string>
+    <string name="lbl_yt_logout">Cerrar sesión</string>
+    <string name="lbl_yt_logged_in">Sesión de YouTube Music iniciada</string>
+    <string name="lbl_yt_close">Cerrar</string>
 </resources>

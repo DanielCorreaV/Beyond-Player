@@ -27,9 +27,9 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.bottomsheet.BackportBottomSheetBehavior
+import com.google.android.material.bottomsheet.BackportBottomSheetDialog
+import com.google.android.material.bottomsheet.BackportBottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.color.MaterialColors
 import dagger.hilt.android.AndroidEntryPoint
@@ -55,7 +55,7 @@ import timber.log.Timber as L
  * or mood. Shows its songs (or its shelves) with "Reproducir" and "Descargar todo". Built in code.
  */
 @AndroidEntryPoint
-class YtCollectionSheet : BottomSheetDialogFragment() {
+class YtCollectionSheet : BackportBottomSheetDialogFragment() {
     private val musicModel: MusicViewModel by activityViewModels()
     private val playbackModel: PlaybackViewModel by activityViewModels()
     private val rows = ExploreRowAdapter(::onItem, ::load)
@@ -212,8 +212,8 @@ class YtCollectionSheet : BottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        (dialog as? BottomSheetDialog)?.behavior?.apply {
-            state = BottomSheetBehavior.STATE_EXPANDED
+        (dialog as? BackportBottomSheetDialog)?.behavior?.apply {
+            state = BackportBottomSheetBehavior.STATE_EXPANDED
             skipCollapsed = true
         }
     }
