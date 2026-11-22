@@ -289,6 +289,8 @@ class YtDownloadService : Service() {
         phase = "Actualizando la biblioteca…"
         notifyProgress(force = true)
         awaitLibraryUpdate(repo) { repo.requestIndex(true) }
+        // A downloaded song is a file now: its cloud entry (from a saved playlist) is not needed.
+        ids.forEach { YtLibrary.remove(applicationContext, it) }
 
         // Playlists whose "missing" list contained any of these songs are the ones to refresh.
         val links = YouTubeLinkStore.from(applicationContext).all()

@@ -79,6 +79,8 @@ class NewPipePlaylistSource : RemotePlaylistSource {
                                 title = it.name ?: "",
                                 artist = it.uploaderName ?: "",
                                 durationSec = it.duration,
+                                thumbnailUrl =
+                                    it.thumbnails.maxByOrNull { img -> img.height }?.url,
                             )
                         },
                 )

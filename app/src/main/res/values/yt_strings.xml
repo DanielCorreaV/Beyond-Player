@@ -47,4 +47,6 @@
     <string name="lbl_yt_no_account">Sin cuenta vinculada</string>
     <string name="lbl_yt_acc_loading">Tu cuenta de YouTube Music</string>
     <string name="lbl_yt_privacy">Tus datos no se comparten con nadie: la sesión se guarda cifrada en este teléfono. La vinculación es de solo lectura; lo que haces en la app no se refleja en tu cuenta de YouTube Music.</string>
+    <string name="lbl_yt_in_ytm">En YouTube Music</string>
+    <string name="lbl_yt_view_profile">Ver perfil</string>
 </resources>

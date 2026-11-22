@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.oxycblt.auxio.music.MusicRepository
 import org.oxycblt.auxio.playback.PlaySong
+import org.oxycblt.auxio.playback.state.PlaybackStateManager
 import org.oxycblt.musikr.MusicParent
 import timber.log.Timber as L
 
@@ -34,7 +35,12 @@ import timber.log.Timber as L
  * @author Alexander Capehart (OxygenCobalt)
  */
 @HiltViewModel
-class MenuViewModel @Inject constructor(private val musicRepository: MusicRepository) :
+class MenuViewModel
+@Inject
+constructor(
+    private val musicRepository: MusicRepository,
+    private val playbackManager: PlaybackStateManager,
+) :
     ViewModel(), MusicRepository.UpdateListener {
     private val _currentMenu = MutableStateFlow<Menu?>(null)
     /** The current [Menu] information being shown in a dialog. */
@@ -70,7 +76,14 @@ class MenuViewModel @Inject constructor(private val musicRepository: MusicReposi
         }
 
     private fun unpackSongParcel(parcel: Menu.ForSong.Parcel): Menu.ForSong? {
-        val song = musicRepository.library?.findSong(parcel.songUid) ?: return null
+        val song =
+            musicRepository.library?.findSong(parcel.songUid)
+                // A streaming song that is queued or playing but not in the library yet (it joins the
+                // library a few seconds after it starts) is still in the playback queue.
+                ?: playbackManager.queue.firstOrNull {
+                    it.uid == parcel.songUid && it.uri.scheme == "yt"
+                }
+                ?: return null
         val parent = parcel.playWithUid?.let(musicRepository::find) as MusicParent?
         val playWith = PlaySong.fromIntCode(parcel.playWithCode, parent) ?: return null
         return Menu.ForSong(parcel.res, song, playWith)

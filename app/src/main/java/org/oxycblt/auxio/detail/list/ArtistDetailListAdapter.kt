@@ -45,13 +45,17 @@ import org.oxycblt.musikr.Song
  * @param listener A [DetailListAdapter.Listener] to bind interactions to.
  * @author Alexander Capehart (OxygenCobalt)
  */
-class ArtistDetailListAdapter(private val listener: Listener<Music>) :
+class ArtistDetailListAdapter(
+    private val listener: Listener<Music>,
+    private val onOpenYtArtist: (YtArtistCard) -> Unit = {},
+) :
     DetailListAdapter(listener, DIFF_CALLBACK) {
     override fun getItemViewType(position: Int) =
         when (getItem(position)) {
             // Support a special artist albums/songs.
             is Album -> ArtistAlbumViewHolder.VIEW_TYPE
             is Song -> ArtistSongViewHolder.VIEW_TYPE
+            is YtArtistCard -> YtArtistViewHolder.VIEW_TYPE
             else -> super.getItemViewType(position)
         }
 
@@ -59,6 +63,7 @@ class ArtistDetailListAdapter(private val listener: Listener<Music>) :
         when (viewType) {
             ArtistAlbumViewHolder.VIEW_TYPE -> ArtistAlbumViewHolder.from(parent)
             ArtistSongViewHolder.VIEW_TYPE -> ArtistSongViewHolder.from(parent)
+            YtArtistViewHolder.VIEW_TYPE -> YtArtistViewHolder.from(parent)
             else -> super.onCreateViewHolder(parent, viewType)
         }
 
@@ -68,6 +73,7 @@ class ArtistDetailListAdapter(private val listener: Listener<Music>) :
         when (val item = getItem(position)) {
             is Album -> (holder as ArtistAlbumViewHolder).bind(item, listener)
             is Song -> (holder as ArtistSongViewHolder).bind(item, listener)
+            is YtArtistCard -> (holder as YtArtistViewHolder).bind(item, onOpenYtArtist)
         }
     }
 
@@ -82,6 +88,8 @@ class ArtistDetailListAdapter(private val listener: Listener<Music>) :
 
                         is Song if newItem is Song ->
                             ArtistSongViewHolder.DIFF_CALLBACK.areContentsTheSame(oldItem, newItem)
+
+                        is YtArtistCard if newItem is YtArtistCard -> oldItem == newItem
 
                         else -> DetailListAdapter.DIFF_CALLBACK.areContentsTheSame(oldItem, newItem)
                     }

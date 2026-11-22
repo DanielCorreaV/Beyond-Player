@@ -57,7 +57,7 @@ class ArtistDetailFragment : DetailFragment<Artist, Music>() {
     // Information about what artist to display is initially within the navigation arguments
     // as a UID, as that is the only safe way to parcel an artist.
     private val args: ArtistDetailFragmentArgs by navArgs()
-    private val artistListAdapter = ArtistDetailListAdapter(this)
+    private val artistListAdapter = ArtistDetailListAdapter(this) { card -> openYtArtist(card) }
 
     override fun getDetailListAdapter() = artistListAdapter
 
@@ -188,6 +188,11 @@ class ArtistDetailFragment : DetailFragment<Artist, Music>() {
             playbackModel.parent.value,
             playbackModel.isPlaying.value,
         )
+    }
+
+    /** Opens the YouTube Music profile of this artist (the same panel as in Explorar). */
+    private fun openYtArtist(card: org.oxycblt.auxio.detail.list.YtArtistCard) {
+        org.oxycblt.auxio.home.YtCollectionSheet.open(childFragmentManager, card.item)
     }
 
     private fun updateList(list: List<Item>) {

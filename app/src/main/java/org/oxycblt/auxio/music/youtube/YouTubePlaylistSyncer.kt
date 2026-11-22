@@ -22,6 +22,8 @@ package org.oxycblt.auxio.music.youtube
 import org.oxycblt.auxio.music.MusicRepository
 import org.oxycblt.musikr.Music
 import org.oxycblt.musikr.Playlist
+import org.oxycblt.musikr.Song
+
 import timber.log.Timber as L
 
 /**
@@ -34,6 +36,30 @@ class YouTubePlaylistSyncer(
     private val youTubeLinks: YouTubeLinkStore,
     private val youTubeSource: RemotePlaylistSource,
 ) {
+    /**
+     * Adds the tracks that are not on the phone to the streaming list and refreshes the library from its
+     * cache, so they exist as cloud songs. False when nothing was added or the refresh was not possible.
+     */
+    private suspend fun addCloudSongs(missing: List<RemoteTrack>): Boolean {
+        val tracks =
+            missing.mapNotNull { t ->
+                val id = t.videoId ?: return@mapNotNull null
+                YtTrack(id, t.title, t.artist, t.durationSec, t.thumbnailUrl)
+            }
+        if (tracks.isEmpty()) return false
+        // Nothing new in the streaming list (the songs were there already, or they were downloaded): the
+        // library of the last scan has them all. Reloading from the cache here could drop files that were
+        // just downloaded, so it only happens when cloud songs were really added.
+        val added = YtLibrary.addAll(tracks)
+        // Covers of the songs of saved lists only (never of what is just streamed from a search). They
+        // are downloaded before the library reloads so the cloud songs come out with them.
+        val covers = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            YtLibrary.ensureCovers()
+        }
+        if (added == 0 && !covers) return false
+        return musicRepository.refreshFromCache()
+    }
+
     /** Read the YouTube playlist behind [link] and make the local playlist match it. */
     suspend fun syncOne(link: String): YouTubeImportItem {
         val id =
@@ -46,7 +72,7 @@ class YouTubePlaylistSyncer(
                 L.e(e, "Could not read YouTube playlist")
                 return YouTubeImportItem.Failed(link, e.message ?: "Could not read the playlist")
             }
-        val library =
+        var library =
             musicRepository.library?.takeIf { !musicRepository.isLibraryPartial }
                 ?: return YouTubeImportItem.Failed(link, "The music library is not loaded yet")
 
@@ -59,7 +85,8 @@ class YouTubePlaylistSyncer(
                 "YT local: '${it.name.raw}' | ${it.artists.joinToString { a -> (a.name as? org.oxycblt.musikr.tag.Name.Known)?.raw ?: "?" }} | ${it.durationMs / 1000}s"
             )
         }
-        val match = SongMatcher.match(remote.tracks, library.songs)
+        // Streamed (cloud) songs never count as already being on the phone.
+        var match = SongMatcher.match(remote.tracks, library.songs.filter { it.uri.scheme != "yt" })
         L.d("YT match: ${match.matchedCount} matched, ${match.missing.size} missing")
         match.pairs.forEach { (t, song) ->
             L.d(
@@ -81,6 +108,23 @@ class YouTubePlaylistSyncer(
                     "${it.durationMs / 1000}s"
             )
         }
+        // What is not on the phone joins the library as cloud songs (played by streaming), so the playlist
+        // is playable at once. Downloading one later replaces it with the real file.
+        if (addCloudSongs(match.missing)) {
+            musicRepository.library?.let { library = it }
+            match = SongMatcher.match(remote.tracks, library.songs.filter { it.uri.scheme != "yt" })
+        }
+        val cloudSongs =
+            library.songs
+                .filter { it.uri.scheme == "yt" }
+                .associateBy { it.uri.toString().removePrefix("yt://") }
+        val byTrack = java.util.IdentityHashMap<RemoteTrack, Song>()
+        match.pairs.forEach { (track, song) -> byTrack[track] = song }
+        // The playlist in the order of the YouTube list: the file when there is one, else the cloud song.
+        val ordered =
+            remote.tracks
+                .mapNotNull { track -> byTrack[track] ?: track.videoId?.let { cloudSongs[it] } }
+                .distinct()
         val stored = youTubeLinks.get(id)
         val existing = stored?.let {
             Music.UID.fromString(it.playlistUid)?.let(library::findPlaylist)
@@ -97,16 +141,16 @@ class YouTubePlaylistSyncer(
             val additions =
                 if (lastSynced == null) emptyList()
                 else
-                    existing.songs.filter { it.uid.toString() !in lastSynced && it !in match.songs }
+                    existing.songs.filter { it.uid.toString() !in lastSynced && it !in ordered }
             kept = additions.size
             // Never wipe a list because nothing matched (e.g. the library is still scanning).
-            if (match.songs.isNotEmpty()) {
-                musicRepository.rewritePlaylist(existing, match.songs + additions)
+            if (ordered.isNotEmpty()) {
+                musicRepository.rewritePlaylist(existing, ordered + additions)
             }
             playlist = existing
             created = false
         } else {
-            playlist = musicRepository.createPlaylist(remote.title, match.songs)
+            playlist = musicRepository.createPlaylist(remote.title, ordered)
             created = true
         }
         if (playlist == null) {
@@ -119,7 +163,7 @@ class YouTubePlaylistSyncer(
                 playlistUid = playlist.uid.toString(),
                 title = remote.title,
                 missing = match.missing,
-                syncedUids = match.songs.map { it.uid.toString() },
+                syncedUids = ordered.map { it.uid.toString() },
             )
         )
         return YouTubeImportItem.Done(

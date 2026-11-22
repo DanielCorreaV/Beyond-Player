@@ -120,6 +120,41 @@ object YtLibrary {
         }
     }
 
+    /** Adds the songs that were not there, writing the list once. Returns how many were new. */
+    fun addAll(tracks: List<YtTrack>): Int =
+        synchronized(lock) {
+            val have = entries.map { it.track.videoId }.toHashSet()
+            val now = System.currentTimeMillis()
+            val app = appContext
+            // Songs saved before their cover address was kept: fill it in so their cover can be downloaded.
+            val thumbs = tracks.filter { it.thumbnailUrl != null }.associateBy { it.videoId }
+            if (thumbs.isNotEmpty() &&
+                entries.any { it.track.thumbnailUrl == null && it.track.videoId in thumbs }
+            ) {
+                entries =
+                    entries.map {
+                        val url = thumbs[it.track.videoId]?.thumbnailUrl
+                        if (it.track.thumbnailUrl == null && url != null)
+                            it.copy(track = it.track.copy(thumbnailUrl = url))
+                        else it
+                    }
+                write()
+            }
+
+            // A downloaded song is a file now: never bring it back as a cloud song.
+            val fresh =
+                tracks
+                    .filter { t ->
+                        (app == null || YtDownloadIndex.get(app, t.videoId) == null) &&
+                            have.add(t.videoId)
+                    }
+                    .map { Entry(it, now) }
+            if (fresh.isEmpty()) return 0
+            entries = entries + fresh
+            write()
+            fresh.size
+        }
+
     /** Adds the song if it was not there. Returns true when it was new. */
     fun add(track: YtTrack): Boolean =
         synchronized(lock) {
@@ -167,6 +202,9 @@ object YtLibrary {
 
     fun coverFile(context: Context, videoId: String) =
         File(File(context.applicationContext.filesDir, "yt_covers"), "$videoId.jpg")
+
+    /** [ensureCovers] with the context the library was started with. */
+    fun ensureCovers(): Boolean = appContext?.let { ensureCovers(it) } ?: false
 
     /** Downloads the cover of every stored song that has none yet. Blocking. True if any arrived. */
     fun ensureCovers(context: Context): Boolean {

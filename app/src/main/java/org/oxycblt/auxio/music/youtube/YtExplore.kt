@@ -119,6 +119,16 @@ object YtExplore {
         return parse(JSONObject(text), maxItems)
     }
 
+    /** Search results for [query], artists only (blocking). */
+    fun searchArtists(query: String): List<ExploreSection> {
+        val text =
+            postJson(
+                "search",
+                JSONObject().put("query", query).put("params", "EgWKAQIgAWoKEAkQChAFEAMQBA%3D%3D"),
+            )
+        return parse(JSONObject(text), 8)
+    }
+
     /** The account menu of YouTube Music: name, email and photo of the active account. */
     fun accountMenu(): String = postJson("account/account_menu", JSONObject())
 

@@ -33,6 +33,9 @@ import org.oxycblt.auxio.detail.list.DiscDivider
 import org.oxycblt.auxio.detail.list.DiscHeader
 import org.oxycblt.auxio.detail.list.EditHeader
 import org.oxycblt.auxio.detail.list.MissingTrackItem
+import org.oxycblt.auxio.detail.list.YtArtistCard
+import org.oxycblt.auxio.music.youtube.YtArtistLookup
+import org.oxycblt.auxio.music.youtube.YtLibrary
 import org.oxycblt.auxio.detail.list.SongProperty
 import org.oxycblt.auxio.detail.list.SortHeader
 import org.oxycblt.auxio.list.BasicHeader
@@ -212,6 +215,7 @@ constructor(
                     _artistSongList,
                     artistSongInstructions,
                     replace,
+                    lead = ytLead(),
                 )
             }
             MusicType.GENRES -> {
@@ -358,8 +362,17 @@ constructor(
         if (uid === currentArtist.value?.uid) {
             return
         }
+        ytArtistCard = null
         val artist = detailGenerator.artist(uid)
-        refreshDetail(artist, currentArtist, _artistSongList, artistSongInstructions, null)
+        refreshDetail(
+            artist,
+            currentArtist,
+            _artistSongList,
+            artistSongInstructions,
+            null,
+            lead = ytLead(),
+        )
+        lookUpYtArtist(artist?.parent)
     }
 
     /**
@@ -551,12 +564,13 @@ constructor(
         replace: Int?,
         songHeader: (Int) -> PlainHeader = { SortHeader(it) },
         extra: List<Item> = emptyList(),
+        lead: List<Item> = emptyList(),
     ) {
         if (detail == null) {
             parent.value = null
             return
         }
-        val newList = mutableListOf<Item>()
+        val newList = mutableListOf<Item>().apply { addAll(lead) }
         var newInstructions: UpdateInstructions = UpdateInstructions.Diff
         for ((i, section) in detail.sections.withIndex()) {
             val items =
@@ -611,14 +625,29 @@ constructor(
         val edited = editedPlaylist.value
         if (edited == null) {
             val playlist = detailGenerator.playlist(uid)
+            // A list linked to YouTube Music: the files on the phone first, then the cloud songs.
+            val linked = youTubeLinks.getByPlaylist(uid.toString()) != null
+            val cloud =
+                if (linked) playlist?.parent?.songs.orEmpty().filter { it.uri.scheme == "yt" }
+                else emptyList()
+            val shown =
+                if (playlist == null || cloud.isEmpty()) {
+                    playlist
+                } else {
+                    val local = playlist.parent.songs.filter { it.uri.scheme != "yt" }
+                    Detail(
+                        playlist.parent,
+                        if (local.isEmpty()) listOf() else listOf(DetailSection.Songs(local)),
+                    )
+                }
             refreshDetail(
-                playlist,
+                shown,
                 currentPlaylist,
                 _playlistSongList,
                 playlistSongInstructions,
                 null,
                 { EditHeader(it) },
-                missingTrackItems(uid),
+                cloudSongItems(cloud),
             )
             return
         }
@@ -630,6 +659,58 @@ constructor(
         }
         playlistSongInstructions.put(instructions)
         _playlistSongList.value = list
+    }
+
+    private var ytArtistCard: YtArtistCard? = null
+    private var ytArtistJob: kotlinx.coroutines.Job? = null
+
+    private fun ytLead(): List<Item> = listOfNotNull(ytArtistCard)
+
+    private fun refreshArtistList() {
+        val artist = detailGenerator.artist(currentArtist.value?.uid ?: return)
+        refreshDetail(
+            artist,
+            currentArtist,
+            _artistSongList,
+            artistSongInstructions,
+            null,
+            lead = ytLead(),
+        )
+    }
+
+    /** Looks for the artist on YouTube Music and, if it is there, puts its card at the top of the list. */
+    private fun lookUpYtArtist(artist: Artist?) {
+        ytArtistJob?.cancel()
+        if (artist == null || !YtLibrary.searchEnabled()) return
+        val uid = artist.uid
+        val name = (artist.name as? org.oxycblt.musikr.tag.Name.Known)?.raw ?: return
+        ytArtistJob =
+            viewModelScope.launch(Dispatchers.IO) {
+                val found =
+                    try {
+                        YtArtistLookup.find(name)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        L.w("YT artist lookup failed: ${e.message}")
+                        null
+                    } ?: return@launch
+                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                    if (currentArtist.value?.uid == uid) {
+                        ytArtistCard = YtArtistCard(found)
+                        refreshArtistList()
+                    }
+                }
+            }
+    }
+
+    /** The cloud songs of a linked playlist, after a header, as ordinary song rows. */
+    private fun cloudSongItems(cloud: List<Song>): List<Item> {
+        if (cloud.isEmpty()) return emptyList()
+        return buildList<Item> {
+            add(BasicHeader(R.string.lbl_youtube_missing_section))
+            addAll(cloud)
+        }
     }
 
     /** Songs of the linked YouTube Music playlist that are not on the phone, as list items. */

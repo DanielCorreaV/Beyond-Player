@@ -31,6 +31,7 @@ data class RemoteTrack(
     val title: String,
     val artist: String,
     val durationSec: Long,
+    val thumbnailUrl: String? = null,
 ) {
     /** Human readable description for the "missing songs" summary. */
     val display: String
