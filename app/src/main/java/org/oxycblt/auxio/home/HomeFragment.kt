@@ -151,6 +151,18 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         binding.homeNormalToolbar.apply {
             setOnMenuItemClickListener(this@HomeFragment)
             MenuCompat.setGroupDividerEnabled(menu, true)
+            // The overflow button is the account button: Cuenta, Configuración, Acerca de...
+            run {
+                val icon =
+                    androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_account_24)
+                val bars = binding.root
+                // The overflow button appears once the menu is laid out: look now and a bit later.
+                bars.post { applyAccountIcon(bars, icon) }
+                bars.postDelayed({ applyAccountIcon(bars, icon) }, 500)
+            }
+            if (menu.findItem(R.id.action_yt_account) == null) {
+                menu.add(android.view.Menu.NONE, R.id.action_yt_account, 0, R.string.lbl_yt_account)
+            }
         }
 
         binding.homePager.apply {
@@ -482,6 +494,10 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
 
         return when (item.itemId) {
             // Handle main actions (Search, Settings, About)
+            R.id.action_yt_account -> {
+                showAccountMenu()
+                true
+            }
             R.id.action_search -> {
                 L.d("Navigating to search")
                 findNavController().navigateSafe(HomeFragmentDirections.search())
@@ -798,6 +814,57 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
                     .navigateSafe(HomeFragmentDirections.showPlaylist(show.playlist.uid))
             }
             null -> {}
+        }
+    }
+
+    /** Sign in, sign out or switch the YouTube Music account. */
+    private fun showAccountMenu() {
+        val context = requireContext()
+        org.oxycblt.auxio.music.youtube.YtSession.restore(context)
+        val builder =
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.lbl_yt_account)
+                .setNeutralButton(R.string.lbl_yt_close, null)
+        if (org.oxycblt.auxio.music.youtube.YtSession.isLoggedIn) {
+            builder
+                .setMessage(R.string.lbl_yt_logged_in)
+                .setPositiveButton(R.string.lbl_yt_switch) { _, _ ->
+                    org.oxycblt.auxio.music.youtube.YtSession.logout(context)
+                    // Without clearing the web login, Google would sign the same account in again.
+                    clearWebLogin {
+                        if (isAdded) YtLoginSheet().show(childFragmentManager, "yt_login")
+                    }
+                }
+                .setNegativeButton(R.string.lbl_yt_logout) { _, _ ->
+                    org.oxycblt.auxio.music.youtube.YtSession.logout(context)
+                    clearWebLogin {}
+                }
+        } else {
+            builder.setMessage(R.string.lbl_yt_acc_text_out).setPositiveButton(R.string.lbl_yt_login) { _, _ ->
+                YtLoginSheet().show(childFragmentManager, "yt_login")
+            }
+        }
+        builder.show()
+    }
+
+    private fun clearWebLogin(then: () -> Unit) {
+        val cookies = android.webkit.CookieManager.getInstance()
+        cookies.removeAllCookies { then() }
+        cookies.flush()
+    }
+
+    /** Puts [icon] on the overflow ("three dots") buttons of the top bars, except the selection bar. */
+    private fun applyAccountIcon(view: android.view.View, icon: android.graphics.drawable.Drawable?) {
+        if (view.id != android.view.View.NO_ID) {
+            val name = runCatching { resources.getResourceEntryName(view.id) }.getOrNull().orEmpty()
+            if (name.contains("selection")) return
+        }
+        if (view is android.widget.ImageView && view.javaClass.simpleName == "OverflowMenuButton") {
+            view.setImageDrawable(icon)
+            return
+        }
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) applyAccountIcon(view.getChildAt(i), icon)
         }
     }
 

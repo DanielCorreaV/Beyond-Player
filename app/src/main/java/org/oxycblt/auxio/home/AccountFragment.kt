@@ -12,14 +12,17 @@ package org.oxycblt.auxio.home
 
 import android.graphics.Outline
 import android.graphics.drawable.GradientDrawable
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
-import android.widget.HorizontalScrollView
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -70,6 +73,9 @@ class AccountFragment : Fragment() {
     private var content: RecyclerView.Adapter<*>? = null
     private var tracks: List<YtTrack> = emptyList()
     private var selected = 0
+    private var chips: List<Chip> = emptyList()
+    private var chipsRow: View? = null
+    private var list: RecyclerView? = null
     private var started = false
     private var job: Job? = null
 
@@ -82,10 +88,6 @@ class AccountFragment : Fragment() {
         val d = resources.displayMetrics.density
         val head =
             AccountHeaderAdapter(
-                onChip = { index ->
-                    selected = index
-                    reload()
-                },
                 onAccount = ::onAccountTap,
                 onPlay = { playList(tracks, 0) },
                 onDownload = ::downloadLiked,
@@ -93,19 +95,90 @@ class AccountFragment : Fragment() {
         header = head
         val all = ConcatAdapter(head)
         concat = all
-        return RecyclerView(context).apply {
-            id = R.id.home_account_recycler
-            layoutManager = LinearLayoutManager(context)
-            clipToPadding = false
-            val space = (88 * d).toInt()
-            setPadding(0, (8 * d).toInt(), 0, space)
-            setOnApplyWindowInsetsListener { v, insets ->
-                v.updatePadding(bottom = space + insets.systemBarInsetsCompat.bottom)
-                insets
+        val recycler =
+            RecyclerView(context).apply {
+                id = R.id.home_account_recycler
+                layoutManager = LinearLayoutManager(context)
+                clipToPadding = false
+                val space = (88 * d).toInt()
+                setPadding(0, (4 * d).toInt(), 0, space)
+                setOnApplyWindowInsetsListener { v, insets ->
+                    v.updatePadding(bottom = space + insets.systemBarInsetsCompat.bottom)
+                    insets
+                }
+                itemAnimator = null
+                adapter = all
             }
-            itemAnimator = null
-            adapter = all
+        list = recycler
+        val labels =
+            listOf(R.string.lbl_yt_chip_foryou, R.string.lbl_yt_chip_liked, R.string.lbl_yt_chip_lists)
+        val group =
+            ChipGroup(context).apply {
+                isSingleLine = true
+                isSingleSelection = true
+                isSelectionRequired = true
+            }
+        chips =
+            labels.mapIndexed { index, label ->
+                Chip(context).apply {
+                    setText(label)
+                    isCheckable = true
+                    isChecked = index == selected
+                    setOnClickListener { select(index) }
+                    group.addView(this)
+                }
+            }
+        // The chips stay fixed on top, centered; only what is under them scrolls.
+        val row =
+            LinearLayout(context).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                setPadding((16 * d).toInt(), (8 * d).toInt(), (16 * d).toInt(), 0)
+                addView(
+                    group,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ),
+                )
+            }
+        chipsRow = row
+        val column =
+            LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(
+                    row,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ),
+                )
+                addView(recycler, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            }
+        // Swiping sideways here moves between the chips, not to the next tab of Home.
+        return SwipeSections(
+                context,
+                canMove = { step -> (selected + step) in chips.indices && YtSession.isLoggedIn },
+                onMove = { step -> select(selected + step) },
+            )
+            .apply {
+                addView(
+                    column,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                    ),
+                )
+            }
+    }
+
+    private fun select(index: Int) {
+        if (index == selected || index !in chips.indices) return
+        selected = index
+        list?.apply {
+            alpha = 0f
+            animate().alpha(1f).setDuration(180).start()
         }
+        reload()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -142,6 +215,9 @@ class AccountFragment : Fragment() {
         concat = null
         header = null
         content = null
+        chips = emptyList()
+        chipsRow = null
+        list = null
     }
 
     private fun setContent(next: RecyclerView.Adapter<*>?) {
@@ -155,7 +231,9 @@ class AccountFragment : Fragment() {
         job?.cancel()
         val loggedIn = YtSession.isLoggedIn
         tracks = emptyList()
-        header?.update(loggedIn, selected, false)
+        chipsRow?.visibility = if (loggedIn) View.VISIBLE else View.GONE
+        chips.forEachIndexed { i, chip -> chip.isChecked = i == selected }
+        header?.update(loggedIn, false)
         if (!loggedIn) {
             setContent(null)
             return
@@ -164,8 +242,7 @@ class AccountFragment : Fragment() {
         when (selected) {
             0 -> loadShelves(dump)
             1 -> loadLiked(dump)
-            2 -> loadLists(dump)
-            else -> loadHistory(dump)
+            else -> loadLists(dump)
         }
     }
 
@@ -198,32 +275,8 @@ class AccountFragment : Fragment() {
             }
     }
 
-    private fun loadHistory(dump: File) {
-        setContent(shelves)
-        shelves.submitList(listOf(ExploreRow.Loading))
-        job =
-            viewLifecycleOwner.lifecycleScope.launch {
-                val list =
-                    withContext(Dispatchers.IO) {
-                        try {
-                            YtExplore.page("FEmusic_history", dump, 300)
-                                .flatMap { it.items }
-                                .filter { it.kind == ExploreKind.SONG }
-                                .mapNotNull { it.toTrack() }
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (e: Exception) {
-                            L.w("Account history failed: ${e.message}")
-                            null
-                        }
-                    }
-                when {
-                    list == null -> shelves.submitList(listOf(ExploreRow.Failed))
-                    list.isEmpty() -> setContent(MessageAdapter(getString(R.string.lbl_yt_empty)))
-                    else -> setContent(TrackAdapter(list, null) { index -> playList(list, index) })
-                }
-            }
-    }
+    // History is not shown: it only follows what plays in YouTube Music, not this app.
+
 
     private fun loadLiked(dump: File) {
         setContent(shelves)
@@ -248,7 +301,7 @@ class AccountFragment : Fragment() {
                     return@launch
                 }
                 tracks = detail.tracks
-                header?.update(true, selected, tracks.isNotEmpty())
+                header?.update(true, tracks.isNotEmpty())
                 if (tracks.isEmpty()) {
                     setContent(MessageAdapter(getString(R.string.lbl_yt_empty)))
                 } else {
@@ -300,11 +353,7 @@ class AccountFragment : Fragment() {
     }
 
     private fun onAccountTap() {
-        if (YtSession.isLoggedIn) {
-            YtSession.logout(requireContext())
-        } else {
-            YtLoginSheet().show(childFragmentManager, "yt_login")
-        }
+        YtLoginSheet().show(childFragmentManager, "yt_login")
     }
 
     private fun downloadLiked() {
@@ -354,21 +403,18 @@ class AccountFragment : Fragment() {
     }
 }
 
-/** The top of the account page: the account card, the section chips and the liked-songs buttons. */
+/** The top of the list: the sign-in card when signed out, the liked-songs buttons on "Me gusta". */
 private class AccountHeaderAdapter(
-    private val onChip: (Int) -> Unit,
     private val onAccount: () -> Unit,
     private val onPlay: () -> Unit,
     private val onDownload: () -> Unit,
 ) : RecyclerView.Adapter<AccountHeaderAdapter.Holder>() {
     private var loggedIn = false
-    private var selected = 0
-    private var hasTracks = false
+    private var showActions = false
 
-    fun update(loggedIn: Boolean, selected: Int, hasTracks: Boolean) {
+    fun update(loggedIn: Boolean, showActions: Boolean) {
         this.loggedIn = loggedIn
-        this.selected = selected
-        this.hasTracks = hasTracks
+        this.showActions = showActions
         notifyItemChanged(0)
     }
 
@@ -382,15 +428,21 @@ private class AccountHeaderAdapter(
         val surface = MaterialColors.getColor(parent, com.google.android.material.R.attr.colorSurfaceVariant)
         val title =
             TextView(context).apply {
+                setText(R.string.lbl_yt_acc_title_out)
                 setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleLarge)
                 setTextColor(onSurface)
             }
         val text =
             TextView(context).apply {
+                setText(R.string.lbl_yt_acc_text_out)
                 setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
                 setTextColor(variant)
             }
-        val button = MaterialButton(context).apply { setOnClickListener { onAccount() } }
+        val button =
+            MaterialButton(context).apply {
+                setText(R.string.lbl_yt_login)
+                setOnClickListener { onAccount() }
+            }
         val card =
             LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
@@ -418,33 +470,6 @@ private class AccountHeaderAdapter(
                         )
                         .apply { topMargin = (12 * d).toInt() },
                 )
-            }
-        val labels =
-            listOf(
-                R.string.lbl_yt_chip_foryou,
-                R.string.lbl_yt_chip_liked,
-                R.string.lbl_yt_chip_lists,
-                R.string.lbl_yt_chip_history,
-            )
-        val group =
-            ChipGroup(context).apply {
-                isSingleLine = true
-                isSingleSelection = true
-                isSelectionRequired = true
-            }
-        val chips =
-            labels.mapIndexed { index, label ->
-                Chip(context).apply {
-                    setText(label)
-                    isCheckable = true
-                    setOnClickListener { onChip(index) }
-                    group.addView(this)
-                }
-            }
-        val scroll =
-            HorizontalScrollView(context).apply {
-                isHorizontalScrollBarEnabled = false
-                addView(group)
             }
         val play =
             MaterialButton(context).apply {
@@ -474,6 +499,7 @@ private class AccountHeaderAdapter(
                         .apply { marginStart = (8 * d).toInt() },
                 )
             }
+        val side = (16 * d).toInt()
         val root =
             LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
@@ -482,16 +508,13 @@ private class AccountHeaderAdapter(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                     )
-                val p = (16 * d).toInt()
-                setPadding(p, (8 * d).toInt(), p, (8 * d).toInt())
-                addView(card)
                 addView(
-                    scroll,
+                    card,
                     LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                         )
-                        .apply { topMargin = (12 * d).toInt() },
+                        .apply { setMargins(side, (8 * d).toInt(), side, (8 * d).toInt()) },
                 )
                 addView(
                     actions,
@@ -499,31 +522,98 @@ private class AccountHeaderAdapter(
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                         )
-                        .apply { topMargin = (8 * d).toInt() },
+                        .apply { setMargins(side, (4 * d).toInt(), side, (4 * d).toInt()) },
                 )
             }
-        return Holder(root, title, text, button, scroll, chips, actions)
+        return Holder(root, card, actions)
     }
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
-        holder.title.setText(if (loggedIn) R.string.lbl_yt_acc_title_in else R.string.lbl_yt_acc_title_out)
-        holder.text.setText(if (loggedIn) R.string.lbl_yt_acc_text_in else R.string.lbl_yt_acc_text_out)
-        holder.button.setText(if (loggedIn) R.string.lbl_yt_logout else R.string.lbl_yt_login)
-        holder.chipsScroll.visibility = if (loggedIn) View.VISIBLE else View.GONE
-        holder.chips.forEachIndexed { index, chip -> chip.isChecked = index == selected }
-        holder.actions.visibility =
-            if (loggedIn && selected == 1 && hasTracks) View.VISIBLE else View.GONE
+        holder.card.visibility = if (loggedIn) View.GONE else View.VISIBLE
+        holder.actions.visibility = if (loggedIn && showActions) View.VISIBLE else View.GONE
     }
 
-    class Holder(
-        root: View,
-        val title: TextView,
-        val text: TextView,
-        val button: MaterialButton,
-        val chipsScroll: HorizontalScrollView,
-        val chips: List<Chip>,
-        val actions: LinearLayout,
-    ) : RecyclerView.ViewHolder(root)
+    class Holder(root: View, val card: View, val actions: View) : RecyclerView.ViewHolder(root)
+}
+
+/**
+ * Wraps the account page so that a sideways swipe moves between its sections ([onMove] gets +1 or
+ * -1) instead of paging Home to the next tab. At the first/last section ([canMove] false) the swipe
+ * is left to the pager, and a swipe that starts on a sideways list (a shelf of covers) scrolls that
+ * list as usual.
+ */
+private class SwipeSections(
+    context: Context,
+    private val canMove: (Int) -> Boolean,
+    private val onMove: (Int) -> Unit,
+) : FrameLayout(context) {
+    private val slop = ViewConfiguration.get(context).scaledTouchSlop
+    private val distance = 64 * context.resources.displayMetrics.density
+    private var downX = 0f
+    private var downY = 0f
+    private var tracking = false
+    private var taken = false
+    private var step = 0
+
+    override fun onInterceptTouchEvent(e: MotionEvent): Boolean {
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downX = e.x
+                downY = e.y
+                taken = false
+                tracking = !overSidewaysList(this, e.x, e.y)
+                // Keep the pager of Home out of it until we know which way the swipe goes.
+                if (tracking) parent?.requestDisallowInterceptTouchEvent(true)
+            }
+            MotionEvent.ACTION_MOVE ->
+                if (tracking && !taken) {
+                    val dx = e.x - downX
+                    val dy = e.y - downY
+                    if (Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy) * 1.5f) {
+                        val want = if (dx < 0) 1 else -1
+                        if (canMove(want)) {
+                            taken = true
+                            step = want
+                            return true
+                        }
+                        // No section that way: the pager of Home may take the swipe.
+                        tracking = false
+                        parent?.requestDisallowInterceptTouchEvent(false)
+                    } else if (Math.abs(dy) > slop && Math.abs(dy) > Math.abs(dx)) {
+                        tracking = false
+                    }
+                }
+        }
+        return false
+    }
+
+    override fun onTouchEvent(e: MotionEvent): Boolean {
+        if (!taken) return false
+        when (e.actionMasked) {
+            MotionEvent.ACTION_MOVE -> parent?.requestDisallowInterceptTouchEvent(true)
+            MotionEvent.ACTION_UP -> {
+                taken = false
+                if (Math.abs(e.x - downX) > distance) onMove(step)
+            }
+            MotionEvent.ACTION_CANCEL -> taken = false
+        }
+        return true
+    }
+
+    private fun overSidewaysList(group: ViewGroup, x: Float, y: Float): Boolean {
+        for (i in group.childCount - 1 downTo 0) {
+            val child = group.getChildAt(i)
+            if (child.visibility != View.VISIBLE) continue
+            val cx = x + group.scrollX - child.left
+            val cy = y + group.scrollY - child.top
+            if (cx < 0 || cy < 0 || cx >= child.width || cy >= child.height) continue
+            if (child is RecyclerView && child.layoutManager?.canScrollHorizontally() == true) {
+                return true
+            }
+            if (child is ViewGroup && overSidewaysList(child, cx, cy)) return true
+        }
+        return false
+    }
 }
 
 /** One line of text, for an empty section. */

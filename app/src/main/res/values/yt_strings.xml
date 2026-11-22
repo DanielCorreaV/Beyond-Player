@@ -43,4 +43,5 @@
     <string name="lbl_yt_chip_lists">Listas</string>
     <string name="lbl_yt_chip_history">Historial</string>
     <string name="lbl_yt_empty">Aquí no hay nada todavía</string>
+    <string name="lbl_yt_switch">Cambiar de cuenta</string>
 </resources>
