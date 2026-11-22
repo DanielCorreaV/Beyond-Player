@@ -65,6 +65,8 @@ constructor(
         ViewToolbarBinding.inflate(LayoutInflater.from(context), this, true)
     private var menuItemClickListener: Toolbar.OnMenuItemClickListener? = null
     private var overflowClickListener: OnClickListener? = null
+    private var overflowIconRes: Int = R.drawable.ic_more_vert_24
+    private var overflowIconDrawable: android.graphics.drawable.Drawable? = null
     private val actionButtons = mutableMapOf<Int, RippleFixMaterialButton>()
     @SuppressLint("RestrictedApi") private var menuBuilder = MenuBuilder(context)
 
@@ -206,6 +208,24 @@ constructor(
 
     fun getMenuButton(itemId: Int): RippleFixMaterialButton? = actionButtons[itemId]
 
+    /** Changes the icon of the overflow ("three dots") button. */
+    fun setOverflowIconResource(res: Int) {
+        overflowIconRes = res
+        overflowIconDrawable = null
+        rebuildActionButtons()
+    }
+
+    /** Shows [drawable] (for example a round photo) on the overflow button, untinted. */
+    fun setOverflowIconDrawable(drawable: android.graphics.drawable.Drawable?) {
+        overflowIconDrawable = drawable
+        rebuildActionButtons()
+    }
+
+    /** Rebuilds the buttons, for menu items that were added or changed by code. */
+    fun refreshMenu() {
+        rebuildActionButtons()
+    }
+
     @SuppressLint("RestrictedApi")
     fun setMenuItemEnabled(itemId: Int, enabled: Boolean) {
         menuBuilder.findItem(itemId)?.isEnabled = enabled
@@ -239,6 +259,8 @@ constructor(
         binding.toolbarActionGroup.removeAllViews()
 
         val actionItems = mutableListOf<MenuItemImpl>()
+        // The account entry, when there is one, goes first in the overflow menu.
+        val accountFirst = { item: MenuItemImpl -> if (item.itemId == R.id.action_yt_account) 0 else 1 }
         val overflowItems = mutableListOf<MenuItemImpl>()
         for (i in 0 until menuBuilder.size()) {
             val item = menuBuilder.getItem(i) as MenuItemImpl
@@ -257,7 +279,7 @@ constructor(
         }
 
         if (overflowItems.isNotEmpty()) {
-            binding.toolbarActionGroup.addView(createOverflowButton(overflowItems))
+            binding.toolbarActionGroup.addView(createOverflowButton(overflowItems.sortedBy(accountFirst)))
         }
 
         binding.toolbarActionGroup.isVisible = binding.toolbarActionGroup.isNotEmpty()
@@ -291,7 +313,14 @@ constructor(
     private fun createOverflowButton(overflowItems: List<MenuItemImpl>) =
         RippleFixMaterialButton(context, null, MR.attr.materialIconButtonStyle).apply {
             configureIconButton(this)
-            setIconResource(R.drawable.ic_more_vert_24)
+            val custom = overflowIconDrawable
+            if (custom != null) {
+                icon = custom
+                iconTint = null
+                iconSize = (32 * resources.displayMetrics.density).toInt()
+            } else {
+                setIconResource(overflowIconRes)
+            }
             contentDescription = context.getString(R.string.lbl_more)
             TooltipCompat.setTooltipText(this, contentDescription)
             setOnClickListener { view ->

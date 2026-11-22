@@ -23,6 +23,8 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MenuItem
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import android.view.View
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -152,17 +154,18 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             setOnMenuItemClickListener(this@HomeFragment)
             MenuCompat.setGroupDividerEnabled(menu, true)
             // The overflow button is the account button: Cuenta, Configuración, Acerca de...
-            run {
-                val icon =
-                    androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_account_24)
-                val bars = binding.root
-                // The overflow button appears once the menu is laid out: look now and a bit later.
-                bars.post { applyAccountIcon(bars, icon) }
-                bars.postDelayed({ applyAccountIcon(bars, icon) }, 500)
-            }
+            // The overflow button is the account button: Cuenta, Configuración, Acerca de...
             if (menu.findItem(R.id.action_yt_account) == null) {
                 menu.add(android.view.Menu.NONE, R.id.action_yt_account, 0, R.string.lbl_yt_account)
             }
+            // (this also rebuilds the buttons, so the new item is in the menu)
+            setOverflowIconResource(R.drawable.ic_account_24)
+            // The photo of the linked account replaces the icon, and follows account changes.
+            val toolbar = this
+            viewLifecycleOwner.lifecycleScope.launch {
+                org.oxycblt.auxio.music.youtube.YtSession.profiles.collect { showAccountIcon(toolbar) }
+            }
+
         }
 
         binding.homePager.apply {
@@ -817,56 +820,39 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         }
     }
 
-    /** Sign in, sign out or switch the YouTube Music account. */
+    /** The account dialog: photo, name, email; link another account, unlink, sign in. */
     private fun showAccountMenu() {
+        YtAccountDialog().show(childFragmentManager, "yt_account")
+    }
+
+    /** Photo of the linked account on the top bar button; the person icon when there is none. */
+    private fun showAccountIcon(bar: org.oxycblt.auxio.ui.AuxioToolbar) {
         val context = requireContext()
-        org.oxycblt.auxio.music.youtube.YtSession.restore(context)
-        val builder =
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
-                .setTitle(R.string.lbl_yt_account)
-                .setNeutralButton(R.string.lbl_yt_close, null)
-        if (org.oxycblt.auxio.music.youtube.YtSession.isLoggedIn) {
-            builder
-                .setMessage(R.string.lbl_yt_logged_in)
-                .setPositiveButton(R.string.lbl_yt_switch) { _, _ ->
-                    org.oxycblt.auxio.music.youtube.YtSession.logout(context)
-                    // Without clearing the web login, Google would sign the same account in again.
-                    clearWebLogin {
-                        if (isAdded) YtLoginSheet().show(childFragmentManager, "yt_login")
-                    }
-                }
-                .setNegativeButton(R.string.lbl_yt_logout) { _, _ ->
-                    org.oxycblt.auxio.music.youtube.YtSession.logout(context)
-                    clearWebLogin {}
-                }
-        } else {
-            builder.setMessage(R.string.lbl_yt_acc_text_out).setPositiveButton(R.string.lbl_yt_login) { _, _ ->
-                YtLoginSheet().show(childFragmentManager, "yt_login")
-            }
-        }
-        builder.show()
-    }
-
-    private fun clearWebLogin(then: () -> Unit) {
-        val cookies = android.webkit.CookieManager.getInstance()
-        cookies.removeAllCookies { then() }
-        cookies.flush()
-    }
-
-    /** Puts [icon] on the overflow ("three dots") buttons of the top bars, except the selection bar. */
-    private fun applyAccountIcon(view: android.view.View, icon: android.graphics.drawable.Drawable?) {
-        if (view.id != android.view.View.NO_ID) {
-            val name = runCatching { resources.getResourceEntryName(view.id) }.getOrNull().orEmpty()
-            if (name.contains("selection")) return
-        }
-        if (view is android.widget.ImageView && view.javaClass.simpleName == "OverflowMenuButton") {
-            view.setImageDrawable(icon)
+        val session = org.oxycblt.auxio.music.youtube.YtSession
+        session.restore(context)
+        val photo = session.accounts().getOrNull(session.activeIndex())?.photo
+        if (!session.isLoggedIn || photo.isNullOrBlank()) {
+            bar.setOverflowIconResource(R.drawable.ic_account_24)
             return
         }
-        if (view is android.view.ViewGroup) {
-            for (i in 0 until view.childCount) applyAccountIcon(view.getChildAt(i), icon)
+        val covers = org.oxycblt.auxio.music.youtube.YtCovers
+        val cached = covers.cached(context, photo)
+        if (cached != null) {
+            applyAvatar(bar, cached)
+        } else {
+            bar.setOverflowIconResource(R.drawable.ic_account_24)
+            covers.load(context, photo) { file -> if (isAdded && view != null) applyAvatar(bar, file) }
         }
     }
+
+    private fun applyAvatar(bar: org.oxycblt.auxio.ui.AuxioToolbar, file: java.io.File) {
+        val bitmap = android.graphics.BitmapFactory.decodeFile(file.path) ?: return
+        val round = androidx.core.graphics.drawable.RoundedBitmapDrawableFactory.create(resources, bitmap)
+        round.isCircular = true
+        bar.setOverflowIconDrawable(round)
+    }
+
+    // The account icon is set in AuxioToolbar (setOverflowIconResource).
 
     private fun handleMenu(menu: Menu?) {
         if (menu == null) return

@@ -119,6 +119,9 @@ object YtExplore {
         return parse(JSONObject(text), maxItems)
     }
 
+    /** The account menu of YouTube Music: name, email and photo of the active account. */
+    fun accountMenu(): String = postJson("account/account_menu", JSONObject())
+
     // ---- request ----
 
     private fun post(browseId: String, params: String? = null): String {

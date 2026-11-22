@@ -23,14 +23,18 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber as L
 
+/** What the app shows of a linked account. */
+data class YtAccount(val name: String, val email: String, val photo: String?)
+
 /**
- * The YouTube Music account of the person. Signing in happens once in a web view (see
- * [YtLoginSheet]); what is kept is the cookies of that session, which are as powerful as a password,
- * so they are stored encrypted with a key that lives in the phone's keystore and never leaves it.
- * The password itself is never seen or stored by the app.
+ * The YouTube Music accounts of the person (one or several, one of them active). Signing in happens
+ * in a web view (see [YtLoginSheet]); what is kept is the cookies of each session, which are as
+ * powerful as a password, so they are stored encrypted with a key that lives in the phone's keystore
+ * and never leaves it. The password itself is never seen or stored by the app.
  */
 object YtSession {
     private const val PREFS = "yt_session"
@@ -38,19 +42,50 @@ object YtSession {
     private const val ALIAS = "beyond_yt_session"
     private const val ORIGIN = "https://music.youtube.com"
 
+    private class Entry(
+        val cookie: String,
+        val visitor: String?,
+        val authUser: String,
+        var name: String = "",
+        var email: String = "",
+        var photo: String? = null,
+        var loading: Boolean = false,
+    )
+
+    private val lock = Any()
+    private val entries = mutableListOf<Entry>()
+    private var active = 0
+
     @Volatile private var appContext: Context? = null
-    @Volatile private var cookie: String? = null
-    @Volatile private var visitor: String? = null
-    @Volatile private var authUser: String = "0"
     @Volatile private var restored = false
 
     val loggedIn: StateFlow<Boolean>
         field = MutableStateFlow(false)
 
-    val isLoggedIn: Boolean
-        get() = cookie != null
+    /** Counts changes of the signed-in session (sign in, sign out, switch): pages reload on it. */
+    val sessions: StateFlow<Int>
+        field = MutableStateFlow(0)
 
-    /** Load the saved session (once). Safe to call again. */
+    /** Counts any change, including the name and photo arriving: the icon and the dialog redraw. */
+    val profiles: StateFlow<Int>
+        field = MutableStateFlow(0)
+
+    val isLoggedIn: Boolean
+        get() = synchronized(lock) { entries.isNotEmpty() }
+
+    fun accounts(): List<YtAccount> =
+        synchronized(lock) { entries.map { YtAccount(it.name, it.email, it.photo) } }
+
+    fun activeIndex(): Int = synchronized(lock) { active }
+
+    private fun current(): Entry? = synchronized(lock) { entries.getOrNull(active) }
+
+    private fun bump(sessionChanged: Boolean) {
+        if (sessionChanged) sessions.value = sessions.value + 1
+        profiles.value = profiles.value + 1
+    }
+
+    /** Load the saved sessions (once). Safe to call again. */
     fun restore(context: Context) {
         appContext = context.applicationContext
         if (restored) return
@@ -61,45 +96,109 @@ object YtSession {
                     .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                     .getString(KEY, null) ?: return
             val json = JSONObject(decrypt(blob))
-            cookie = json.optString("cookie").ifEmpty { null }
-            visitor = json.optString("visitor").ifEmpty { null }
-            authUser = json.optString("authUser").ifEmpty { "0" }
-            loggedIn.value = cookie != null
+            synchronized(lock) {
+                entries.clear()
+                val list = json.optJSONArray("accounts")
+                if (list != null) {
+                    for (i in 0 until list.length()) {
+                        readEntry(list.getJSONObject(i))?.let { entries.add(it) }
+                    }
+                    active = json.optInt("active", 0)
+                } else {
+                    // The format of before the accounts list: a single session.
+                    readEntry(json)?.let { entries.add(it) }
+                    active = 0
+                }
+                active = if (entries.isEmpty()) 0 else active.coerceIn(0, entries.size - 1)
+            }
+            loggedIn.value = isLoggedIn
+            ensureProfile()
         } catch (e: Exception) {
             L.w("YT session could not be restored: ${e.message}")
-            wipe(context)
+            synchronized(lock) {
+                entries.clear()
+                active = 0
+            }
+            persist()
+            loggedIn.value = false
         }
     }
 
-    /** Keep a new session (right after the web view login). */
-    fun save(context: Context, cookie: String, visitor: String?, authUser: String) {
-        appContext = context.applicationContext
-        restored = true
-        this.cookie = cookie
-        this.visitor = visitor?.ifEmpty { null }
-        this.authUser = authUser.ifEmpty { "0" }
+    private fun readEntry(o: JSONObject): Entry? {
+        val cookie = o.optString("cookie").ifEmpty { null } ?: return null
+        return Entry(
+            cookie,
+            o.optString("visitor").ifEmpty { null },
+            o.optString("authUser").ifEmpty { "0" },
+            o.optString("name"),
+            o.optString("email"),
+            o.optString("photo").ifEmpty { null },
+        )
+    }
+
+    private fun persist() {
+        val context = appContext ?: return
         try {
-            val json =
-                JSONObject()
-                    .put("cookie", cookie)
-                    .put("visitor", visitor.orEmpty())
-                    .put("authUser", this.authUser)
-            context.applicationContext
-                .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit()
-                .putString(KEY, encrypt(json.toString()))
-                .apply()
+            val snapshot =
+                synchronized(lock) {
+                    if (entries.isEmpty()) {
+                        null
+                    } else {
+                        val list = JSONArray()
+                        for (e in entries) {
+                            list.put(
+                                JSONObject()
+                                    .put("cookie", e.cookie)
+                                    .put("visitor", e.visitor.orEmpty())
+                                    .put("authUser", e.authUser)
+                                    .put("name", e.name)
+                                    .put("email", e.email)
+                                    .put("photo", e.photo.orEmpty())
+                            )
+                        }
+                        JSONObject().put("active", active).put("accounts", list)
+                    }
+                }
+            val edit = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            if (snapshot == null) edit.clear() else edit.putString(KEY, encrypt(snapshot.toString()))
+            edit.apply()
         } catch (e: Exception) {
             // Still signed in until the app closes.
             L.w("YT session could not be saved: ${e.message}")
         }
-        YtExplore.clearCache()
-        loggedIn.value = true
     }
 
-    /** Sign out: forget the session here and in the web view. */
+    /** Keep a new session (right after the web view login). It becomes the active account. */
+    fun save(context: Context, cookie: String, visitor: String?, authUser: String) {
+        appContext = context.applicationContext
+        restored = true
+        synchronized(lock) {
+            entries.add(Entry(cookie, visitor?.ifEmpty { null }, authUser.ifEmpty { "0" }))
+            active = entries.size - 1
+        }
+        persist()
+        YtExplore.clearCache()
+        loggedIn.value = true
+        bump(true)
+        ensureProfile()
+    }
+
+    /** Make another saved account the active one. */
+    fun switchTo(index: Int) {
+        synchronized(lock) {
+            if (index !in entries.indices || index == active) return
+            active = index
+        }
+        persist()
+        YtExplore.clearCache()
+        bump(true)
+        ensureProfile()
+    }
+
+    /** Sign out of the active account (the others stay) and forget the login of the web view. */
     fun logout(context: Context) {
-        wipe(context)
+        appContext = context.applicationContext
+        removeActive()
         runCatching {
             CookieManager.getInstance().removeAllCookies(null)
             CookieManager.getInstance().flush()
@@ -108,28 +207,93 @@ object YtSession {
 
     /** YouTube refused the session (it expired or was closed from another place). */
     fun onAuthRejected() {
-        val context = appContext ?: return
-        if (cookie == null) return
-        L.w("YT session rejected, signing out")
-        wipe(context)
+        if (appContext == null || !isLoggedIn) return
+        L.w("YT session rejected, signing out of it")
+        removeActive()
     }
 
-    private fun wipe(context: Context) {
-        cookie = null
-        visitor = null
-        authUser = "0"
-        runCatching {
-            context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
-        }
+    private fun removeActive() {
+        val left =
+            synchronized(lock) {
+                if (entries.isNotEmpty()) {
+                    entries.removeAt(active.coerceIn(0, entries.size - 1))
+                }
+                active = if (entries.isEmpty()) 0 else active.coerceIn(0, entries.size - 1)
+                entries.size
+            }
+        persist()
         YtExplore.clearCache()
-        loggedIn.value = false
+        loggedIn.value = left > 0
+        bump(true)
+        if (left > 0) ensureProfile()
     }
 
-    fun visitorData(): String? = visitor
+    /** Ask for the name, email and photo of the active account, if they are not known yet. */
+    fun ensureProfile() {
+        val entry =
+            synchronized(lock) {
+                val e = entries.getOrNull(active) ?: return
+                if (e.name.isNotEmpty() || e.loading) return
+                e.loading = true
+                e
+            }
+        Thread {
+                try {
+                    val found = parseProfile(YtExplore.accountMenu())
+                    if (found != null) {
+                        synchronized(lock) {
+                            entry.name = found.name
+                            entry.email = found.email
+                            entry.photo = found.photo
+                            if (entry.email.isNotEmpty() && entries.contains(entry)) {
+                                // The same account signed in twice: keep the newest session only.
+                                entries.removeAll { it !== entry && it.email == entry.email }
+                                active = entries.indexOf(entry).coerceAtLeast(0)
+                            }
+                        }
+                        persist()
+                        bump(false)
+                    }
+                } catch (e: Exception) {
+                    L.w("YT profile could not be read: ${e.message}")
+                } finally {
+                    synchronized(lock) { entry.loading = false }
+                }
+            }
+            .start()
+    }
+
+    private fun parseProfile(text: String): YtAccount? {
+        val header =
+            JSONObject(text)
+                .optJSONArray("actions")
+                ?.optJSONObject(0)
+                ?.optJSONObject("openPopupAction")
+                ?.optJSONObject("popup")
+                ?.optJSONObject("multiPageMenuRenderer")
+                ?.optJSONObject("header")
+                ?.optJSONObject("activeAccountHeaderRenderer") ?: return null
+        fun runText(o: JSONObject?): String =
+            o?.optJSONArray("runs")?.optJSONObject(0)?.optString("text").orEmpty()
+        val name = runText(header.optJSONObject("accountName"))
+        if (name.isEmpty()) return null
+        val thumbs = header.optJSONObject("accountPhoto")?.optJSONArray("thumbnails")
+        val photo =
+            thumbs
+                ?.optJSONObject(thumbs.length() - 1)
+                ?.optString("url")
+                ?.ifEmpty { null }
+                // Ask for a big square picture: the icon is small but the dialog shows it large.
+                ?.replace(Regex("=s\\d+"), "=s256")
+        return YtAccount(name, runText(header.optJSONObject("email")), photo)
+    }
+
+    fun visitorData(): String? = current()?.visitor
 
     /** The headers that make a request come from the signed-in account, or null when signed out. */
     fun authHeaders(): Map<String, String>? {
-        val c = cookie ?: return null
+        val e = current() ?: return null
+        val c = e.cookie
         val sapisid = cookieValue(c, "SAPISID") ?: cookieValue(c, "__Secure-3PAPISID") ?: return null
         val now = System.currentTimeMillis() / 1000
         val hash = sha1("$now $sapisid $ORIGIN")
@@ -137,10 +301,10 @@ object YtSession {
             mutableMapOf(
                 "Cookie" to c,
                 "Authorization" to "SAPISIDHASH ${now}_$hash",
-                "X-Goog-AuthUser" to authUser,
+                "X-Goog-AuthUser" to e.authUser,
                 "X-Origin" to ORIGIN,
             )
-        visitor?.let { headers["X-Goog-Visitor-Id"] = it }
+        e.visitor?.let { headers["X-Goog-Visitor-Id"] = it }
         return headers
     }
 

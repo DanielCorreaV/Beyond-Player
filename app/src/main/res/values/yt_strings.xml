@@ -44,4 +44,7 @@
     <string name="lbl_yt_chip_history">Historial</string>
     <string name="lbl_yt_empty">Aquí no hay nada todavía</string>
     <string name="lbl_yt_switch">Cambiar de cuenta</string>
+    <string name="lbl_yt_no_account">Sin cuenta vinculada</string>
+    <string name="lbl_yt_acc_loading">Tu cuenta de YouTube Music</string>
+    <string name="lbl_yt_privacy">Tus datos no se comparten con nadie: la sesión se guarda cifrada en este teléfono. La vinculación es de solo lectura; lo que haces en la app no se refleja en tu cuenta de YouTube Music.</string>
 </resources>

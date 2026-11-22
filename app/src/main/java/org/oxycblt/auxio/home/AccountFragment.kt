@@ -186,7 +186,7 @@ class AccountFragment : Fragment() {
         // Signing in or out changes everything on this page.
         viewLifecycleOwner.lifecycleScope.launch {
             var first = true
-            YtSession.loggedIn.collect {
+            YtSession.sessions.collect {
                 if (first) {
                     first = false
                 } else if (started) {
