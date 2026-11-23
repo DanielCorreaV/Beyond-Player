@@ -44,7 +44,10 @@ import org.oxycblt.auxio.music.youtube.ExploreItem
 import org.oxycblt.auxio.music.youtube.ExploreKind
 import org.oxycblt.auxio.music.youtube.YtCovers
 import org.oxycblt.auxio.music.youtube.YtDownloadService
+import org.oxycblt.auxio.music.youtube.YtArtistLookup
 import org.oxycblt.auxio.music.youtube.YtExplore
+import org.oxycblt.auxio.music.youtube.YtFavoriteArtists
+
 import org.oxycblt.auxio.music.youtube.YtTrack
 import org.oxycblt.auxio.playback.PlaySong
 import org.oxycblt.auxio.playback.PlaybackViewModel
@@ -131,6 +134,34 @@ class YtCollectionSheet : BackportBottomSheetDialogFragment() {
                 addView(title)
                 addView(subtitle)
             }
+        val primary = MaterialColors.getColor(context, androidx.appcompat.R.attr.colorPrimary, 0)
+        fun roundButton(icon: Int, label: Int) =
+            ImageView(context).apply {
+                setImageResource(icon)
+                setColorFilter(primary)
+                contentDescription = context.getString(label)
+                val pad = (10 * d).toInt()
+                setPadding(pad, pad, pad, pad)
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.OVAL
+                        setStroke((2 * d).toInt(), primary)
+                        setColor(android.graphics.Color.TRANSPARENT)
+                    }
+                isClickable = true
+                isFocusable = true
+            }
+        val heartButton = roundButton(R.drawable.ic_heart_24, R.string.lbl_yt_favorite)
+        fun paintHeart(on: Boolean) =
+            heartButton.setImageResource(
+                if (on) R.drawable.ic_heart_filled_24 else R.drawable.ic_heart_24
+            )
+        paintHeart(YtFavoriteArtists.isFavorite(context, item.title))
+        heartButton.setOnClickListener {
+            paintHeart(YtFavoriteArtists.toggle(context, item.title))
+        }
+        val favoritesButton = roundButton(R.drawable.ic_heart_list_24, R.string.lbl_yt_favorites)
+        favoritesButton.setOnClickListener { showFavorites() }
         val header =
             LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -144,6 +175,17 @@ class YtCollectionSheet : BackportBottomSheetDialogFragment() {
                         marginStart = (16 * d).toInt()
                     },
                 )
+                if (item.kind == ExploreKind.ARTIST) {
+                    val size = (44 * d).toInt()
+                    addView(
+                        heartButton,
+                        LinearLayout.LayoutParams(size, size).apply { marginStart = (8 * d).toInt() },
+                    )
+                    addView(
+                        favoritesButton,
+                        LinearLayout.LayoutParams(size, size).apply { marginStart = (8 * d).toInt() },
+                    )
+                }
             }
         val play =
             MaterialButton(context).apply {
@@ -266,6 +308,43 @@ class YtCollectionSheet : BackportBottomSheetDialogFragment() {
             )
         } else {
             list?.adapter = TrackAdapter(d.tracks, d.thumbnail ?: item.thumbnail, ::playFrom)
+        }
+    }
+
+    /** The favorite artists in a list; picking one opens its profile. */
+    private fun showFavorites() {
+        val context = requireContext()
+        val names = YtFavoriteArtists.list(context)
+        if (names.isEmpty()) {
+            Toast.makeText(context, R.string.lbl_yt_no_favorites, Toast.LENGTH_SHORT).show()
+            return
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.lbl_yt_favorites)
+            .setItems(names.toTypedArray()) { _, i -> openFavorite(names[i]) }
+            .show()
+    }
+
+    private fun openFavorite(name: String) {
+        val fm = parentFragmentManager
+        viewLifecycleOwner.lifecycleScope.launch {
+            val found =
+                withContext(Dispatchers.IO) {
+                    try {
+                        YtArtistLookup.find(name)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            if (found == null) {
+                Toast.makeText(requireContext(), R.string.lbl_yt_artist_not_found, Toast.LENGTH_SHORT)
+                    .show()
+                return@launch
+            }
+            dismiss()
+            open(fm, found)
         }
     }
 

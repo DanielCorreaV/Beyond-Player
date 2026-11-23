@@ -14,7 +14,7 @@ import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** The artists the user marked with the heart, by name. Kept in the app's preferences. */
+/** The artists the user marked with the heart, by name as written. Kept in the app's preferences. */
 object YtFavoriteArtists {
     private const val PREFS = "beyond_fav_artists"
     private const val KEY = "names"
@@ -25,29 +25,31 @@ object YtFavoriteArtists {
 
     private fun key(name: String) = name.trim().lowercase()
 
+    private fun prefs(context: Context) =
+        context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
     private fun load(context: Context): Set<String> =
-        context.applicationContext
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getStringSet(KEY, emptySet())
-            ?.toSet() ?: emptySet()
+        prefs(context).getStringSet(KEY, emptySet())?.toSet() ?: emptySet()
 
-    fun isFavorite(context: Context, name: String): Boolean = key(name) in load(context)
+    fun isFavorite(context: Context, name: String): Boolean =
+        load(context).any { key(it) == key(name) }
 
-    /** The favorites of the app (empty until the library has started). */
-    fun names(): Set<String> = YtLibrary.context()?.let { load(it) } ?: emptySet()
+    /** The favorites as written, in alphabetical order. */
+    fun list(context: Context): List<String> =
+        load(context).sortedBy { it.lowercase() }
+
+    /** The favorites in lower case, for matching (empty until the library has started). */
+    fun names(): Set<String> =
+        YtLibrary.context()?.let { c -> load(c).map { key(it) }.toSet() } ?: emptySet()
 
     /** Flips the heart of [name]. Returns true when it is a favorite now. */
     fun toggle(context: Context, name: String): Boolean {
         val k = key(name)
         val now = load(context).toMutableSet()
-        val on = now.add(k)
-        if (!on) now.remove(k)
-        context.applicationContext
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putStringSet(KEY, now)
-            .apply()
+        val had = now.removeAll { key(it) == k }
+        if (!had) now.add(name.trim())
+        prefs(context).edit().putStringSet(KEY, now).apply()
         _changes.value = _changes.value + 1
-        return on
+        return !had
     }
 }

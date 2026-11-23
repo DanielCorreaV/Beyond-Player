@@ -50,4 +50,7 @@
     <string name="lbl_yt_in_ytm">En YouTube Music</string>
     <string name="lbl_yt_view_profile">Ver perfil</string>
     <string name="lbl_yt_favorite">Artista favorito</string>
+    <string name="lbl_yt_favorites">Artistas favoritos</string>
+    <string name="lbl_yt_no_favorites">Aún no tienes artistas favoritos</string>
+    <string name="lbl_yt_artist_not_found">No se encontró ese artista</string>
 </resources>
