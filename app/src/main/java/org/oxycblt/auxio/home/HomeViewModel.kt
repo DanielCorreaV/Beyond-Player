@@ -164,6 +164,14 @@ constructor(
 
     init {
         homeGenerator.attach()
+        // A heart pressed on an artist moves it in the Artists tab at once.
+        viewModelScope.launch {
+            var first = true
+            org.oxycblt.auxio.music.youtube.YtFavoriteArtists.changes.collect {
+                if (first) first = false
+                else invalidateMusic(MusicType.ARTISTS, UpdateInstructions.Diff)
+            }
+        }
     }
 
     override fun onCleared() {
@@ -192,7 +200,23 @@ constructor(
                         albumList.value = list
                     }
                     MusicType.ARTISTS -> {
-                        val list = withContext(Dispatchers.Default) { homeGenerator.artists() }
+                        val list =
+                            withContext(Dispatchers.Default) {
+                                // Favorites (the heart of the artist screen) first, keeping the sort inside
+                                // each group.
+                                val favs = org.oxycblt.auxio.music.youtube.YtFavoriteArtists.names()
+                                val all = homeGenerator.artists()
+                                if (favs.isEmpty()) all
+                                else {
+                                    val (top, rest) =
+                                        all.partition {
+                                            val n =
+                                                (it.name as? org.oxycblt.musikr.tag.Name.Known)?.raw
+                                            n != null && n.trim().lowercase() in favs
+                                        }
+                                    top + rest
+                                }
+                            }
                         artistInstructions.put(instructions)
                         _artistList.value = list
                     }

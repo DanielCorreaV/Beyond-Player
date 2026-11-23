@@ -26,9 +26,10 @@ import com.google.android.material.color.MaterialColors
 import org.oxycblt.auxio.R
 import org.oxycblt.auxio.music.youtube.ExploreItem
 import org.oxycblt.auxio.music.youtube.YtCovers
+import org.oxycblt.auxio.music.youtube.YtFavoriteArtists
 
 /** The YouTube Music profile of the artist shown: a card at the top of the artist's list. */
-data class YtArtistCard(val item: ExploreItem)
+data class YtArtistCard(val item: ExploreItem, val artistName: String = item.title)
 
 /** Displays a [YtArtistCard] (photo, name, subscribers); tapping it opens the full profile. */
 class YtArtistViewHolder
@@ -37,6 +38,7 @@ private constructor(
     private val photo: ImageView,
     private val name: TextView,
     private val info: TextView,
+    private val heart: ImageView,
 ) : RecyclerView.ViewHolder(root) {
     fun bind(card: YtArtistCard, onOpen: (YtArtistCard) -> Unit) {
         name.text = card.item.title
@@ -56,6 +58,11 @@ private constructor(
                 }
             }
         }
+        val context = itemView.context
+        fun showHeart(on: Boolean) =
+            heart.setImageResource(if (on) R.drawable.ic_heart_filled_24 else R.drawable.ic_heart_24)
+        showHeart(YtFavoriteArtists.isFavorite(context, card.artistName))
+        heart.setOnClickListener { showHeart(YtFavoriteArtists.toggle(context, card.artistName)) }
         itemView.setOnClickListener { onOpen(card) }
     }
 
@@ -132,6 +139,13 @@ private constructor(
                     )
                     setTextColor(primary)
                 }
+            val heart =
+                ImageView(context).apply {
+                    setColorFilter(primary)
+                    contentDescription = context.getString(R.string.lbl_yt_favorite)
+                    val pad = (8 * d).toInt()
+                    setPadding(pad, pad, pad, pad)
+                }
             val root =
                 LinearLayout(context).apply {
                     orientation = LinearLayout.HORIZONTAL
@@ -167,9 +181,10 @@ private constructor(
                                 marginEnd = (8 * d).toInt()
                             },
                     )
+                    addView(heart, LinearLayout.LayoutParams((40 * d).toInt(), (40 * d).toInt()))
                     addView(action)
                 }
-            return YtArtistViewHolder(root, photo, name, info)
+            return YtArtistViewHolder(root, photo, name, info, heart)
         }
     }
 }

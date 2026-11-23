@@ -697,7 +697,7 @@ constructor(
                     } ?: return@launch
                 kotlinx.coroutines.withContext(Dispatchers.Main) {
                     if (currentArtist.value?.uid == uid) {
-                        ytArtistCard = YtArtistCard(found)
+                        ytArtistCard = YtArtistCard(found, name)
                         refreshArtistList()
                     }
                 }

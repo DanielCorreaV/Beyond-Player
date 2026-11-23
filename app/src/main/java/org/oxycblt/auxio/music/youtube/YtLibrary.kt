@@ -84,6 +84,9 @@ object YtLibrary {
         runCatching { coverFile(context, videoId).delete() }
     }
 
+    /** The application context once the library has started, else null. */
+    fun context(): Context? = appContext
+
     fun install(context: Context) {
         val app = context.applicationContext
         appContext = app
