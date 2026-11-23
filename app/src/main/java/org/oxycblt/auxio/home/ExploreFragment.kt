@@ -113,6 +113,16 @@ class ExploreFragment : Fragment() {
         val groups = ExploreGroup.values().filter { it != ExploreGroup.MIXES }
         val slots = arrayOfNulls<List<ExploreSection>>(groups.size)
         var pending = groups.size
+        // Everything kept from a moment ago: shown at once, nothing asked.
+        val kept = groups.map { org.oxycblt.auxio.music.youtube.YtExplore.peekLoad(it) }
+        if (kept.all { it != null }) {
+            rows?.submitList(
+                groups.indices.flatMap { i ->
+                    kept[i].orEmpty().mapIndexed { n, s -> ExploreRow.Shelf("$i:$n:${s.title}", s) }
+                }
+            )
+            return
+        }
         rows?.submitList(listOf(ExploreRow.Loading))
         val dump = File(requireContext().cacheDir, "yt_explore")
         groups.forEachIndexed { index, group ->

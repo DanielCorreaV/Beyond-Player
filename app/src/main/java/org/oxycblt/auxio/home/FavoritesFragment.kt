@@ -63,7 +63,7 @@ class FavoritesFragment : Fragment() {
     private val listModel: ListViewModel by activityViewModels()
     private val rows = FavoritesAdapter()
     private var favorites: Playlist? = null
-    private val lookedUp = mutableSetOf<String>()
+    private val lookedUp = seen
 
     private sealed interface Row {
         data class Header(val text: String) : Row
@@ -366,4 +366,9 @@ class FavoritesFragment : Fragment() {
 
     private class ArtistHolder(root: View, val photo: ImageView, val name: TextView) :
         RecyclerView.ViewHolder(root)
+
+    private companion object {
+        /** Artists already looked up in this run (the page is rebuilt every time Home comes back). */
+        val seen = mutableSetOf<String>()
+    }
 }

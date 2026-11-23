@@ -53,6 +53,13 @@ object YtSession {
     )
 
     private val lock = Any()
+
+    /** Tells the active account apart (for what is kept in memory per account). */
+    fun cacheKey(): String =
+        synchronized(lock) {
+            entries.getOrNull(active)?.let { "${it.authUser}:${it.cookie.hashCode()}" } ?: "anon"
+        }
+
     private val entries = mutableListOf<Entry>()
     private var active = 0
 

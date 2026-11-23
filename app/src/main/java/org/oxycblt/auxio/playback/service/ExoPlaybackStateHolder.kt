@@ -666,7 +666,61 @@ class ExoPlaybackStateHolder(
         }
     }
 
+    private var continuing = false
+
+    /**
+     * When the song that just started is the last of the queue, asks YouTube Music for what comes
+     * after it and adds that to the queue, so the music does not stop (like YouTube's own "continue
+     * listening").
+     */
+    private fun continueWithYouTube() {
+        if (continuing || player.repeatMode != Player.REPEAT_MODE_OFF) return
+        val song = player.currentMediaItem?.song ?: return
+        val timeline = player.currentTimeline
+        if (timeline.isEmpty) return
+        val hasNext =
+            timeline.getNextWindowIndex(
+                player.currentMediaItemIndex,
+                Player.REPEAT_MODE_OFF,
+                player.shuffleModeEnabled,
+            ) != C.INDEX_UNSET
+        if (hasNext || !org.oxycblt.auxio.music.youtube.YtAutoContinue.enabled(context)) return
+        continuing = true
+        val queued =
+            playbackManager.queue.map { it.uri.toString().removePrefix("yt://") }.toHashSet()
+        restoreScope.launch {
+            try {
+                val tracks =
+                    org.oxycblt.auxio.music.youtube.YtAutoContinue.nextTracks(context, song, queued)
+                // Their small covers first, all at once, so the queue and the player show them.
+                kotlinx.coroutines.coroutineScope {
+                    tracks.forEach { t ->
+                        t.thumbnailUrl?.let { url ->
+                            launch { org.oxycblt.auxio.music.youtube.YtCovers.fetch(context, url) }
+                        }
+                    }
+                }
+                val songs =
+                    tracks.mapNotNull { track ->
+                        org.oxycblt.auxio.music.youtube.YtLibrary.stage(track)
+                        org.oxycblt.auxio.music.youtube.YtLibrary.adoptCover(context, track)
+                        org.oxycblt.auxio.music.youtube.YtLibrary.stagedRemoteSong(
+                                context,
+                                track.videoId,
+                            )
+                            ?.let { musicRepository.quickSong(it) }
+                    }
+                if (songs.isNotEmpty()) {
+                    withContext(Dispatchers.Main) { playbackManager.addToQueue(songs) }
+                }
+            } finally {
+                continuing = false
+            }
+        }
+    }
+
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+
 
         super.onMediaItemTransition(mediaItem, reason)
         // A new song: drop any lost-connection countdown and get the next YouTube song ready.
@@ -679,6 +733,8 @@ class ExoPlaybackStateHolder(
         prefetchNextStream()
         // A streaming song that was only queued joins the library once it plays.
         mediaItem?.song?.takeIf { it.uri.scheme == "yt" }?.let { promoteQueuedYtSong(it) }
+        continueWithYouTube()
+
 
 
 

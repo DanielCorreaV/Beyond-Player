@@ -248,6 +248,13 @@ class AccountFragment : Fragment() {
 
     private fun loadShelves(dump: File) {
         setContent(shelves)
+        // Kept from a moment ago: shown at once, nothing asked.
+        YtExplore.peekPage("FEmusic_home", 40)?.takeIf { it.isNotEmpty() }?.let { kept ->
+            shelves.submitList(
+                kept.take(12).mapIndexed { n, s -> ExploreRow.Shelf("home:$n:${s.title}", s) }
+            )
+            return
+        }
         shelves.submitList(listOf(ExploreRow.Loading))
         job =
             viewLifecycleOwner.lifecycleScope.launch {
@@ -278,8 +285,27 @@ class AccountFragment : Fragment() {
     // History is not shown: it only follows what plays in YouTube Music, not this app.
 
 
+    private fun showLiked(detail: YtExplore.ExploreDetail) {
+        tracks = detail.tracks
+        header?.update(true, tracks.isNotEmpty())
+        if (tracks.isEmpty()) {
+            setContent(MessageAdapter(getString(R.string.lbl_yt_empty)))
+        } else {
+            val list = tracks
+            setContent(TrackAdapter(list, null) { index -> playList(list, index) })
+        }
+    }
+
     private fun loadLiked(dump: File) {
         setContent(shelves)
+        YtExplore.peekDetail(
+                ExploreItem(ExploreKind.PLAYLIST, "Me gusta", "", "", null, browseId = "VLLM")
+            )
+            ?.let { kept ->
+                // Kept from a moment ago: shown at once, nothing asked.
+                showLiked(kept)
+                return
+            }
         shelves.submitList(listOf(ExploreRow.Loading))
         job =
             viewLifecycleOwner.lifecycleScope.launch {
@@ -313,6 +339,22 @@ class AccountFragment : Fragment() {
 
     private fun loadLists(dump: File) {
         setContent(shelves)
+        val keptSaved = YtExplore.peekPage("FEmusic_liked_playlists", 300)
+        val keptAlbums = YtExplore.peekPage("FEmusic_liked_albums", 300)
+        if (keptSaved != null && keptAlbums != null) {
+            val kept =
+                (keptSaved + keptAlbums).flatMap { it.items }.distinctBy {
+                    it.browseId ?: it.playlistId ?: it.title
+                }
+            if (kept.isNotEmpty()) {
+                setContent(
+                    ItemListAdapter(kept) { tapped ->
+                        YtCollectionSheet.open(childFragmentManager, tapped)
+                    }
+                )
+                return
+            }
+        }
         shelves.submitList(listOf(ExploreRow.Loading))
         job =
             viewLifecycleOwner.lifecycleScope.launch {

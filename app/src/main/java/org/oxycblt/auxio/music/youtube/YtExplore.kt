@@ -88,6 +88,34 @@ object YtExplore {
     fun clearCache() {
         cache.clear()
         detailCache.clear()
+        pageCache.clear()
+    }
+
+    private const val PAGE_TTL_MS = 15 * 60 * 1000L
+    private val pageCache = ConcurrentHashMap<String, Pair<Long, List<ExploreSection>>>()
+
+    private fun pageKey(browseId: String, maxItems: Int) =
+        YtSession.cacheKey() + "|" + browseId + "|" + maxItems
+
+    /** An account page kept in memory, or null when there is none (or it is old). Never asks. */
+    fun peekPage(browseId: String, maxItems: Int): List<ExploreSection>? {
+        val hit = pageCache[pageKey(browseId, maxItems)] ?: return null
+        return hit.second.takeIf { System.currentTimeMillis() - hit.first < PAGE_TTL_MS }
+    }
+
+    /** A group of Explore kept in memory, or null. Never asks. */
+    fun peekLoad(group: ExploreGroup): List<ExploreSection>? {
+        val hit = cache[group.browseId] ?: return null
+        return hit.second.takeIf { System.currentTimeMillis() - hit.first < TTL_MS }
+    }
+
+    /** The detail of [item] kept in memory, or null. Never asks. */
+    fun peekDetail(item: ExploreItem): ExploreDetail? {
+        val key =
+            YtSession.cacheKey() + "|" +
+                listOf(item.kind, item.browseId, item.params, item.playlistId).joinToString("|")
+        val hit = detailCache[key] ?: return null
+        return hit.second.takeIf { System.currentTimeMillis() - hit.first < TTL_MS }
     }
 
     /** Blocking. Throws when the request fails or nothing readable came back. */
@@ -109,6 +137,7 @@ object YtExplore {
 
     /** One account page (home, library, history) as shelves. Empty list when it has none. */
     fun page(browseId: String, dumpDir: File?, maxItems: Int): List<ExploreSection> {
+        peekPage(browseId, maxItems)?.let { return it }
         val text = post(browseId)
         if (dumpDir != null) {
             runCatching {
@@ -116,7 +145,9 @@ object YtExplore {
                 File(dumpDir, "page_" + browseId.lowercase() + ".json").writeText(text)
             }
         }
-        return parse(JSONObject(text), maxItems)
+        val result = parse(JSONObject(text), maxItems)
+        pageCache[pageKey(browseId, maxItems)] = System.currentTimeMillis() to result
+        return result
     }
 
     /** Search results for [query], artists only (blocking). */
@@ -361,7 +392,9 @@ object YtExplore {
 
     /** Blocking. Throws when the request fails or nothing readable came back. */
     fun detail(item: ExploreItem, dumpDir: File?): ExploreDetail {
-        val key = listOf(item.kind, item.browseId, item.params, item.playlistId).joinToString("|")
+        val key =
+            YtSession.cacheKey() + "|" +
+                listOf(item.kind, item.browseId, item.params, item.playlistId).joinToString("|")
         val now = System.currentTimeMillis()
         detailCache[key]?.takeIf { now - it.first < TTL_MS }?.let { return it.second }
         val result =

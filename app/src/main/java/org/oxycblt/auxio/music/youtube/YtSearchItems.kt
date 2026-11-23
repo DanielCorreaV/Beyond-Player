@@ -321,6 +321,27 @@ object YtCovers {
     fun cached(context: Context, url: String): File? =
         fileFor(context, url).takeIf { it.length() > 0 }
 
+    /** The small cover of [url], downloading it now if needed. Blocking; null when it fails. */
+    fun fetch(context: Context, url: String): File? {
+        cached(context, url)?.let { return it }
+        val target = fileFor(context, url)
+        return try {
+            val conn = URL(sized(url)).openConnection() as HttpURLConnection
+            try {
+                conn.connectTimeout = 10_000
+                conn.readTimeout = 15_000
+                if (conn.responseCode != 200) return null
+                val tmp = File(target.path + ".part")
+                conn.inputStream.use { input -> tmp.outputStream().use { input.copyTo(it) } }
+                if (tmp.renameTo(target)) target else null.also { tmp.delete() }
+            } finally {
+                conn.disconnect()
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     /** Download [url] if needed and call [onReady] on the main thread with the file. */
     fun load(context: Context, url: String, onReady: (File) -> Unit) {
         val target = fileFor(context, url)

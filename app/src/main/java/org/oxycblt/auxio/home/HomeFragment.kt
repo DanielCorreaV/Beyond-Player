@@ -104,6 +104,9 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
     private var storagePermissionLauncher: ActivityResultLauncher<String>? = null
     private var getContentLauncher: ActivityResultLauncher<String>? = null
     private var pendingImportTarget: Playlist? = null
+    /** The page of the pager the user was on, to go back to it when Home comes back. */
+    private var lastPage = 3
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -121,6 +124,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onBindingCreated(binding: FragmentHomeBinding, savedInstanceState: Bundle?) {
         super.onBindingCreated(binding, savedInstanceState)
+        val startedAt = android.os.SystemClock.elapsedRealtime()
 
         // Have to set up the permission launcher before the view is shown
         storagePermissionLauncher =
@@ -175,6 +179,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             registerOnPageChangeCallback(
                 object : ViewPager2.OnPageChangeCallback() {
                     override fun onPageSelected(position: Int) {
+                        lastPage = position
                         if (position < 3) {
                             // Explore, Account and Favorites are not music tabs: only their scroll view matters.
                             requireBinding().homeAppbar.liftOnScrollTargetViewId =
@@ -250,6 +255,9 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         collectImmediately(playbackModel.song, ::updateNowCard)
         collectImmediately(playbackModel.isPlaying, ::updateNowCardPlaying)
         setupNeonDashboard(binding)
+        binding.root.post {
+            L.d("Home: view ready in ${android.os.SystemClock.elapsedRealtime() - startedAt} ms")
+        }
     }
 
     private fun setupNeonTitle(binding: FragmentHomeBinding) {
@@ -586,7 +594,10 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         binding.homePager.adapter =
             HomePagerAdapter(homeModel.currentTabTypes, childFragmentManager, viewLifecycleOwner)
         // Pages 0 and 1 are Explore and Account: the app opens on the first music tab after them.
-        binding.homePager.setCurrentItem(3, false)
+        binding.homePager.setCurrentItem(
+            lastPage.coerceIn(0, (binding.homePager.adapter?.itemCount ?: 1) - 1),
+            false,
+        )
 
         val toolbarParams = binding.homeHeader.layoutParams as AppBarLayout.LayoutParams
         if (homeModel.currentTabTypes.size + 1 == 1) {
@@ -624,6 +635,14 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
                 ),
             )
             .attach()
+        // Coming back from a list the pager restores its page: make the tab bar show that same page
+        // (they could end up on different ones, and then the tab you tap does nothing).
+        val syncTabs = Runnable {
+            val page = binding.homePager.currentItem
+            binding.homeTabs.getTabAt(page)?.let { if (!it.isSelected) it.select() }
+        }
+        binding.homePager.post(syncTabs)
+        binding.homePager.postDelayed(syncTabs, 300)
         // The Explore tab is only an icon: keep it narrow.
         for (fixed in 0..2) {
             binding.homeTabs.getTabAt(fixed)?.view?.minimumWidth =
@@ -658,7 +677,9 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         val binding = requireBinding()
         L.d("Recreating ViewPager")
         // Move back to the first music tab, after the two fixed ones.
+        lastPage = 3
         binding.homePager.currentItem = 3
+
 
         // Make sure tabs are set up to also follow the new ViewPager configuration.
         setupPager(binding)
