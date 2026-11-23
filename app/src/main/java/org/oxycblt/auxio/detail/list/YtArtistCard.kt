@@ -62,7 +62,7 @@ private constructor(
         fun showHeart(on: Boolean) =
             heart.setImageResource(if (on) R.drawable.ic_heart_filled_24 else R.drawable.ic_heart_24)
         showHeart(YtFavoriteArtists.isFavorite(context, card.artistName))
-        heart.setOnClickListener { showHeart(YtFavoriteArtists.toggle(context, card.artistName)) }
+        heart.setOnClickListener { showHeart(YtFavoriteArtists.toggle(context, card.artistName, card.item.thumbnail)) }
         itemView.setOnClickListener { onOpen(card) }
     }
 

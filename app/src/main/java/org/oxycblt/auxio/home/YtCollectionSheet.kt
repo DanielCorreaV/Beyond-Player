@@ -158,10 +158,10 @@ class YtCollectionSheet : BackportBottomSheetDialogFragment() {
             )
         paintHeart(YtFavoriteArtists.isFavorite(context, item.title))
         heartButton.setOnClickListener {
-            paintHeart(YtFavoriteArtists.toggle(context, item.title))
+            paintHeart(YtFavoriteArtists.toggle(context, item.title, item.thumbnail))
         }
-        val favoritesButton = roundButton(R.drawable.ic_heart_list_24, R.string.lbl_yt_favorites)
-        favoritesButton.setOnClickListener { showFavorites() }
+        // The favorites have their own section of Home: the profile only has the heart.
+
         val header =
             LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -181,10 +181,8 @@ class YtCollectionSheet : BackportBottomSheetDialogFragment() {
                         heartButton,
                         LinearLayout.LayoutParams(size, size).apply { marginStart = (8 * d).toInt() },
                     )
-                    addView(
-                        favoritesButton,
-                        LinearLayout.LayoutParams(size, size).apply { marginStart = (8 * d).toInt() },
-                    )
+                    // (no second button)
+
                 }
             }
         val play =
@@ -311,42 +309,8 @@ class YtCollectionSheet : BackportBottomSheetDialogFragment() {
         }
     }
 
-    /** The favorite artists in a list; picking one opens its profile. */
-    private fun showFavorites() {
-        val context = requireContext()
-        val names = YtFavoriteArtists.list(context)
-        if (names.isEmpty()) {
-            Toast.makeText(context, R.string.lbl_yt_no_favorites, Toast.LENGTH_SHORT).show()
-            return
-        }
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.lbl_yt_favorites)
-            .setItems(names.toTypedArray()) { _, i -> openFavorite(names[i]) }
-            .show()
-    }
+    // (the favorites are listed in their own section of Home)
 
-    private fun openFavorite(name: String) {
-        val fm = parentFragmentManager
-        viewLifecycleOwner.lifecycleScope.launch {
-            val found =
-                withContext(Dispatchers.IO) {
-                    try {
-                        YtArtistLookup.find(name)
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-            if (found == null) {
-                Toast.makeText(requireContext(), R.string.lbl_yt_artist_not_found, Toast.LENGTH_SHORT)
-                    .show()
-                return@launch
-            }
-            dismiss()
-            open(fm, found)
-        }
-    }
 
     private fun playFrom(index: Int) {
         val tracks = detail?.tracks ?: return

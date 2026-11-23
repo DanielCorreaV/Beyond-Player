@@ -5,4 +5,5 @@
     <item name="home_explore_recycler" type="id" />
     <item name="home_account_recycler" type="id" />
     <item name="action_yt_account" type="id" />
+    <item name="home_favorites_recycler" type="id" />
 </resources>

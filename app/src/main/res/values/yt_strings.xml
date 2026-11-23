@@ -53,4 +53,11 @@
     <string name="lbl_yt_favorites">Artistas favoritos</string>
     <string name="lbl_yt_no_favorites">Aún no tienes artistas favoritos</string>
     <string name="lbl_yt_artist_not_found">No se encontró ese artista</string>
+    <string name="lbl_yt_fav_songs">Canciones favoritas</string>
+    <string name="lbl_yt_no_fav_songs">Aún no marcas canciones con el corazón</string>
+    <string name="lbl_yt_fav_count">%d canciones</string>
+    <string name="lbl_yt_no_fav_artists">Toca el corazón en el perfil de un artista para tenerlo aquí</string>
+    <string name="lbl_yt_unfavorite">Quitar de favoritos</string>
+    <string name="lbl_yt_favorites_tab">Favoritos</string>
+    <string name="lbl_yt_see_full_list">Ver lista completa</string>
 </resources>

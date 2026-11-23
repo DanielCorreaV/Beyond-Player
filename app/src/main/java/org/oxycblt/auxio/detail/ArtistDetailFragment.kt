@@ -196,8 +196,28 @@ class ArtistDetailFragment : DetailFragment<Artist, Music>() {
     }
 
     private fun updateList(list: List<Item>) {
+        val recycler = requireBinding().detailRecycler
+        // The YouTube Music card arrives later and goes on top: if the list was at the top, keep it
+        // there so the card is seen instead of being left hidden above.
+        val cardArrives =
+            list.firstOrNull() is org.oxycblt.auxio.detail.list.YtArtistCard && !hadYtCard
+        hadYtCard = list.firstOrNull() is org.oxycblt.auxio.detail.list.YtArtistCard
+        if (cardArrives && !recycler.canScrollVertically(-1)) {
+            artistListAdapter.registerAdapterDataObserver(
+                object : androidx.recyclerview.widget.RecyclerView.AdapterDataObserver() {
+                    override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+                        if (positionStart == 0) {
+                            recycler.scrollToPosition(0)
+                            artistListAdapter.unregisterAdapterDataObserver(this)
+                        }
+                    }
+                }
+            )
+        }
         artistListAdapter.update(list, detailModel.artistSongInstructions.consume())
     }
+
+    private var hadYtCard = false
 
     private fun handleShow(show: Show?) {
         val binding = requireBinding()

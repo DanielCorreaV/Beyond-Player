@@ -175,13 +175,14 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             registerOnPageChangeCallback(
                 object : ViewPager2.OnPageChangeCallback() {
                     override fun onPageSelected(position: Int) {
-                        if (position < 2) {
-                            // Explore and Account are not music tabs: only their scroll view matters.
+                        if (position < 3) {
+                            // Explore, Account and Favorites are not music tabs: only their scroll view matters.
                             requireBinding().homeAppbar.liftOnScrollTargetViewId =
                                 if (position == 0) R.id.home_explore_recycler
-                                else R.id.home_account_recycler
+                                else if (position == 1) R.id.home_account_recycler
+                                else R.id.home_favorites_recycler
                         } else {
-                            homeModel.synchronizeTabPosition(position - 2)
+                            homeModel.synchronizeTabPosition(position - 3)
                             updateCurrentTab(homeModel.currentTabType.value)
                         }
                     }
@@ -585,7 +586,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         binding.homePager.adapter =
             HomePagerAdapter(homeModel.currentTabTypes, childFragmentManager, viewLifecycleOwner)
         // Pages 0 and 1 are Explore and Account: the app opens on the first music tab after them.
-        binding.homePager.setCurrentItem(2, false)
+        binding.homePager.setCurrentItem(3, false)
 
         val toolbarParams = binding.homeHeader.layoutParams as AppBarLayout.LayoutParams
         if (homeModel.currentTabTypes.size + 1 == 1) {
@@ -619,11 +620,12 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
                     homeModel.currentTabTypes,
                     getString(R.string.lbl_explore),
                     getString(R.string.lbl_yt_account),
+                    getString(R.string.lbl_yt_favorites_tab),
                 ),
             )
             .attach()
         // The Explore tab is only an icon: keep it narrow.
-        for (fixed in 0..1) {
+        for (fixed in 0..2) {
             binding.homeTabs.getTabAt(fixed)?.view?.minimumWidth =
                 (48 * resources.displayMetrics.density).toInt()
         }
@@ -656,7 +658,8 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         val binding = requireBinding()
         L.d("Recreating ViewPager")
         // Move back to the first music tab, after the two fixed ones.
-        binding.homePager.currentItem = 2
+        binding.homePager.currentItem = 3
+
         // Make sure tabs are set up to also follow the new ViewPager configuration.
         setupPager(binding)
         homeModel.recreateTabs.consume()
@@ -895,12 +898,13 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         fragmentManager: FragmentManager,
         lifecycleOwner: LifecycleOwner,
     ) : FragmentStateAdapter(fragmentManager, lifecycleOwner.lifecycle) {
-        override fun getItemCount() = tabs.size + 2
+        override fun getItemCount() = tabs.size + 3
 
         override fun createFragment(position: Int): Fragment =
             if (position == 0) ExploreFragment()
             else if (position == 1) AccountFragment()
-            else when (tabs[position - 2]) {
+            else if (position == 2) FavoritesFragment()
+            else when (tabs[position - 3]) {
                 MusicType.SONGS -> SongListFragment()
                 MusicType.ALBUMS -> AlbumListFragment()
                 MusicType.ARTISTS -> ArtistListFragment()

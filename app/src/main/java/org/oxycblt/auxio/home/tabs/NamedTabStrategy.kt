@@ -26,6 +26,7 @@ class NamedTabStrategy(
     private val homeTabs: List<MusicType>,
     private val extraTitle: String? = null,
     private val accountTitle: String? = null,
+    private val favoritesTitle: String? = null,
 ) : TabConfigurationStrategy {
     override fun onConfigureTab(tab: TabLayout.Tab, position: Int) {
         if (position == 0) {
@@ -36,8 +37,12 @@ class NamedTabStrategy(
             // The account tab: just a person.
             tab.setIcon(org.oxycblt.auxio.R.drawable.ic_account_24)
             tab.contentDescription = accountTitle
+        } else if (position == 2) {
+            // The favorites tab: just a heart.
+            tab.setIcon(org.oxycblt.auxio.R.drawable.ic_heart_24)
+            tab.contentDescription = favoritesTitle
         } else {
-            tab.setText(homeTabs[position - 2].nameRes)
+            tab.setText(homeTabs[position - 3].nameRes)
         }
     }
 }
