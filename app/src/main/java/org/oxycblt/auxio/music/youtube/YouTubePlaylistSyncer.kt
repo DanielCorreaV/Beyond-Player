@@ -22,7 +22,10 @@ package org.oxycblt.auxio.music.youtube
 import org.oxycblt.auxio.music.MusicRepository
 import org.oxycblt.musikr.Music
 import org.oxycblt.musikr.Playlist
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withPermit
 import org.oxycblt.musikr.Song
+
 
 import timber.log.Timber as L
 
@@ -53,9 +56,32 @@ class YouTubePlaylistSyncer(
         val added = YtLibrary.addAll(tracks)
         // Covers of the songs of saved lists only (never of what is just streamed from a search). They
         // are downloaded before the library reloads so the cloud songs come out with them.
-        val covers = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            YtLibrary.ensureCovers()
-        }
+        val covers =
+            try {
+                kotlinx.coroutines.withTimeoutOrNull(12_000) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val app = YtLibrary.context()
+                        val any = java.util.concurrent.atomic.AtomicBoolean(false)
+                        if (app != null) {
+                            val gate = kotlinx.coroutines.sync.Semaphore(8)
+                            kotlinx.coroutines.coroutineScope {
+                                tracks.forEach { t ->
+                                    launch {
+                                        gate.withPermit {
+                                            if (YtLibrary.ensureCover(app, t)) any.set(true)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        any.get()
+                    }
+                } ?: false
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                false
+            }
         if (added == 0 && !covers) return false
         return musicRepository.refreshFromCache()
     }

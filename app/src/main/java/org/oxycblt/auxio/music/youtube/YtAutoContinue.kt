@@ -22,6 +22,17 @@ object YtAutoContinue {
     private const val KEY = "yt_continue_enabled"
     private val seen = java.util.Collections.synchronizedSet(LinkedHashSet<String>())
 
+    /** The user's own switch, regardless of the YouTube search setting. */
+    fun userEnabled(context: Context): Boolean =
+        PreferenceManager.getDefaultSharedPreferences(context).getBoolean(KEY, true)
+
+    /** Flips the switch and returns the new state. */
+    fun toggle(context: Context): Boolean {
+        val on = !userEnabled(context)
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putBoolean(KEY, on).apply()
+        return on
+    }
+
     /** On unless the YouTube search is off in the settings or [KEY] was turned off. */
     fun enabled(context: Context): Boolean =
         YtLibrary.searchEnabled() &&

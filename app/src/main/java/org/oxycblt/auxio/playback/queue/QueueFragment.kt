@@ -62,6 +62,7 @@ class QueueFragment : ViewBindingFragment<FragmentQueueBinding>(), EditClickList
 
         // --- UI SETUP ---
         binding.queueRecycler.apply {
+            setRecycledViewPool(org.oxycblt.auxio.home.list.HomePools.of(requireActivity(), "queue"))
             adapter = queueAdapter
             touchHelper =
                 ItemTouchHelper(QueueDragCallback(queueModel)).also {

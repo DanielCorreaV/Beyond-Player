@@ -106,6 +106,8 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
     private var pendingImportTarget: Playlist? = null
     /** The page of the pager the user was on, to go back to it when Home comes back. */
     private var lastPage = 3
+    private var childTiming = false
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,7 +119,12 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         reenterTransition = MaterialSharedAxis(MaterialSharedAxis.Z, false)
     }
 
-    override fun onCreateBinding(inflater: LayoutInflater) = FragmentHomeBinding.inflate(inflater)
+    override fun onCreateBinding(inflater: LayoutInflater): FragmentHomeBinding {
+        val t = android.os.SystemClock.elapsedRealtime()
+        val made = FragmentHomeBinding.inflate(inflater)
+        L.d("Home inflate: ${android.os.SystemClock.elapsedRealtime() - t} ms")
+        return made
+    }
 
     override fun getSelectionToolbar(binding: FragmentHomeBinding) = binding.homeSelectionToolbar
 
@@ -125,6 +132,14 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
     override fun onBindingCreated(binding: FragmentHomeBinding, savedInstanceState: Bundle?) {
         super.onBindingCreated(binding, savedInstanceState)
         val startedAt = android.os.SystemClock.elapsedRealtime()
+        var lastLap = startedAt
+        val lap = { name: String ->
+            val now = android.os.SystemClock.elapsedRealtime()
+            L.d("Home lap $name: ${now - lastLap} ms")
+            lastLap = now
+        }
+        lap("super")
+
 
         // Have to set up the permission launcher before the view is shown
         storagePermissionLauncher =
@@ -143,6 +158,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
                 musicModel.importPlaylist(uri, pendingImportTarget)
             }
 
+        lap("launchers")
         // --- UI SETUP ---
 
         if (uiSettings.style == AppStyle.CLASSIC) {
@@ -154,6 +170,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             if (uiSettings.style == AppStyle.NEON || uiSettings.style == AppStyle.POP)
                 setupNeonTitle(binding)
         }
+        lap("header style")
         binding.homeNormalToolbar.apply {
             setOnMenuItemClickListener(this@HomeFragment)
             MenuCompat.setGroupDividerEnabled(menu, true)
@@ -172,6 +189,7 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
 
         }
 
+        lap("toolbar")
         binding.homePager.apply {
             // Update HomeViewModel whenever the user swipes through the ViewPager.
             // This would be implemented in HomeFragment itself, but OnPageChangeCallback
@@ -203,12 +221,16 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
             // limit to the maximum amount possible. This will prevent the tab ripple from
             // bugging out due to dynamically inflating each fragment, at the cost of slower
             // debug UI performance.
-            offscreenPageLimit = Tab.MAX_SEQUENCE_IDX + 1
+            // Only the page on screen and its neighbours: every page alive made coming back to Home slow.
+            offscreenPageLimit = androidx.viewpager2.widget.ViewPager2.OFFSCREEN_PAGE_LIMIT_DEFAULT
+
 
             dampen()
         }
 
+        lap("pager callbacks")
         binding.homeNowPlay.setOnClickListener { playbackModel.togglePlaying() }
+
 
         // Swiping the tab bar up or down (see tabPivot) opens/closes the top section.
         // A little room under the last row of the top section.
@@ -239,7 +261,9 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
 
         // Further initialization must be done in the function that also handles
         // re-creating the ViewPager.
+        lap("listeners")
         setupPager(binding)
+        lap("setupPager")
 
         // --- VIEWMODEL SETUP ---
         collect(homeModel.recreateTabs.flow, ::handleRecreate)
@@ -254,7 +278,79 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         collect(playbackModel.playbackDecision.flow, ::handlePlaybackDecision)
         collectImmediately(playbackModel.song, ::updateNowCard)
         collectImmediately(playbackModel.isPlaying, ::updateNowCardPlaying)
+        lap("collectors")
         setupNeonDashboard(binding)
+        lap("dashboard")
+        run {
+            val main = android.os.Looper.getMainLooper().thread
+            val from = android.os.SystemClock.elapsedRealtime()
+            Thread {
+                    while (android.os.SystemClock.elapsedRealtime() - from < 0) {
+                        Thread.sleep(40)
+                        val frames =
+                            main.stackTrace
+                                .filter {
+                                    it.className.startsWith("org.oxycblt") ||
+                                        it.className.startsWith("coil") ||
+                                        it.className.startsWith("androidx.recyclerview") ||
+                                        it.className.startsWith("androidx.viewpager2") ||
+                                        it.className.startsWith("com.google.android.material")
+                                }
+                                .take(7)
+                                .joinToString(" < ") {
+                                    it.className.substringAfterLast('.') + "." + it.methodName + ":" + it.lineNumber
+                                }
+                        val top = main.stackTrace.firstOrNull()
+                        android.util.Log.d(
+                            "HomeProf",
+                            "+${android.os.SystemClock.elapsedRealtime() - from} | ${top?.className?.substringAfterLast('.')}.${top?.methodName} | $frames",
+                        )
+                    }
+                }
+                .start()
+        }
+        if (!childTiming) {
+            childTiming = true
+            val born = HashMap<androidx.fragment.app.Fragment, Long>()
+            childFragmentManager.registerFragmentLifecycleCallbacks(
+                object : androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+                    override fun onFragmentPreAttached(
+                        fm: androidx.fragment.app.FragmentManager,
+                        f: androidx.fragment.app.Fragment,
+                        context: android.content.Context,
+                    ) {
+                        born[f] = android.os.SystemClock.elapsedRealtime()
+                    }
+
+                    override fun onFragmentViewCreated(
+                        fm: androidx.fragment.app.FragmentManager,
+                        f: androidx.fragment.app.Fragment,
+                        v: android.view.View,
+                        savedInstanceState: Bundle?,
+                    ) {
+                        val t = born[f] ?: return
+                        L.d(
+                            "Home page ${f.javaClass.simpleName}: view created ${android.os.SystemClock.elapsedRealtime() - t} ms after attach"
+                        )
+                    }
+
+                    override fun onFragmentResumed(
+                        fm: androidx.fragment.app.FragmentManager,
+                        f: androidx.fragment.app.Fragment,
+                    ) {
+                        val t = born[f] ?: return
+                        L.d(
+                            "Home page ${f.javaClass.simpleName}: resumed ${android.os.SystemClock.elapsedRealtime() - t} ms after attach"
+                        )
+                    }
+                },
+                false,
+            )
+        }
+
+        androidx.core.view.OneShotPreDrawListener.add(binding.root) {
+            L.d("Home first frame: ${android.os.SystemClock.elapsedRealtime() - startedAt} ms after the start")
+        }
         binding.root.post {
             L.d("Home: view ready in ${android.os.SystemClock.elapsedRealtime() - startedAt} ms")
         }
@@ -410,9 +506,15 @@ class HomeFragment : SelectionFragment<FragmentHomeBinding>() {
         binding.homeSearchPill.setOnClickListener {
             findNavController().navigateSafe(HomeFragmentDirections.search())
         }
+        binding.homeRecents.setRecycledViewPool(
+            org.oxycblt.auxio.home.list.HomePools.of(requireActivity(), "recents")
+        )
         binding.homeRecents.adapter = NeonRecentAdapter { song ->
             playbackModel.play(song, homeModel.playWith)
         }
+        binding.homeLists.setRecycledViewPool(
+            org.oxycblt.auxio.home.list.HomePools.of(requireActivity(), "lists")
+        )
         binding.homeLists.layoutManager =
             GridLayoutManager(requireContext(), 2, GridLayoutManager.HORIZONTAL, false)
         binding.homeLists.adapter =

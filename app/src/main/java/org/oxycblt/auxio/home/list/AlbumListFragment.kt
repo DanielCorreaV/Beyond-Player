@@ -72,6 +72,8 @@ class AlbumListFragment :
 
         binding.homeRecycler.apply {
             id = R.id.home_album_recycler
+            setRecycledViewPool(HomePools.of(requireActivity(), "album"))
+
             adapter = albumAdapter
             popupProvider = this@AlbumListFragment
             listener = this@AlbumListFragment

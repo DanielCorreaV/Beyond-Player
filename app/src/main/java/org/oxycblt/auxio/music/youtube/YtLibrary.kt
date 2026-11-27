@@ -209,6 +209,18 @@ object YtLibrary {
     /** [ensureCovers] with the context the library was started with. */
     fun ensureCovers(): Boolean = appContext?.let { ensureCovers(it) } ?: false
 
+    /** The full-size cover of one song. Blocking. True when it arrived and the song had none. */
+    fun ensureCover(context: Context, track: YtTrack): Boolean {
+        val url = track.thumbnailUrl ?: return false
+        val target = coverFile(context, track.videoId)
+        val full = File(target.parentFile, track.videoId + ".hq")
+        if (full.isFile) return false
+        val hadCover = target.isFile
+        if (!download(bigCover(url), target)) return false
+        full.createNewFile()
+        return !hadCover
+    }
+
     /** Downloads the cover of every stored song that has none yet. Blocking. True if any arrived. */
     fun ensureCovers(context: Context): Boolean {
         var any = false

@@ -84,6 +84,17 @@ class YtLoginSheet : AppCompatDialogFragment() {
                             return !(scheme == "http" || scheme == "https")
                         }
 
+                        // YouTube Music changes page without loading again: look at every change.
+                        override fun doUpdateVisitedHistory(
+                            view: WebView,
+                            url: String?,
+                            isReload: Boolean,
+                        ) {
+                            if (url != null && Uri.parse(url).host == "music.youtube.com") {
+                                tryFinish(view, 0)
+                            }
+                        }
+
                         override fun onPageFinished(view: WebView, url: String?) {
                             if (url != null && Uri.parse(url).host == "music.youtube.com") {
                                 tryFinish(view, 0)
@@ -93,6 +104,18 @@ class YtLoginSheet : AppCompatDialogFragment() {
                 loadUrl("https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmusic.youtube.com")
             }
         web = view
+        // Safety net: while the page is music.youtube.com, look for the session once a second.
+        view.postDelayed(
+            object : Runnable {
+                override fun run() {
+                    val w = web ?: return
+                    if (finishing) return
+                    if (Uri.parse(w.url ?: "").host == "music.youtube.com") tryFinish(w, 0)
+                    w.postDelayed(this, 1000)
+                }
+            },
+            1500,
+        )
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurface, 0))

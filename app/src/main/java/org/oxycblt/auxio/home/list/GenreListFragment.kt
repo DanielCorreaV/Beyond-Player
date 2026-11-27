@@ -71,6 +71,8 @@ class GenreListFragment :
 
         binding.homeRecycler.apply {
             id = R.id.home_genre_recycler
+            setRecycledViewPool(HomePools.of(requireActivity(), "genre"))
+
             adapter = genreAdapter
             popupProvider = this@GenreListFragment
             listener = this@GenreListFragment

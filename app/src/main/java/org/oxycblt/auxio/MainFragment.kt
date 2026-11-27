@@ -124,6 +124,43 @@ class MainFragment :
     @SuppressLint("PrivateResource")
     override fun onBindingCreated(binding: FragmentMainBinding, savedInstanceState: Bundle?) {
         super.onBindingCreated(binding, savedInstanceState)
+        run {
+            val main = android.os.Looper.getMainLooper().thread
+            val from = android.os.SystemClock.elapsedRealtime()
+            binding.root.viewTreeObserver.addOnPreDrawListener(
+                object : android.view.ViewTreeObserver.OnPreDrawListener {
+                    override fun onPreDraw(): Boolean {
+                        binding.root.viewTreeObserver.removeOnPreDrawListener(this)
+                        android.util.Log.d("HomeProf", "Main first frame ${android.os.SystemClock.elapsedRealtime() - from} ms")
+                        return true
+                    }
+                }
+            )
+            Thread {
+                    while (android.os.SystemClock.elapsedRealtime() - from < 2500) {
+                        Thread.sleep(40)
+                        val frames =
+                            main.stackTrace
+                                .filter {
+                                    it.className.startsWith("org.oxycblt") ||
+                                        it.className.startsWith("androidx.recyclerview") ||
+                                        it.className.startsWith("androidx.viewpager2") ||
+                                        it.className.startsWith("com.google.android.material")
+                                }
+                                .take(7)
+                                .joinToString(" < ") {
+                                    it.className.substringAfterLast('.') + "." + it.methodName + ":" + it.lineNumber
+                                }
+                        val top = main.stackTrace.firstOrNull()
+                        android.util.Log.d(
+                            "HomeProf",
+                            "MainProf +${android.os.SystemClock.elapsedRealtime() - from} | ${top?.className?.substringAfterLast('.')}.${top?.methodName} | $frames",
+                        )
+                    }
+                }
+                .start()
+        }
+
 
         val playbackSheetBehavior =
             binding.playbackSheet.coordinatorLayoutBehavior as PlaybackBottomSheetBehavior
@@ -178,6 +215,61 @@ class MainFragment :
         }
 
         if (queueSheetBehavior != null) {
+            // Switch for "keep playing when the queue ends".
+            binding.queueHandleWrapper?.let { wrap ->
+                val ctx = wrap.context
+                val size = (48 * ctx.resources.displayMetrics.density).toInt()
+                val btn =
+                    android.widget.ImageButton(ctx).apply {
+                        setImageResource(R.drawable.ic_autoplay_24)
+                        val tv = android.util.TypedValue()
+                        ctx.theme.resolveAttribute(
+                            android.R.attr.selectableItemBackgroundBorderless,
+                            tv,
+                            true,
+                        )
+                        setBackgroundResource(tv.resourceId)
+                        layoutParams =
+                            androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(size, size)
+                                .apply {
+                                    topToTop =
+                                        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+                                            .PARENT_ID
+                                    bottomToBottom =
+                                        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+                                            .PARENT_ID
+                                    endToEnd =
+                                        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+                                            .PARENT_ID
+                                }
+                    }
+                val paint = {
+                    val on = org.oxycblt.auxio.music.youtube.YtAutoContinue.userEnabled(ctx)
+                    androidx.core.widget.ImageViewCompat.setImageTintList(
+                        btn,
+                        ctx.getAttrColorCompat(
+                            if (on) androidx.appcompat.R.attr.colorPrimary else MR.attr.colorOnSurfaceVariant
+                        ),
+                    )
+                    btn.alpha = if (on) 1f else 0.45f
+                    btn.contentDescription =
+                        ctx.getString(
+                            if (on) R.string.lbl_yt_continue_on else R.string.lbl_yt_continue_off
+                        )
+                }
+                paint()
+                btn.setOnClickListener {
+                    val on = org.oxycblt.auxio.music.youtube.YtAutoContinue.toggle(ctx)
+                    paint()
+                    android.widget.Toast.makeText(
+                            ctx,
+                            if (on) R.string.lbl_yt_continue_on else R.string.lbl_yt_continue_off,
+                            android.widget.Toast.LENGTH_SHORT,
+                        )
+                        .show()
+                }
+                wrap.addView(btn)
+            }
             // In portrait mode, set up click listeners on the stacked sheets.
             L.d("Configuring stacked bottom sheets")
             unlikelyToBeNull(binding.queueHandleWrapper).setOnClickListener {

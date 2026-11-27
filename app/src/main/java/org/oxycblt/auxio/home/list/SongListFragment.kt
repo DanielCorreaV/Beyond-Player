@@ -69,6 +69,8 @@ class SongListFragment :
 
         binding.homeRecycler.apply {
             id = R.id.home_song_recycler
+            setRecycledViewPool(HomePools.of(requireActivity(), "song"))
+
             adapter = songAdapter
             popupProvider = this@SongListFragment
             listener = this@SongListFragment

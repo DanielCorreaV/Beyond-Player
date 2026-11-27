@@ -60,4 +60,6 @@
     <string name="lbl_yt_unfavorite">Quitar de favoritos</string>
     <string name="lbl_yt_favorites_tab">Favoritos</string>
     <string name="lbl_yt_see_full_list">Ver lista completa</string>
+    <string name="lbl_yt_continue_on">Reproducción continua: activada</string>
+    <string name="lbl_yt_continue_off">Reproducción continua: desactivada</string>
 </resources>
